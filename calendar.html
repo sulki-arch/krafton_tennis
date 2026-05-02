@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>공유 캘린더</title>
+<!-- Firebase SDK (Realtime Database) -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 <style>
 :root{--P:#1a73e8;--PD:#1557b0;--SUN:#e53935;--SAT:#1a73e8;--BD:#f0f0f0;--SH:0 2px 14px rgba(0,0,0,.13)}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -256,6 +259,15 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 </head>
 <body>
 <div id="root">
+
+<!-- ═══ LOADING SCREEN ═══ -->
+<div id="ldg" style="display:none;position:fixed;inset:0;z-index:900;background:#0f2027;flex-direction:column;align-items:center;justify-content:center;gap:14px">
+  <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="1.5" style="animation:spin 1.4s linear infinite">
+    <circle cx="12" cy="12" r="10" stroke-dasharray="30 60"/>
+  </svg>
+  <div style="color:rgba(255,255,255,.45);font-size:13px">연결 중...</div>
+</div>
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
 
 <!-- ═══ SPLASH + LOGIN (3단 구성) ═══ -->
 <div id="splash">
@@ -603,53 +615,137 @@ let grpSelMembers=new Set();
 let splashPhoto=null; // temp storage during splash edit
 
 /* ═══════════════════════════════════════
-   2.  STORAGE
-═══════════════════════════════════════ */
-const getUsers  =()=>JSON.parse(localStorage.getItem(UK)||'[]');
-const getEvents =()=>JSON.parse(localStorage.getItem(EK)||'[]');
-const getCats   =()=>JSON.parse(localStorage.getItem(CK)||JSON.stringify(DEFAULT_CATS)).sort((a,b)=>a.order-b.order);
-const getMedia  =()=>JSON.parse(localStorage.getItem(MK)||'{}');
-const setUsers  =v=>localStorage.setItem(UK,JSON.stringify(v));
-const setEvents =v=>localStorage.setItem(EK,JSON.stringify(v));
-const setCats   =v=>localStorage.setItem(CK,JSON.stringify(v));
-const setMedia  =v=>{ try{localStorage.setItem(MK,JSON.stringify(v))}catch(e){toast('저장 공간이 부족합니다. 오래된 사진을 삭제해 주세요.')} };
+   2.  STORAGE — Firebase + localStorage fallback
+   ─────────────────────────────────────
+   Firebase 설정 방법:
+   1. https://console.firebase.google.com → 새 프로젝트
+   2. 빌드 → Realtime Database → 데이터베이스 만들기 (테스트 모드)
+   3. 아래 FIREBASE_DB_URL 에 본인 URL 붙여넣기
+      예) 'https://my-tennis-cal-default-rtdb.firebaseio.com'
+   ─────────────────────────────────────  */
+const FIREBASE_DB_URL = 'https://krafton-tennis-default-rtdb.asia-southeast1.firebasedatabase.app';
 
-function getToken(){ return JSON.parse(localStorage.getItem(TK)||'null'); }
-function setToken(userId){
-  localStorage.setItem(TK, JSON.stringify({userId, expires: Date.now()+TOKEN_MS}));
+let _db = null;
+(function(){
+  try{
+    if(FIREBASE_DB_URL.includes('YOUR-PROJECT')) return;
+    firebase.initializeApp({databaseURL:FIREBASE_DB_URL});
+    _db = firebase.database();
+  }catch(e){ console.warn('Firebase init failed:',e); }
+})();
+
+// 인메모리 데이터 캐시
+let _D = {users:[],events:[],cats:null,media:{},covers:{},groups:[],splash:null};
+let _fbReady = false;
+
+async function loadAllData(){
+  if(_db){
+    await new Promise(resolve=>{
+      _db.ref('/cal').on('value', snap=>{
+        const d = snap.val()||{};
+        _D.users  = d.users  ?? [];
+        _D.events = d.events ?? [];
+        _D.cats   = d.cats   ?? null;
+        _D.media  = d.media  ?? {};
+        _D.covers = d.covers ?? {};
+        _D.groups = d.groups ?? [];
+        _D.splash = d.splash ?? null;
+
+        if(!_fbReady){ _fbReady=true; resolve(); return; }
+
+        // 이후 변경 시 실시간 반영 ───────────────
+        // 스플래시 화면 갱신
+        const spEl=document.getElementById('splash');
+        if(spEl && spEl.style.display!=='none'){
+          const sp=getSplash();
+          document.getElementById('spTitle').textContent=sp.title||'공유 캘린더';
+          document.getElementById('spDesc').textContent=sp.desc||'';
+          spEl.style.backgroundImage=sp.photo?`url(${sp.photo})`:'linear-gradient(135deg,#0f2027 0%,#203a43 50%,#2c5364 100%)';
+        }
+        // 캘린더 화면 갱신
+        if(CU){
+          const u=_D.users.find(x=>x.id===CU.id);
+          if(!u){ doLogout(); return; }
+          CU=u;
+          renderCatBar(); renderScopeBar(); renderCal();
+          if(document.getElementById('ddM').classList.contains('open')) refreshDd();
+        }
+      });
+    });
+  } else {
+    // localStorage 폴백
+    _D.users  = JSON.parse(localStorage.getItem(UK)||'[]');
+    _D.events = JSON.parse(localStorage.getItem(EK)||'[]');
+    _D.cats   = JSON.parse(localStorage.getItem(CK)||'null');
+    _D.media  = JSON.parse(localStorage.getItem(MK)||'{}');
+    _D.covers = JSON.parse(localStorage.getItem(CVK)||'{}');
+    _D.groups = JSON.parse(localStorage.getItem(GK)||'[]');
+    _D.splash = JSON.parse(localStorage.getItem(SPK)||'null');
+  }
 }
+
+function _save(key,val){
+  _D[key]=val;
+  if(_db){
+    _db.ref('/cal/'+key).set(val).catch(e=>console.warn('Firebase write:',e));
+  } else {
+    const lsKey={users:UK,events:EK,cats:CK,media:MK,covers:CVK,groups:GK,splash:SPK}[key];
+    if(lsKey){ try{ localStorage.setItem(lsKey,JSON.stringify(val)); }
+      catch(e){ if(key==='media'||key==='splash') toast('저장 공간이 부족합니다.'); } }
+  }
+}
+
+const getUsers  =()=> _D.users;
+const getEvents =()=> _D.events;
+const getCats   =()=> (_D.cats||DEFAULT_CATS).slice().sort((a,b)=>a.order-b.order);
+const getMedia  =()=> _D.media||{};
+const getCovers =()=> _D.covers||{};
+const getGroups =()=> _D.groups||[];
+const getSplash =()=> _D.splash||{title:'공유 캘린더',desc:'',photo:''};
+
+const setUsers  =v=> _save('users',v);
+const setEvents =v=> _save('events',v);
+const setCats   =v=> _save('cats',v);
+const setMedia  =v=> _save('media',v);
+const setCovers =v=> _save('covers',v);
+const setGroups =v=> _save('groups',v);
+const setSplash =v=> _save('splash',v);
+
+// 토큰은 디바이스별 localStorage (90일 자동로그인)
+function getToken(){ return JSON.parse(localStorage.getItem(TK)||'null'); }
+function setToken(userId){ localStorage.setItem(TK,JSON.stringify({userId,expires:Date.now()+TOKEN_MS})); }
 function clearToken(){ localStorage.removeItem(TK); }
-
-const getSplash=()=>JSON.parse(localStorage.getItem(SPK)||'{"title":"공유 캘린더","desc":"","photo":""}');
-const setSplash=v=>{ try{localStorage.setItem(SPK,JSON.stringify(v))}catch(e){toast('저장 공간이 부족합니다.')} };
-
-const getCovers=()=>JSON.parse(localStorage.getItem(CVK)||'{}');
-const setCovers=v=>localStorage.setItem(CVK,JSON.stringify(v));
-
-const getGroups=()=>JSON.parse(localStorage.getItem(GK)||'[]');
-const setGroups=v=>localStorage.setItem(GK,JSON.stringify(v));
 
 /* ═══════════════════════════════════════
    3.  INIT
 ═══════════════════════════════════════ */
-function init(){
-  // Default admin
+async function init(){
+  // 로딩 화면 표시
+  const ldg=document.getElementById('ldg');
+  ldg.style.display='flex';
+
+  // Firebase (또는 localStorage) 에서 데이터 로드
+  await loadAllData();
+
+  ldg.style.display='none';
+
+  // 기본 관리자 계정
   let users=getUsers();
   if(!users.find(u=>u.role==='admin')){
     users.push({id:'admin',username:'admin',password:'admin1234',name:'관리자',role:'admin'});
     setUsers(users);
   }
-  // Default categories
-  if(!localStorage.getItem(CK)) setCats(DEFAULT_CATS);
+  // 기본 카테고리
+  if(!_D.cats) setCats(DEFAULT_CATS);
 
-  // Register event listeners first
+  // 키보드 이벤트
   ['lu','lp'].forEach(id=>{
     document.getElementById(id).addEventListener('keydown',e=>{
       if(e.key==='Enter'){ id==='lu'?document.getElementById('lp').focus():doLogin(); }
     });
   });
 
-  // Photo input handler
+  // 사진 입력 핸들러
   document.getElementById('photoIn').addEventListener('change',async e=>{
     const file=e.target.files[0]; if(!file) return;
     toast('사진을 처리 중...');
@@ -660,7 +756,7 @@ function init(){
     toast('사진이 추가되었습니다');
   });
 
-  // Splash photo input handler
+  // 스플래시 사진 핸들러
   document.getElementById('splashPhotoIn').addEventListener('change',async e=>{
     const file=e.target.files[0]; if(!file) return;
     toast('사진을 처리 중...');
@@ -671,12 +767,12 @@ function init(){
     toast('사진이 등록되었습니다');
   });
 
-  // Close modal on backdrop
+  // 모달 바깥 클릭 시 닫기
   document.querySelectorAll('.bso').forEach(el=>{
     el.addEventListener('click',function(e){ if(e.target===this) this.classList.remove('open'); });
   });
 
-  // Show splash 1.5초 → 로그인 여부에 따라 분기
+  // 스플래시 1.5초 → 로그인 여부 분기
   showSplash(()=>{
     const tok=getToken();
     if(tok && tok.expires>Date.now()){
@@ -684,7 +780,6 @@ function init(){
       if(u){ CU=u; hideSplashToApp(); return; }
       clearToken();
     }
-    // 로그인 폼 서서히 등장
     document.getElementById('spLogin').classList.add('show');
   });
 }
