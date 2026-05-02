@@ -292,6 +292,13 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 .chat-mine{background:#f5f9ff}
 .chat-nick{font-size:11px;font-weight:700;color:#1a73e8}
 .chat-mine .chat-nick{color:#e65100}
+.chat-avatar{width:26px;height:26px;border-radius:50%;object-fit:cover;flex-shrink:0;background:#e8e8e8;display:flex;align-items:center;justify-content:center;font-size:13px;overflow:hidden}
+.chat-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.chat-hd{display:flex;align-items:center;gap:6px;margin-bottom:2px}
+.prof-avatar-wrap{width:80px;height:80px;border-radius:50%;background:#f0f0f0;margin:0 auto 8px;overflow:hidden;cursor:pointer;border:2px solid #e0e0e0;display:flex;align-items:center;justify-content:center;position:relative}
+.prof-avatar-wrap img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:none}
+.prof-avatar-wrap .pa-icon{font-size:32px}
+.ev-memo-box a{color:#1a73e8;text-decoration:underline;word-break:break-all}
 .chat-text{font-size:13px;color:#222;margin-top:2px;word-break:break-word;line-height:1.5}
 .chat-ts{font-size:10px;color:#ccc;margin-top:3px}
 .chat-send-row{display:flex;gap:8px;margin-bottom:4px}
@@ -610,6 +617,15 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
   <div class="bs">
     <div class="bs-h"></div>
     <div class="bs-t">내 프로필</div>
+    <!-- 프로필 사진 -->
+    <div style="text-align:center;margin-bottom:16px">
+      <div class="prof-avatar-wrap" id="profAvatarWrap" onclick="document.getElementById('profAvatarInput').click()">
+        <span class="pa-icon" id="profAvatarIcon">👤</span>
+        <img id="profAvatarImg" src="" alt="">
+      </div>
+      <button class="btn btn-s" style="font-size:12px;padding:4px 12px" onclick="document.getElementById('profAvatarInput').click()">📷 사진 등록</button>
+      <input id="profAvatarInput" type="file" accept="image/*" style="display:none" onchange="handleProfPhoto(this)">
+    </div>
     <label class="fl">아이디 <span style="font-weight:400;color:#bbb">(변경 불가)</span></label>
     <input id="profIdDisp" type="text" disabled style="background:#f5f5f5;color:#999">
     <label class="fl">닉네임</label>
@@ -1600,7 +1616,7 @@ function openEvDetail(evId){
   // 메모
   const memoWrap=document.getElementById('evDMemoWrap');
   const memoEl=document.getElementById('evDMemo');
-  if(ev.memo){ memoWrap.style.display='block'; memoEl.textContent=ev.memo; }
+  if(ev.memo){ memoWrap.style.display='block'; memoEl.innerHTML=linkify(ev.memo); }
   else memoWrap.style.display='none';
 
   // 수정 버튼
@@ -1664,8 +1680,11 @@ function _renderEvChat(ev){
     const isMine=msg.userId===CU.id;
     const ts=new Date(msg.ts);
     const timeStr=ts.getHours().toString().padStart(2,'0')+':'+ts.getMinutes().toString().padStart(2,'0');
+    const avHtml=u&&u.avatar
+      ?`<div class="chat-avatar"><img src="${u.avatar}" alt=""></div>`
+      :`<div class="chat-avatar">${nick.slice(0,1)}</div>`;
     return `<div class="chat-bubble${isMine?' chat-mine':''}">
-      <div class="chat-nick">${nick}</div>
+      <div class="chat-hd">${avHtml}<div class="chat-nick">${nick}</div></div>
       <div class="chat-text">${msg.text.replace(/</g,'&lt;')}</div>
       <div class="chat-ts">${timeStr}</div>
     </div>`;
@@ -2264,12 +2283,48 @@ function delUser(){
 /* ═══════════════════════════════════════
    14b.  PROFILE
 ═══════════════════════════════════════ */
+/* ── linkify: URL → 클릭 가능 링크 ── */
+function linkify(text){
+  const safe=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return safe.replace(/(https?:\/\/[^\s<>"']+)/g,
+    '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+}
+
+/* ── 프로필 사진 처리 ── */
+function handleProfPhoto(input){
+  const file=input.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const img=new Image();
+    img.onload=()=>{
+      const size=200;
+      const c=document.createElement('canvas');
+      c.width=size; c.height=size;
+      const ctx=c.getContext('2d');
+      const minSide=Math.min(img.width,img.height);
+      const sx=(img.width-minSide)/2, sy=(img.height-minSide)/2;
+      ctx.drawImage(img,sx,sy,minSide,minSide,0,0,size,size);
+      const dataUrl=c.toDataURL('image/jpeg',0.85);
+      const imgEl=document.getElementById('profAvatarImg');
+      imgEl.src=dataUrl; imgEl.style.display='block';
+      document.getElementById('profAvatarIcon').style.display='none';
+      window._profPhotoData=dataUrl;
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
 function openProfile(){
   if(!CU||CU.role==='viewer') return;
   document.getElementById('profIdDisp').value=CU.username||CU.id;
   document.getElementById('profName').value=CU.name||'';
   document.getElementById('profPw').value='';
   document.getElementById('profErr').textContent='';
+  window._profPhotoData=null;
+  const imgEl=document.getElementById('profAvatarImg');
+  if(CU.avatar){ imgEl.src=CU.avatar; imgEl.style.display='block'; document.getElementById('profAvatarIcon').style.display='none'; }
+  else { imgEl.style.display='none'; document.getElementById('profAvatarIcon').style.display='block'; }
   openM('profM');
 }
 function saveProfile(){
@@ -2282,12 +2337,42 @@ function saveProfile(){
   if(i===-1){err.textContent='사용자 정보를 찾을 수 없습니다';return;}
   const updated={...users[i],name};
   if(pw) updated.password=pw;
+  if(window._profPhotoData) updated.avatar=window._profPhotoData;
   users[i]=updated;
   setUsers(users);
   CU=updated;
   document.getElementById('dname').textContent=CU.name;
   closeM('profM');
   toast('프로필이 저장되었습니다 ✓');
+}
+
+/* ═══════════════════════════════════════
+   14c.  SWIPE GESTURES
+═══════════════════════════════════════ */
+function initSwipeGestures(){
+  // 월간 캘린더: 상하 스와이프 → 월 이동
+  const calEl=document.querySelector('.cal');
+  let cty=0, ctx2=0;
+  calEl.addEventListener('touchstart',e=>{
+    cty=e.touches[0].clientY; ctx2=e.touches[0].clientX;
+  },{passive:true});
+  calEl.addEventListener('touchend',e=>{
+    const dy=e.changedTouches[0].clientY-cty;
+    const dx=Math.abs(e.changedTouches[0].clientX-ctx2);
+    if(Math.abs(dy)>55&&Math.abs(dy)>dx){ changeMonth(dy<0?1:-1); }
+  },{passive:true});
+
+  // 주간 캘린더: 좌우 스와이프 → 날짜 이동
+  const wcEl=document.getElementById('wcalWrap');
+  let wsx=0, wsy=0;
+  wcEl.addEventListener('touchstart',e=>{
+    wsx=e.touches[0].clientX; wsy=e.touches[0].clientY;
+  },{passive:true});
+  wcEl.addEventListener('touchend',e=>{
+    const dx=e.changedTouches[0].clientX-wsx;
+    const dy=Math.abs(e.changedTouches[0].clientY-wsy);
+    if(Math.abs(dx)>55&&Math.abs(dx)>dy){ changeMonth(dx<0?1:-1); }
+  },{passive:true});
 }
 
 /* ═══════════════════════════════════════
@@ -2310,6 +2395,7 @@ function toast(msg){
    START
 ═══════════════════════════════════════ */
 init();
+initSwipeGestures();
 </script>
 </body>
 </html>
