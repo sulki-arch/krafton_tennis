@@ -11,18 +11,8 @@ html,body{height:100%}
 body{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:#f4f6fb;display:flex;justify-content:center}
 #root{width:100%;max-width:480px;min-height:100vh;background:#fff;position:relative;display:flex;flex-direction:column}
 
-/* ── LOGIN ── */
-#login-screen{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:40px 28px}
-.l-icon{font-size:54px;margin-bottom:10px}
-.l-title{font-size:24px;font-weight:800;color:#1a1a1a;margin-bottom:4px}
-.l-sub{font-size:13px;color:#999;margin-bottom:36px}
-.l-form{width:100%;max-width:340px}
-.l-form input{width:100%;padding:14px 16px;border:1.5px solid #e0e0e0;border-radius:12px;font-size:15px;margin-bottom:12px;outline:none;color:#222;font-family:inherit;transition:border-color .2s;background:#fff}
-.l-form input:focus{border-color:var(--P)}
-.l-btn{width:100%;padding:15px;background:var(--P);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .2s}
-.l-btn:active{background:var(--PD)}
-.l-hint{margin-top:16px;padding:12px 14px;background:#f0f4ff;border-radius:10px;font-size:12px;color:#666;line-height:1.7;text-align:center}
-.l-err{color:#e53935;font-size:13px;text-align:center;margin-top:10px;min-height:18px}
+/* ── LOGIN (legacy, unused) ── */
+#login-screen{display:none}
 
 /* ── APP ── */
 #app{display:none;flex-direction:column;flex:1}
@@ -197,12 +187,24 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
 /* ── SPLASH SCREEN ── */
-#splash{position:fixed;inset:0;z-index:800;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;background:#0f2027;background-size:cover;background-position:center;background-repeat:no-repeat;padding-bottom:72px;transition:opacity .7s ease}
+#splash{position:fixed;inset:0;z-index:800;display:flex;flex-direction:column;background:#0f2027;background-size:cover;background-position:center;background-repeat:no-repeat;transition:opacity .65s ease}
 #splash.fade-out{opacity:0;pointer-events:none}
-.sp-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.08) 0%,rgba(0,0,0,.6) 100%)}
-.sp-content{position:relative;z-index:1;text-align:center;color:#fff;padding:0 32px;width:100%}
-.sp-title{font-size:32px;font-weight:800;margin-bottom:12px;text-shadow:0 2px 12px rgba(0,0,0,.45);line-height:1.2;letter-spacing:-.5px}
-.sp-desc{font-size:14px;line-height:1.7;opacity:.88;text-shadow:0 1px 6px rgba(0,0,0,.4);max-width:320px;margin:0 auto;word-break:keep-all}
+.sp-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.15) 0%,rgba(0,0,0,.72) 100%)}
+/* 1단: 제목 */
+.sp-top{flex:1;position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:64px 32px 16px;color:#fff}
+.sp-title{font-size:34px;font-weight:800;margin-bottom:0;text-shadow:0 2px 14px rgba(0,0,0,.5);line-height:1.2;letter-spacing:-.5px}
+/* 2단: 설명 텍스트 */
+.sp-mid{position:relative;z-index:1;text-align:center;padding:0 32px 24px;color:#fff}
+.sp-desc{font-size:14px;line-height:1.75;opacity:.85;text-shadow:0 1px 6px rgba(0,0,0,.4);word-break:keep-all}
+/* 3단: 로그인 폼 */
+.sp-login{position:relative;z-index:1;padding:0 24px 48px;opacity:0;transform:translateY(24px);transition:opacity .55s ease,transform .55s ease;pointer-events:none}
+.sp-login.show{opacity:1;transform:translateY(0);pointer-events:auto}
+.sp-login input{width:100%;padding:14px 16px;background:rgba(255,255,255,.13);border:1.5px solid rgba(255,255,255,.28);border-radius:12px;font-size:15px;color:#fff;margin-bottom:11px;outline:none;font-family:inherit;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:border-color .2s,background .2s}
+.sp-login input::placeholder{color:rgba(255,255,255,.5)}
+.sp-login input:focus{border-color:rgba(255,255,255,.65);background:rgba(255,255,255,.21)}
+.sp-btn{width:100%;padding:15px;background:rgba(255,255,255,.95);color:#1a1a1a;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .2s;margin-top:2px}
+.sp-btn:active{background:rgba(255,255,255,.78)}
+.sp-err{color:rgba(255,185,185,1);font-size:13px;text-align:center;margin-top:10px;min-height:18px}
 
 /* ── SPLASH EDIT MODAL ── */
 .sp-preview{width:100%;height:180px;border-radius:14px;background:#0f2027;background-size:cover;background-position:center;overflow:hidden;position:relative;margin-bottom:4px}
@@ -218,27 +220,28 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 <body>
 <div id="root">
 
-<!-- ═══ SPLASH ═══ -->
+<!-- ═══ SPLASH + LOGIN (3단 구성) ═══ -->
 <div id="splash">
   <div class="sp-overlay"></div>
-  <div class="sp-content">
+  <!-- 1단: 제목 -->
+  <div class="sp-top">
     <div class="sp-title" id="spTitle">공유 캘린더</div>
-    <div class="sp-desc"  id="spDesc"></div>
+  </div>
+  <!-- 2단: 설명 텍스트 -->
+  <div class="sp-mid">
+    <div class="sp-desc" id="spDesc"></div>
+  </div>
+  <!-- 3단: 로그인 폼 (1.5초 후 서서히 등장) -->
+  <div class="sp-login" id="spLogin">
+    <input id="lu" type="text"     placeholder="아이디"   autocomplete="username">
+    <input id="lp" type="password" placeholder="비밀번호" autocomplete="current-password">
+    <button class="sp-btn" onclick="doLogin()">로그인</button>
+    <div class="sp-err" id="lerr"></div>
   </div>
 </div>
 
-<!-- ═══ LOGIN ═══ -->
-<div id="login-screen">
-  <div class="l-icon">📅</div>
-  <div class="l-title">공유 캘린더</div>
-  <div class="l-sub">아이디와 비밀번호를 입력하세요</div>
-  <div class="l-form">
-    <input id="lu" type="text"     placeholder="아이디"   autocomplete="username">
-    <input id="lp" type="password" placeholder="비밀번호" autocomplete="current-password">
-    <button class="l-btn" onclick="doLogin()">로그인</button>
-    <div class="l-err" id="lerr"></div>
-  </div>
-</div>
+<!-- login-screen (legacy, hidden) -->
+<div id="login-screen"></div>
 
 <!-- ═══ APP ═══ -->
 <div id="app">
@@ -588,15 +591,16 @@ function init(){
     el.addEventListener('click',function(e){ if(e.target===this) this.classList.remove('open'); });
   });
 
-  // Show splash, then login or app
+  // Show splash 1.5초 → 로그인 여부에 따라 분기
   showSplash(()=>{
     const tok=getToken();
     if(tok && tok.expires>Date.now()){
       const u=getUsers().find(u=>u.id===tok.userId);
-      if(u){ CU=u; showApp(); return; }
+      if(u){ CU=u; hideSplashToApp(); return; }
       clearToken();
     }
-    document.getElementById('login-screen').style.display='flex';
+    // 로그인 폼 서서히 등장
+    document.getElementById('spLogin').classList.add('show');
   });
 }
 
@@ -610,12 +614,15 @@ function showSplash(callback){
   document.getElementById('spDesc').textContent=sp.desc||'';
   el.style.backgroundImage=sp.photo?`url(${sp.photo})`:'linear-gradient(135deg,#0f2027 0%,#203a43 50%,#2c5364 100%)';
   el.style.opacity='1';
+  el.style.display='flex';
   el.classList.remove('fade-out');
-
-  setTimeout(()=>{
-    el.classList.add('fade-out');
-    setTimeout(()=>{ el.style.display='none'; callback(); }, 700);
-  }, 2200);
+  // 1.5초 후 콜백 (페이지 유지한 채로)
+  setTimeout(()=>{ callback(); }, 1500);
+}
+function hideSplashToApp(){
+  const el=document.getElementById('splash');
+  el.classList.add('fade-out');
+  setTimeout(()=>{ el.style.display='none'; showApp(); }, 680);
 }
 
 function openSplashEdit(){
@@ -660,21 +667,28 @@ function doLogin(){
   CU=user;
   setToken(user.id);
   document.getElementById('lerr').textContent='';
-  showApp();
+  hideSplashToApp();
 }
 function doLogout(){
   CU=null; clearToken(); closeDrawer();
   document.getElementById('app').style.display='none';
-  document.getElementById('login-screen').style.display='flex';
+  // 스플래시 다시 보여주고 바로 로그인 폼 표시 (딜레이 없이)
+  const sp=getSplash();
+  const el=document.getElementById('splash');
+  document.getElementById('spTitle').textContent=sp.title||'공유 캘린더';
+  document.getElementById('spDesc').textContent=sp.desc||'';
+  el.style.backgroundImage=sp.photo?`url(${sp.photo})`:'linear-gradient(135deg,#0f2027 0%,#203a43 50%,#2c5364 100%)';
+  el.style.opacity='1'; el.style.display='flex'; el.classList.remove('fade-out');
   document.getElementById('lu').value='';
   document.getElementById('lp').value='';
+  document.getElementById('lerr').textContent='';
+  document.getElementById('spLogin').classList.add('show');
 }
 
 /* ═══════════════════════════════════════
    5.  APP SETUP
 ═══════════════════════════════════════ */
 function showApp(){
-  document.getElementById('login-screen').style.display='none';
   document.getElementById('app').style.display='flex';
   document.getElementById('dname').textContent=CU.name;
   document.getElementById('drole').textContent=CU.role==='admin'?'관리자 계정':'게스트 계정';
