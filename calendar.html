@@ -11,18 +11,8 @@ html,body{height:100%}
 body{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:#f4f6fb;display:flex;justify-content:center}
 #root{width:100%;max-width:480px;min-height:100vh;background:#fff;position:relative;display:flex;flex-direction:column}
 
-/* ── LOGIN ── */
-#login-screen{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:40px 28px}
-.l-icon{font-size:54px;margin-bottom:10px}
-.l-title{font-size:24px;font-weight:800;color:#1a1a1a;margin-bottom:4px}
-.l-sub{font-size:13px;color:#999;margin-bottom:36px}
-.l-form{width:100%;max-width:340px}
-.l-form input{width:100%;padding:14px 16px;border:1.5px solid #e0e0e0;border-radius:12px;font-size:15px;margin-bottom:12px;outline:none;color:#222;font-family:inherit;transition:border-color .2s;background:#fff}
-.l-form input:focus{border-color:var(--P)}
-.l-btn{width:100%;padding:15px;background:var(--P);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .2s}
-.l-btn:active{background:var(--PD)}
-.l-hint{margin-top:16px;padding:12px 14px;background:#f0f4ff;border-radius:10px;font-size:12px;color:#666;line-height:1.7;text-align:center}
-.l-err{color:#e53935;font-size:13px;text-align:center;margin-top:10px;min-height:18px}
+/* ── LOGIN (legacy, unused) ── */
+#login-screen{display:none}
 
 /* ── APP ── */
 #app{display:none;flex-direction:column;flex:1}
@@ -154,6 +144,19 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 .photo-wrap{position:relative;border-radius:10px;overflow:hidden;aspect-ratio:1}
 .photo-wrap img{width:100%;height:100%;object-fit:cover;cursor:pointer;display:block}
 .photo-del{position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;border:none;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center}
+.photo-cover-btn{position:absolute;bottom:4px;left:4px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.45);color:rgba(255,255,255,.7);border:none;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s;line-height:1}
+.photo-cover-btn.active{background:#f5a623;color:#fff}
+
+/* ── COVER PHOTO CELL ── */
+.dc.has-cover{position:relative;background-size:cover;background-position:center top;background-repeat:no-repeat}
+.dc.has-cover::before{content:'';position:absolute;inset:0;background:rgba(0,0,0,.3);pointer-events:none;z-index:0}
+.dc.has-cover .dnum{position:relative;z-index:1;background:rgba(0,0,0,.38)!important;color:#fff!important}
+.dc.has-cover.today .dnum{background:var(--P)!important}
+.dc.has-cover .ep{position:relative;z-index:1;background:rgba(0,0,0,.38)!important;color:#fff!important}
+.dc.has-cover .ep-more{position:relative;z-index:1;color:rgba(255,255,255,.8)}
+.dc.has-cover .cmedia{position:relative;z-index:1}
+.dc.has-cover .cm-stk{filter:drop-shadow(0 1px 2px rgba(0,0,0,.7))}
+.dc.has-cover .cm-photo{color:rgba(255,255,255,.9);filter:drop-shadow(0 1px 2px rgba(0,0,0,.7))}
 .media-add-row{display:flex;gap:8px;margin-top:4px}
 .media-add-btn{flex:1;padding:10px;border:1.5px dashed #ddd;background:none;border-radius:10px;font-size:13px;color:#aaa;cursor:pointer;font-family:inherit;transition:all .15s}
 .media-add-btn:hover{border-color:var(--P);color:var(--P)}
@@ -195,24 +198,63 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 /* ── TOAST ── */
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(10px);background:rgba(30,30,30,.9);color:#fff;padding:10px 22px;border-radius:22px;font-size:14px;opacity:0;transition:all .28s;z-index:700;pointer-events:none;white-space:nowrap}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── SPLASH SCREEN ── */
+#splash{position:fixed;inset:0;z-index:800;display:flex;flex-direction:column;background:#0f2027;background-size:cover;background-position:center;background-repeat:no-repeat;transition:opacity .65s ease}
+#splash.fade-out{opacity:0;pointer-events:none}
+.sp-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.15) 0%,rgba(0,0,0,.72) 100%)}
+/* 1단: 제목 */
+.sp-top{flex:1;position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:64px 32px 16px;color:#fff}
+.sp-title{font-size:34px;font-weight:800;margin-bottom:0;text-shadow:0 2px 14px rgba(0,0,0,.5);line-height:1.2;letter-spacing:-.5px}
+/* 2단: 설명 텍스트 */
+.sp-mid{position:relative;z-index:1;text-align:center;padding:0 32px 24px;color:#fff}
+.sp-desc{font-size:14px;line-height:1.75;opacity:.85;text-shadow:0 1px 6px rgba(0,0,0,.4);word-break:keep-all}
+/* 3단: 로그인 폼 */
+.sp-login{position:relative;z-index:1;padding:0 24px 48px;opacity:0;transform:translateY(24px);transition:opacity .55s ease,transform .55s ease;pointer-events:none}
+.sp-login.show{opacity:1;transform:translateY(0);pointer-events:auto}
+.sp-login input{width:100%;padding:14px 16px;background:rgba(255,255,255,.13);border:1.5px solid rgba(255,255,255,.28);border-radius:12px;font-size:15px;color:#fff;margin-bottom:11px;outline:none;font-family:inherit;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:border-color .2s,background .2s}
+.sp-login input::placeholder{color:rgba(255,255,255,.5)}
+.sp-login input:focus{border-color:rgba(255,255,255,.65);background:rgba(255,255,255,.21)}
+.sp-btn{width:100%;padding:15px;background:rgba(255,255,255,.95);color:#1a1a1a;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .2s;margin-top:2px}
+.sp-btn:active{background:rgba(255,255,255,.78)}
+.sp-err{color:rgba(255,185,185,1);font-size:13px;text-align:center;margin-top:10px;min-height:18px}
+
+/* ── SPLASH EDIT MODAL ── */
+.sp-preview{width:100%;height:180px;border-radius:14px;background:#0f2027;background-size:cover;background-position:center;overflow:hidden;position:relative;margin-bottom:4px}
+.sp-preview-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 30%,rgba(0,0,0,.6) 100%)}
+.sp-preview-content{position:absolute;bottom:0;left:0;right:0;padding:14px 16px;color:#fff;text-align:center}
+.sp-preview-title{font-size:18px;font-weight:800;text-shadow:0 1px 6px rgba(0,0,0,.4)}
+.sp-preview-desc{font-size:12px;opacity:.85;margin-top:4px;text-shadow:0 1px 4px rgba(0,0,0,.4)}
+.sp-photo-btn{width:100%;padding:12px;border:1.5px dashed #ddd;background:none;border-radius:10px;font-size:13px;color:#888;cursor:pointer;font-family:inherit;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px}
+.sp-photo-btn:hover{border-color:var(--P);color:var(--P)}
+.char-count{font-size:11px;color:#bbb;text-align:right;margin-top:4px}
 </style>
 </head>
 <body>
 <div id="root">
 
-<!-- ═══ LOGIN ═══ -->
-<div id="login-screen">
-  <div class="l-icon">📅</div>
-  <div class="l-title">공유 캘린더</div>
-  <div class="l-sub">아이디와 비밀번호를 입력하세요</div>
-  <div class="l-form">
+<!-- ═══ SPLASH + LOGIN (3단 구성) ═══ -->
+<div id="splash">
+  <div class="sp-overlay"></div>
+  <!-- 1단: 제목 -->
+  <div class="sp-top">
+    <div class="sp-title" id="spTitle">공유 캘린더</div>
+  </div>
+  <!-- 2단: 설명 텍스트 -->
+  <div class="sp-mid">
+    <div class="sp-desc" id="spDesc"></div>
+  </div>
+  <!-- 3단: 로그인 폼 (1.5초 후 서서히 등장) -->
+  <div class="sp-login" id="spLogin">
     <input id="lu" type="text"     placeholder="아이디"   autocomplete="username">
     <input id="lp" type="password" placeholder="비밀번호" autocomplete="current-password">
-    <button class="l-btn" onclick="doLogin()">로그인</button>
-    <div class="l-hint">기본 관리자 계정<br>아이디: <strong>admin</strong> &nbsp;|&nbsp; 비밀번호: <strong>admin1234</strong></div>
-    <div class="l-err" id="lerr"></div>
+    <button class="sp-btn" onclick="doLogin()">로그인</button>
+    <div class="sp-err" id="lerr"></div>
   </div>
 </div>
+
+<!-- login-screen (legacy, hidden) -->
+<div id="login-screen"></div>
 
 <!-- ═══ APP ═══ -->
 <div id="app">
@@ -274,6 +316,11 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
       오늘로 이동
     </button>
     <div class="d-div"></div>
+    <button class="d-item" id="d-splash" style="display:none" onclick="openSplashEdit();closeDrawer()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      메인 화면 편집
+    </button>
+    <div class="d-div" id="dsplashdiv" style="display:none"></div>
     <button class="d-item" onclick="openCatMgmt();closeDrawer()">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
       카테고리 관리
@@ -408,8 +455,42 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
   <img id="lbox-img" src="" alt="">
 </div>
 
+<!-- ═══ SPLASH EDIT MODAL ═══ -->
+<div class="bso" id="splashEM">
+  <div class="bs">
+    <div class="bs-h"></div>
+    <div class="bs-t">메인 화면 편집</div>
+    <!-- Preview -->
+    <div class="sp-preview" id="spPrev">
+      <div class="sp-preview-overlay"></div>
+      <div class="sp-preview-content">
+        <div class="sp-preview-title" id="spPrevTitle">공유 캘린더</div>
+        <div class="sp-preview-desc"  id="spPrevDesc"></div>
+      </div>
+    </div>
+    <label class="fl">배경 사진</label>
+    <button class="sp-photo-btn" onclick="triggerSplashPhoto()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      <span id="spPhotoLabel">사진 선택</span>
+    </button>
+    <label class="fl">그룹 이름 <span style="font-weight:400;color:#bbb">(제목)</span></label>
+    <input id="spTitleIn" type="text" maxlength="30" placeholder="예: 크래프톤 테니스 모임"
+      oninput="updateSpPreview()">
+    <label class="fl">모임 소개 <span style="font-weight:400;color:#bbb">(50자 이내)</span></label>
+    <textarea id="spDescIn" maxlength="50" placeholder="모임의 성격을 간단히 소개해 주세요"
+      style="height:72px;resize:none;line-height:1.6"
+      oninput="updateSpPreview();updateDescCount()"></textarea>
+    <div class="char-count" id="descCount">0/50</div>
+    <div class="bs-acts">
+      <button class="btn btn-s" onclick="closeM('splashEM')">취소</button>
+      <button class="btn btn-p" onclick="saveSplash()">저장</button>
+    </div>
+  </div>
+</div>
+
 <!-- PHOTO INPUT (hidden) -->
-<input type="file" id="photoIn" accept="image/*" style="display:none">
+<input type="file" id="photoIn"       accept="image/*" style="display:none">
+<input type="file" id="splashPhotoIn" accept="image/*" style="display:none">
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
@@ -419,7 +500,7 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 /* ═══════════════════════════════════════
    1.  CONSTANTS & STATE
 ═══════════════════════════════════════ */
-const UK='shcal_u', EK='shcal_e', CK='shcal_c', MK='shcal_m', TK='shcal_t';
+const UK='shcal_u', EK='shcal_e', CK='shcal_c', MK='shcal_m', TK='shcal_t', SPK='shcal_sp', CVK='shcal_cv';
 const TOKEN_MS = 90*24*60*60*1000;
 
 const STICKERS=['🌸','🌺','🌻','🌹','🌷','🍀','🌿','🍁','🌈','⭐','☀️','🌙','❄️','🌊',
@@ -453,6 +534,7 @@ let editEvId=null, editUsId=null, editCatId=null;
 let selCatColor='c-blue';
 let ddDate=null;
 let hiddenCats=new Set();
+let splashPhoto=null; // temp storage during splash edit
 
 /* ═══════════════════════════════════════
    2.  STORAGE
@@ -472,6 +554,12 @@ function setToken(userId){
 }
 function clearToken(){ localStorage.removeItem(TK); }
 
+const getSplash=()=>JSON.parse(localStorage.getItem(SPK)||'{"title":"공유 캘린더","desc":"","photo":""}');
+const setSplash=v=>{ try{localStorage.setItem(SPK,JSON.stringify(v))}catch(e){toast('저장 공간이 부족합니다.')} };
+
+const getCovers=()=>JSON.parse(localStorage.getItem(CVK)||'{}');
+const setCovers=v=>localStorage.setItem(CVK,JSON.stringify(v));
+
 /* ═══════════════════════════════════════
    3.  INIT
 ═══════════════════════════════════════ */
@@ -485,16 +573,7 @@ function init(){
   // Default categories
   if(!localStorage.getItem(CK)) setCats(DEFAULT_CATS);
 
-  // 90-day token check
-  const tok=getToken();
-  if(tok && tok.expires>Date.now()){
-    const u=getUsers().find(u=>u.id===tok.userId);
-    if(u){ CU=u; showApp(); return; }
-    clearToken();
-  }
-
-  // Show login
-  document.getElementById('login-screen').style.display='flex';
+  // Register event listeners first
   ['lu','lp'].forEach(id=>{
     document.getElementById(id).addEventListener('keydown',e=>{
       if(e.key==='Enter'){ id==='lu'?document.getElementById('lp').focus():doLogin(); }
@@ -512,14 +591,89 @@ function init(){
     toast('사진이 추가되었습니다');
   });
 
+  // Splash photo input handler
+  document.getElementById('splashPhotoIn').addEventListener('change',async e=>{
+    const file=e.target.files[0]; if(!file) return;
+    toast('사진을 처리 중...');
+    splashPhoto=await compressImage(file);
+    e.target.value='';
+    document.getElementById('spPhotoLabel').textContent='사진 변경됨 ✓';
+    updateSpPreview();
+    toast('사진이 등록되었습니다');
+  });
+
   // Close modal on backdrop
   document.querySelectorAll('.bso').forEach(el=>{
     el.addEventListener('click',function(e){ if(e.target===this) this.classList.remove('open'); });
   });
+
+  // Show splash 1.5초 → 로그인 여부에 따라 분기
+  showSplash(()=>{
+    const tok=getToken();
+    if(tok && tok.expires>Date.now()){
+      const u=getUsers().find(u=>u.id===tok.userId);
+      if(u){ CU=u; hideSplashToApp(); return; }
+      clearToken();
+    }
+    // 로그인 폼 서서히 등장
+    document.getElementById('spLogin').classList.add('show');
+  });
 }
 
 /* ═══════════════════════════════════════
-   4.  AUTH
+   4.  SPLASH
+═══════════════════════════════════════ */
+function showSplash(callback){
+  const sp=getSplash();
+  const el=document.getElementById('splash');
+  document.getElementById('spTitle').textContent=sp.title||'공유 캘린더';
+  document.getElementById('spDesc').textContent=sp.desc||'';
+  el.style.backgroundImage=sp.photo?`url(${sp.photo})`:'linear-gradient(135deg,#0f2027 0%,#203a43 50%,#2c5364 100%)';
+  el.style.opacity='1';
+  el.style.display='flex';
+  el.classList.remove('fade-out');
+  // 1.5초 후 콜백 (페이지 유지한 채로)
+  setTimeout(()=>{ callback(); }, 1500);
+}
+function hideSplashToApp(){
+  const el=document.getElementById('splash');
+  el.classList.add('fade-out');
+  setTimeout(()=>{ el.style.display='none'; showApp(); }, 680);
+}
+
+function openSplashEdit(){
+  const sp=getSplash();
+  splashPhoto=sp.photo||null;
+  document.getElementById('spTitleIn').value=sp.title||'';
+  document.getElementById('spDescIn').value=sp.desc||'';
+  document.getElementById('spPhotoLabel').textContent=sp.photo?'사진 변경':'사진 선택';
+  updateDescCount();
+  updateSpPreview();
+  openM('splashEM');
+}
+function triggerSplashPhoto(){ document.getElementById('splashPhotoIn').click(); }
+function updateDescCount(){
+  const v=document.getElementById('spDescIn').value;
+  document.getElementById('descCount').textContent=v.length+'/50';
+}
+function updateSpPreview(){
+  const prev=document.getElementById('spPrev');
+  const title=document.getElementById('spTitleIn').value||'공유 캘린더';
+  const desc=document.getElementById('spDescIn').value;
+  prev.style.backgroundImage=splashPhoto?`url(${splashPhoto})`:'linear-gradient(135deg,#0f2027 0%,#203a43 50%,#2c5364 100%)';
+  document.getElementById('spPrevTitle').textContent=title;
+  document.getElementById('spPrevDesc').textContent=desc;
+}
+function saveSplash(){
+  const title=document.getElementById('spTitleIn').value.trim();
+  const desc=document.getElementById('spDescIn').value.trim();
+  setSplash({title:title||'공유 캘린더', desc, photo:splashPhoto||''});
+  closeM('splashEM');
+  toast('메인 화면이 저장되었습니다');
+}
+
+/* ═══════════════════════════════════════
+   5.  AUTH
 ═══════════════════════════════════════ */
 function doLogin(){
   const u=document.getElementById('lu').value.trim();
@@ -529,27 +683,36 @@ function doLogin(){
   CU=user;
   setToken(user.id);
   document.getElementById('lerr').textContent='';
-  showApp();
+  hideSplashToApp();
 }
 function doLogout(){
   CU=null; clearToken(); closeDrawer();
   document.getElementById('app').style.display='none';
-  document.getElementById('login-screen').style.display='flex';
+  // 스플래시 다시 보여주고 바로 로그인 폼 표시 (딜레이 없이)
+  const sp=getSplash();
+  const el=document.getElementById('splash');
+  document.getElementById('spTitle').textContent=sp.title||'공유 캘린더';
+  document.getElementById('spDesc').textContent=sp.desc||'';
+  el.style.backgroundImage=sp.photo?`url(${sp.photo})`:'linear-gradient(135deg,#0f2027 0%,#203a43 50%,#2c5364 100%)';
+  el.style.opacity='1'; el.style.display='flex'; el.classList.remove('fade-out');
   document.getElementById('lu').value='';
   document.getElementById('lp').value='';
+  document.getElementById('lerr').textContent='';
+  document.getElementById('spLogin').classList.add('show');
 }
 
 /* ═══════════════════════════════════════
    5.  APP SETUP
 ═══════════════════════════════════════ */
 function showApp(){
-  document.getElementById('login-screen').style.display='none';
   document.getElementById('app').style.display='flex';
   document.getElementById('dname').textContent=CU.name;
   document.getElementById('drole').textContent=CU.role==='admin'?'관리자 계정':'게스트 계정';
   const isA=CU.role==='admin';
   document.getElementById('d-users').style.display=isA?'flex':'none';
   document.getElementById('dadiv').style.display=isA?'block':'none';
+  document.getElementById('d-splash').style.display=isA?'flex':'none';
+  document.getElementById('dsplashdiv').style.display=isA?'block':'none';
   const now=new Date(); VY=now.getFullYear(); VM=now.getMonth();
   renderCatBar();
   renderCal();
@@ -576,6 +739,7 @@ function renderCal(){
   const events=getEvents();
   const media=getMedia();
   const cats=getCats();
+  const covers=getCovers();
 
   const cells=[];
   for(let i=0;i<first.getDay();i++) cells.push({d:new Date(VY,VM,1-(first.getDay()-i)),other:true});
@@ -592,8 +756,15 @@ function renderCal(){
     const stks=m.filter(x=>x.type==='sticker');
     const phos=m.filter(x=>x.type==='photo');
 
+    // Cover photo
+    const coverId=covers[ds];
+    const coverItem=coverId?phos.find(x=>x.id===coverId):null;
+
     const div=document.createElement('div');
-    div.className='dc'+(cell.other?' other':'')+(dow===0?' sun':'')+(dow===6?' sat':'')+(ds===today?' today':'');
+    div.className='dc'+(cell.other?' other':'')+(dow===0?' sun':'')+(dow===6?' sat':'')+(ds===today?' today':'')+(coverItem?' has-cover':'');
+    if(coverItem){
+      div.style.backgroundImage=`url(${coverItem.data})`;
+    }
 
     // Date number
     const dn=document.createElement('div');
@@ -749,10 +920,13 @@ function refreshDd(){
 
   // Photos
   const pDiv=document.getElementById('ddPho');
+  const cvs=getCovers();
+  const covId=cvs[ddDate]||null;
   pDiv.innerHTML=phos.map(p=>`
     <div class="photo-wrap">
       <img src="${p.data}" onclick="openLbox('${p.id}','${ddDate}')" loading="lazy">
       <button class="photo-del" onclick="delMediaItem('${ddDate}','${p.id}')">×</button>
+      <button class="photo-cover-btn ${p.id===covId?'active':''}" onclick="setCoverPhoto('${ddDate}','${p.id}')" title="대표사진으로 설정">★</button>
     </div>`).join('');
 }
 
@@ -775,8 +949,25 @@ function delMediaItem(ds,id){
   m[ds]=m[ds].filter(x=>x.id!==id);
   if(!m[ds].length) delete m[ds];
   setMedia(m);
+  // Clean up cover if the deleted photo was the cover
+  const cvs=getCovers();
+  if(cvs[ds]===id){ delete cvs[ds]; setCovers(cvs); }
   refreshDd(); renderCal();
   toast('삭제되었습니다');
+}
+
+function setCoverPhoto(ds,photoId){
+  const cvs=getCovers();
+  if(cvs[ds]===photoId){
+    delete cvs[ds];
+    toast('대표사진이 해제되었습니다');
+  } else {
+    cvs[ds]=photoId;
+    toast('대표사진으로 설정되었습니다 ★');
+  }
+  setCovers(cvs);
+  refreshDd();
+  renderCal();
 }
 
 function triggerPhoto(){ document.getElementById('photoIn').click(); }
