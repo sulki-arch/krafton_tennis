@@ -800,7 +800,7 @@ async function init(){
   document.getElementById('splashPhotoIn').addEventListener('change',async e=>{
     const file=e.target.files[0]; if(!file) return;
     toast('사진을 처리 중...');
-    splashPhoto=await compressImage(file);
+    splashPhoto=await readImageAsDataURL(file);
     e.target.value='';
     document.getElementById('spPhotoLabel').textContent='사진 변경됨 ✓';
     updateSpPreview();
@@ -1195,6 +1195,15 @@ async function compressImage(file){
       };
       img.src=e.target.result;
     };
+    reader.readAsDataURL(file);
+  });
+}
+
+// 원본 사이즈 그대로 읽기 (스플래시 배경용)
+function readImageAsDataURL(file){
+  return new Promise(res=>{
+    const reader=new FileReader();
+    reader.onload=e=>res(e.target.result);
     reader.readAsDataURL(file);
   });
 }
