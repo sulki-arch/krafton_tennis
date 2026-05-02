@@ -7,11 +7,14 @@
 <!-- Firebase SDK (Realtime Database) — v8 UMD, gstatic 공식 CDN -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<!-- Noto Sans KR -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{--P:#1a73e8;--PD:#1557b0;--SUN:#e53935;--SAT:#1a73e8;--BD:#f0f0f0;--SH:0 2px 14px rgba(0,0,0,.13)}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
-body{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:#f4f6fb;display:flex;justify-content:center}
+body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif;background:#f4f6fb;display:flex;justify-content:center}
 #root{width:100%;max-width:480px;min-height:100vh;background:#fff;position:relative;display:flex;flex-direction:column}
 
 /* ── LOGIN (legacy, unused) ── */
@@ -639,6 +642,14 @@ let _db = null;
 let _D = {users:[],events:[],cats:null,media:{},covers:{},groups:[],splash:null};
 let _fbReady = false;
 
+// Firebase converts JS arrays to {0:{...},1:{...}} objects — this converts them back
+function fbArr(v){
+  if(!v) return [];
+  if(Array.isArray(v)) return v;
+  if(typeof v==='object') return Object.keys(v).sort((a,b)=>Number(a)-Number(b)).map(k=>v[k]);
+  return [];
+}
+
 async function loadAllData(){
   if(_db){
     await new Promise((resolve,reject)=>{
@@ -651,12 +662,16 @@ async function loadAllData(){
       _db.ref('/cal').on('value', snap=>{
         clearTimeout(timeout);
         const d = snap.val()||{};
-        _D.users  = d.users  ?? [];
-        _D.events = d.events ?? [];
-        _D.cats   = d.cats   ?? null;
-        _D.media  = d.media  ?? {};
+        // Firebase stores arrays as {0:{...},1:{...}} objects — convert back to arrays
+        _D.users  = fbArr(d.users);
+        _D.events = fbArr(d.events);
+        _D.cats   = d.cats ? fbArr(d.cats) : null;
+        // media: object of date→array
+        const rawMedia = d.media||{};
+        _D.media = {};
+        Object.keys(rawMedia).forEach(ds=>{ _D.media[ds]=fbArr(rawMedia[ds]); });
         _D.covers = d.covers ?? {};
-        _D.groups = d.groups ?? [];
+        _D.groups = fbArr(d.groups);
         _D.splash = d.splash ?? null;
 
         if(!_fbReady){
@@ -1171,8 +1186,8 @@ async function compressImage(file){
     reader.onload=e=>{
       const img=new Image();
       img.onload=()=>{
-        const MAX=600;
-        const ratio=Math.min(MAX/img.width,MAX/img.height,1);
+        const MAX_H=800;
+        const ratio=Math.min(MAX_H/img.height,1);
         const c=document.createElement('canvas');
         c.width=Math.round(img.width*ratio); c.height=Math.round(img.height*ratio);
         c.getContext('2d').drawImage(img,0,0,c.width,c.height);
