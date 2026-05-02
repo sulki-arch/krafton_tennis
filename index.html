@@ -229,6 +229,14 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(10px);background:rgba(30,30,30,.9);color:#fff;padding:10px 22px;border-radius:22px;font-size:14px;opacity:0;transition:all .28s;z-index:950;pointer-events:none;white-space:nowrap}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
+/* ── GUEST BUTTON (스플래시 하단) ── */
+.sp-guest-btn{width:100%;padding:12px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.65);border:1.5px solid rgba(255,255,255,.18);border-radius:12px;font-size:14px;cursor:pointer;font-family:inherit;transition:all .2s;margin-top:10px}
+.sp-guest-btn:active{background:rgba(255,255,255,.2);color:#fff}
+
+/* ── VIEWER BANNER ── */
+.viewer-banner{background:#fff3e0;border-bottom:1px solid #ffcc80;padding:7px 16px;font-size:12px;color:#e65100;text-align:center;font-weight:600;display:none;flex-shrink:0}
+.viewer-banner.show{display:block}
+
 /* ── SPLASH SCREEN ── */
 #splash{position:fixed;inset:0;z-index:800;display:flex;flex-direction:column;background:#0f2027;background-size:cover;background-position:center;background-repeat:no-repeat;transition:opacity .65s ease}
 #splash.fade-out{opacity:0;pointer-events:none}
@@ -289,6 +297,7 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
     <input id="lp" type="password" placeholder="비밀번호" autocomplete="current-password">
     <button class="sp-btn" onclick="doLogin()">로그인</button>
     <div class="sp-err" id="lerr"></div>
+    <button class="sp-guest-btn" onclick="doGuestLogin()">👁 게스트로 지켜보기</button>
   </div>
 </div>
 
@@ -297,6 +306,7 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 
 <!-- ═══ APP ═══ -->
 <div id="app">
+<div class="viewer-banner" id="viewerBanner">👁 게스트 모드 — 일정 추가/수정/삭제는 로그인 후 이용 가능합니다</div>
   <!-- Header -->
   <div class="hdr">
     <button class="hbtn" onclick="openDrawer()">
@@ -363,6 +373,11 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
       메인 화면 편집
     </button>
     <div class="d-div" id="dsplashdiv" style="display:none"></div>
+    <button class="d-item" id="d-profile" style="display:none" onclick="openProfile();closeDrawer()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      내 프로필
+    </button>
+    <div class="d-div" id="dprodiv" style="display:none"></div>
     <button class="d-item" onclick="openGroupMgmt();closeDrawer()">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       그룹 관리
@@ -417,13 +432,13 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
     <div class="dd-sec">미디어</div>
     <div class="stk-row" id="ddStk"></div>
     <div class="photo-grid" id="ddPho"></div>
-    <div class="media-add-row">
+    <div class="media-add-row" id="ddMediaAddRow">
       <button class="media-add-btn" onclick="triggerPhoto()">📷 사진 추가</button>
       <button class="media-add-btn" onclick="openStickerPicker()">😊 스티커 추가</button>
     </div>
     <div class="dd-btns">
       <button class="btn btn-s" onclick="closeM('ddM')">닫기</button>
-      <button class="btn btn-p" onclick="openEvFromDd()">+ 일정 추가</button>
+      <button class="btn btn-p" id="ddAddEvBtn" onclick="openEvFromDd()">+ 일정 추가</button>
     </div>
   </div>
 </div>
@@ -473,7 +488,7 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
     <div class="bs-h"></div>
     <div class="bs-t">사용자 관리</div>
     <div id="uList"></div>
-    <button class="u-add-btn" onclick="openUEdit(null)">+ 게스트 초대</button>
+    <button class="u-add-btn" onclick="openUEdit(null)">+ 사용자 초대</button>
     <button class="btn btn-s" style="margin-top:12px;width:100%" onclick="closeM('umM')">닫기</button>
   </div>
 </div>
@@ -482,9 +497,9 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 <div class="bso" id="ueM">
   <div class="bs">
     <div class="bs-h"></div>
-    <div class="bs-t" id="ueMT">게스트 초대</div>
-    <label class="fl">이름</label>
-    <input id="ueName" type="text" placeholder="이름">
+    <div class="bs-t" id="ueMT">사용자 초대</div>
+    <label class="fl">이름 (닉네임)</label>
+    <input id="ueName" type="text" placeholder="표시될 이름">
     <label class="fl">아이디</label>
     <input id="ueId" type="text" placeholder="로그인 아이디" autocomplete="off">
     <label class="fl">비밀번호</label>
@@ -494,6 +509,25 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
       <button class="btn btn-s" onclick="closeM('ueM')">취소</button>
       <button class="btn btn-d" id="ueDel" style="display:none" onclick="delUser()">삭제</button>
       <button class="btn btn-p" onclick="saveUser()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PROFILE MODAL ═══ -->
+<div class="bso" id="profM">
+  <div class="bs">
+    <div class="bs-h"></div>
+    <div class="bs-t">내 프로필</div>
+    <label class="fl">아이디 <span style="font-weight:400;color:#bbb">(변경 불가)</span></label>
+    <input id="profIdDisp" type="text" disabled style="background:#f5f5f5;color:#999">
+    <label class="fl">닉네임</label>
+    <input id="profName" type="text" placeholder="표시될 이름 입력">
+    <label class="fl">비밀번호 변경 <span style="font-weight:400;color:#bbb">(선택 — 비워두면 유지)</span></label>
+    <input id="profPw" type="password" placeholder="새 비밀번호" autocomplete="new-password">
+    <div class="ferr" id="profErr"></div>
+    <div class="bs-acts">
+      <button class="btn btn-s" onclick="closeM('profM')">취소</button>
+      <button class="btn btn-p" onclick="saveProfile()">저장</button>
     </div>
   </div>
 </div>
@@ -775,6 +809,11 @@ async function init(){
     users.push({id:'admin',username:'admin',password:'admin1234',name:'관리자',role:'admin'});
     setUsers(users);
   }
+  // 기존 'guest' role → 'user' 마이그레이션
+  if(users.some(u=>u.role==='guest')){
+    users=users.map(u=>u.role==='guest'?{...u,role:'user'}:u);
+    setUsers(users);
+  }
   // 기본 카테고리
   if(!_D.cats) setCats(DEFAULT_CATS);
 
@@ -889,8 +928,17 @@ function doLogin(){
   document.getElementById('lerr').textContent='';
   hideSplashToApp();
 }
+function doGuestLogin(){
+  CU={id:'__guest__',name:'게스트',role:'viewer'};
+  // 게스트는 토큰 저장 안 함
+  document.getElementById('lerr').textContent='';
+  hideSplashToApp();
+}
+
 function doLogout(){
-  CU=null; clearToken(); closeDrawer();
+  CU=null;
+  try{ clearToken(); }catch(e){}
+  closeDrawer();
   document.getElementById('app').style.display='none';
   // 스플래시 다시 보여주고 바로 로그인 폼 표시 (딜레이 없이)
   const sp=getSplash();
@@ -910,18 +958,25 @@ function doLogout(){
 ═══════════════════════════════════════ */
 function showApp(){
   document.getElementById('app').style.display='flex';
-  document.getElementById('dname').textContent=CU.name;
-  document.getElementById('drole').textContent=CU.role==='admin'?'관리자 계정':'게스트 계정';
-  const isA=CU.role==='admin';
+  const isA=CU.role==='admin', isV=CU.role==='viewer';
+  const roleText={admin:'관리자 계정',user:'승인된 사용자',viewer:'게스트 모드'};
+  document.getElementById('dname').textContent=isV?'게스트':CU.name;
+  document.getElementById('drole').textContent=roleText[CU.role]||'승인된 사용자';
   document.getElementById('d-users').style.display=isA?'flex':'none';
   document.getElementById('dadiv').style.display=isA?'block':'none';
   document.getElementById('d-splash').style.display=isA?'flex':'none';
   document.getElementById('dsplashdiv').style.display=isA?'block':'none';
+  document.getElementById('d-profile').style.display=(!isV)?'flex':'none';
+  document.getElementById('dprodiv').style.display=(!isV)?'block':'none';
+  // 뷰어는 FAB 숨김
+  document.getElementById('fab').style.display=isV?'none':'flex';
+  // 뷰어 배너
+  document.getElementById('viewerBanner').classList.toggle('show',isV);
   const now=new Date(); VY=now.getFullYear(); VM=now.getMonth();
   renderCatBar();
   renderScopeBar();
   renderCal();
-  posFab();
+  if(!isV) posFab();
 }
 function posFab(){
   const r=document.getElementById('root').getBoundingClientRect();
@@ -1086,6 +1141,9 @@ function doSearch(q){
 function openDd(date,ds){
   ddDate=ds;
   document.getElementById('ddT').textContent=`${date.getMonth()+1}월 ${date.getDate()}일`;
+  const editable=canEdit();
+  document.getElementById('ddMediaAddRow').style.display=editable?'flex':'none';
+  document.getElementById('ddAddEvBtn').style.display=editable?'':'none';
   refreshDd();
   openM('ddM');
 }
@@ -1120,10 +1178,11 @@ function refreshDd(){
 
   // Stickers
   const sDiv=document.getElementById('ddStk');
+  const editable=canEdit();
   sDiv.innerHTML=stks.map(s=>`
     <div class="stk-item">
       <span>${s.data}</span>
-      <button class="stk-del" onclick="delMediaItem('${ddDate}','${s.id}')">×</button>
+      ${editable?`<button class="stk-del" onclick="delMediaItem('${ddDate}','${s.id}')">×</button>`:''}
     </div>`).join('');
 
   // Photos
@@ -1133,8 +1192,8 @@ function refreshDd(){
   pDiv.innerHTML=phos.map(p=>`
     <div class="photo-wrap">
       <img src="${p.data}" onclick="openLbox('${p.id}','${ddDate}')" loading="lazy">
-      <button class="photo-del" onclick="delMediaItem('${ddDate}','${p.id}')">×</button>
-      <button class="photo-cover-btn ${p.id===covId?'active':''}" onclick="setCoverPhoto('${ddDate}','${p.id}')" title="대표사진으로 설정">★</button>
+      ${editable?`<button class="photo-del" onclick="delMediaItem('${ddDate}','${p.id}')">×</button>`:''}
+      ${editable?`<button class="photo-cover-btn ${p.id===covId?'active':''}" onclick="setCoverPhoto('${ddDate}','${p.id}')" title="대표사진으로 설정">★</button>`:''}
     </div>`).join('');
 }
 
@@ -1245,6 +1304,7 @@ function closeLbox(){ document.getElementById('lbox').classList.remove('open'); 
    12.  EVENT MODAL
 ═══════════════════════════════════════ */
 function openEvModal(evId,dateStr){
+  if(!canEdit()){ toast('게스트는 일정을 편집할 수 없습니다'); return; }
   editEvId=evId;
   const cats=getCats();
   // Populate category select
@@ -1261,7 +1321,6 @@ function openEvModal(evId,dateStr){
   if(evId){
     const ev=getEvents().find(e=>e.id===evId);
     if(!ev) return;
-    if(CU.role!=='admin' && ev.createdBy!==CU.id){ toast('이 일정을 수정할 권한이 없습니다'); return; }
     document.getElementById('evMT').textContent='일정 수정';
     document.getElementById('evTxt').value=ev.title;
     document.getElementById('evDate').value=ev.date;
@@ -1313,6 +1372,7 @@ function delEvent(){
    13.  SCOPE / GROUP HELPERS
 ═══════════════════════════════════════ */
 function getMyGroups(){
+  if(!CU || CU.role==='viewer') return [];
   const grps=getGroups();
   return CU.role==='admin' ? grps : grps.filter(g=>g.members.includes(CU.id));
 }
@@ -1326,6 +1386,9 @@ function getScopeLabel(scope){
   }
   return {text:'전체공유',cls:'s-all'};
 }
+
+// 뷰어가 아닌 로그인 사용자(승인됨/관리자)만 편집 가능
+function canEdit(){ return CU && CU.role!=='viewer'; }
 
 function canSeeEvent(ev){
   const scope=ev.scope||'all';
@@ -1380,13 +1443,13 @@ function renderGroupList(){
   }
   el.innerHTML=myGrps.map(g=>{
     const names=users.filter(u=>g.members.includes(u.id)).map(u=>u.name).join(', ');
-    const canEdit=CU.role==='admin'||g.createdBy===CU.id;
+    const canEditGrp=CU.role==='admin'||g.createdBy===CU.id;
     return `<div class="cat-item">
       <div style="flex:1;min-width:0">
         <div class="cat-name">${g.name}</div>
         <div style="font-size:11px;color:#aaa;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${names||'멤버 없음'}</div>
       </div>
-      ${canEdit?`<button class="cat-edit-btn" onclick="openGrpEdit('${g.id}')">✏️</button>`:''}
+      ${canEditGrp?`<button class="cat-edit-btn" onclick="openGrpEdit('${g.id}')">✏️</button>`:''}
     </div>`;
   }).join('');
 }
@@ -1560,15 +1623,17 @@ function delCat(){
 ═══════════════════════════════════════ */
 function openUserMgmt(){ renderUList(); openM('umM'); }
 function renderUList(){
-  document.getElementById('uList').innerHTML=getUsers().map(u=>
-    `<div class="u-item">
+  document.getElementById('uList').innerHTML=getUsers().map(u=>{
+    const roleLabel={admin:'관리자',user:'승인됨',guest:'승인됨'}[u.role]||'승인됨';
+    const roleClass=u.role==='admin'?'ba':'bg';
+    return `<div class="u-item">
       <div><div class="u-name">${u.name}</div><div class="u-id">@${u.username}</div></div>
       <div style="display:flex;align-items:center;gap:8px">
-        <span class="ubadge ${u.role==='admin'?'ba':'bg'}">${u.role==='admin'?'관리자':'게스트'}</span>
+        <span class="ubadge ${roleClass}">${roleLabel}</span>
         ${u.role!=='admin'?`<button class="icon-btn" onclick="openUEdit('${u.id}')">✏️</button>`:''}
       </div>
-    </div>`
-  ).join('');
+    </div>`;
+  }).join('');
 }
 function openUEdit(uid){
   editUsId=uid;
@@ -1581,7 +1646,7 @@ function openUEdit(uid){
     document.getElementById('uePw').value=u.password;
     document.getElementById('ueDel').style.display='inline-block';
   } else {
-    document.getElementById('ueMT').textContent='게스트 초대';
+    document.getElementById('ueMT').textContent='사용자 초대';
     document.getElementById('ueName').value='';
     document.getElementById('ueId').value='';
     document.getElementById('uePw').value='';
@@ -1605,8 +1670,8 @@ function saveUser(){
     toast('사용자가 수정되었습니다');
   } else {
     if(users.some(u=>u.username===uid)){err.textContent='이미 사용 중인 아이디입니다';return;}
-    users.push({id:Date.now().toString(36),name,username:uid,password:pw,role:'guest'});
-    toast('게스트가 초대되었습니다');
+    users.push({id:Date.now().toString(36),name,username:uid,password:pw,role:'user'});
+    toast('사용자가 초대되었습니다 ✓');
   }
   setUsers(users); closeM('ueM'); renderUList();
 }
@@ -1614,6 +1679,35 @@ function delUser(){
   if(!editUsId||!confirm('이 사용자를 삭제할까요?')) return;
   setUsers(getUsers().filter(u=>u.id!==editUsId));
   closeM('ueM'); renderUList(); toast('사용자가 삭제되었습니다');
+}
+
+/* ═══════════════════════════════════════
+   14b.  PROFILE
+═══════════════════════════════════════ */
+function openProfile(){
+  if(!CU||CU.role==='viewer') return;
+  document.getElementById('profIdDisp').value=CU.username||CU.id;
+  document.getElementById('profName').value=CU.name||'';
+  document.getElementById('profPw').value='';
+  document.getElementById('profErr').textContent='';
+  openM('profM');
+}
+function saveProfile(){
+  const name=document.getElementById('profName').value.trim();
+  const pw=document.getElementById('profPw').value;
+  const err=document.getElementById('profErr');
+  if(!name){err.textContent='닉네임을 입력하세요';return;}
+  const users=getUsers();
+  const i=users.findIndex(u=>u.id===CU.id);
+  if(i===-1){err.textContent='사용자 정보를 찾을 수 없습니다';return;}
+  const updated={...users[i],name};
+  if(pw) updated.password=pw;
+  users[i]=updated;
+  setUsers(users);
+  CU=updated;
+  document.getElementById('dname').textContent=CU.name;
+  closeM('profM');
+  toast('프로필이 저장되었습니다 ✓');
 }
 
 /* ═══════════════════════════════════════
