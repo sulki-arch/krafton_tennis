@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>공유 캘린더</title>
-<!-- Firebase SDK (Realtime Database) -->
-<script src="https://unpkg.com/firebase@9.23.0/compat/app.js"></script>
-<script src="https://unpkg.com/firebase@9.23.0/compat/database.js"></script>
+<!-- Firebase SDK (Realtime Database) — v8 UMD, gstatic 공식 CDN -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 <style>
 :root{--P:#1a73e8;--PD:#1557b0;--SUN:#e53935;--SAT:#1a73e8;--BD:#f0f0f0;--SH:0 2px 14px rgba(0,0,0,.13)}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -223,7 +223,7 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 #lbox-close{position:absolute;top:16px;right:18px;background:rgba(255,255,255,.18);color:#fff;border:none;font-size:26px;width:40px;height:40px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center}
 
 /* ── TOAST ── */
-.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(10px);background:rgba(30,30,30,.9);color:#fff;padding:10px 22px;border-radius:22px;font-size:14px;opacity:0;transition:all .28s;z-index:700;pointer-events:none;white-space:nowrap}
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(10px);background:rgba(30,30,30,.9);color:#fff;padding:10px 22px;border-radius:22px;font-size:14px;opacity:0;transition:all .28s;z-index:950;pointer-events:none;white-space:nowrap}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
 /* ── SPLASH SCREEN ── */
