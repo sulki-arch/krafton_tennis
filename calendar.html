@@ -265,7 +265,7 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 .wc-hour-cell.wc-today-col{background:rgba(26,115,232,.025)}
 .wc-ev{position:absolute;border-radius:5px;font-size:10px;padding:2px 4px;overflow:hidden;cursor:pointer;line-height:1.3;box-sizing:border-box}
 .wc-ev-name{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.wc-ev-meta{font-size:9px;opacity:.85;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wc-ev-meta{font-size:9px;opacity:.85;margin-top:1px;white-space:normal;overflow:hidden;word-break:break-all}
 .wc-allday-bar{display:grid;grid-template-columns:40px repeat(3,1fr);background:#fff8f0;border-bottom:1px solid var(--BD);min-height:20px;flex-shrink:0}
 .wc-allday-lbl{font-size:9px;color:#bbb;text-align:right;padding:3px 4px 0}
 .wc-allday-cell{border-left:1px solid #f2f2f2;padding:2px 1px;display:flex;flex-direction:column;gap:1px}
@@ -775,7 +775,7 @@ const DEFAULT_CATS=[
 
 let CU=null, VY=0, VM=0;
 let viewMode='month', wcCenterDate=null;
-const WC_HOUR_H=17, WC_START=6, WC_END=22;
+const WC_HOUR_H=36, WC_START=6, WC_END=22;
 let editEvId=null, editUsId=null, editCatId=null, editGrpId=null;
 let selCatColor='c-blue';
 let ddDate=null;
@@ -1410,7 +1410,7 @@ function renderWeek(){
         const attCnt=(ev.attendees||[]).length;
         const chatCnt=(ev.chat||[]).length;
         const attNames=_wcAttNames(ev);
-        const memoSnip=ev.memo?ev.memo.slice(0,50)+(ev.memo.length>50?'…':''):'';
+        const memoSnip=ev.memo?ev.memo.slice(0,100)+(ev.memo.length>100?'…':''):'';
 
         const el=document.createElement('div');
         el.className='wc-ev '+cls;
@@ -1420,10 +1420,10 @@ function renderWeek(){
           const attStr=attCnt?(attNames?`👥${attCnt} (${attNames})`:`👥${attCnt}`):'';
           const chatStr=chatCnt?`💬${chatCnt}`:'';
           if(attStr||chatStr)
-            inner2+=`<div class="wc-ev-meta" style="white-space:normal">${[attStr,chatStr].filter(Boolean).join(' ')}</div>`;
+            inner2+=`<div class="wc-ev-meta">${[attStr,chatStr].filter(Boolean).join('　')}</div>`;
         }
         if(height>36&&memoSnip)
-          inner2+=`<div class="wc-ev-meta" style="white-space:normal">📝 ${memoSnip}</div>`;
+          inner2+=`<div class="wc-ev-meta">📝 ${memoSnip}</div>`;
         el.innerHTML=inner2;
         el.onclick=()=>openEvDetail(ev.id);
         document.getElementById('wcInner').appendChild(el);
