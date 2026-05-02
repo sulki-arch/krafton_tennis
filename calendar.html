@@ -259,14 +259,14 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 .wc-dh-cell.wc-sun .wc-dh-name,.wc-dh-cell.wc-sun .wc-dh-date:not(.wc-today){color:var(--SUN)}
 .wc-dh-cell.wc-sat .wc-dh-name,.wc-dh-cell.wc-sat .wc-dh-date:not(.wc-today){color:var(--SAT)}
 .wc-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
-.wc-inner{position:relative;display:grid;grid-template-columns:40px repeat(7,1fr)}
+.wc-inner{position:relative;display:grid;grid-template-columns:40px repeat(3,1fr)}
 .wc-time-label{font-size:10px;color:#bbb;text-align:right;padding-right:5px;border-bottom:1px solid #f5f5f5;display:flex;align-items:flex-start;justify-content:flex-end;padding-top:2px}
 .wc-hour-cell{border-left:1px solid #f2f2f2;border-bottom:1px solid #f5f5f5}
 .wc-hour-cell.wc-today-col{background:rgba(26,115,232,.025)}
 .wc-ev{position:absolute;border-radius:5px;font-size:10px;padding:2px 4px;overflow:hidden;cursor:pointer;line-height:1.3;box-sizing:border-box}
 .wc-ev-name{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .wc-ev-meta{font-size:9px;opacity:.85;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.wc-allday-bar{display:grid;grid-template-columns:40px repeat(7,1fr);background:#fff8f0;border-bottom:1px solid var(--BD);min-height:20px;flex-shrink:0}
+.wc-allday-bar{display:grid;grid-template-columns:40px repeat(3,1fr);background:#fff8f0;border-bottom:1px solid var(--BD);min-height:20px;flex-shrink:0}
 .wc-allday-lbl{font-size:9px;color:#bbb;text-align:right;padding:3px 4px 0}
 .wc-allday-cell{border-left:1px solid #f2f2f2;padding:2px 1px;display:flex;flex-direction:column;gap:1px}
 .wc-allday-ev{font-size:9px;font-weight:600;border-radius:3px;padding:1px 3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
@@ -775,7 +775,7 @@ const DEFAULT_CATS=[
 
 let CU=null, VY=0, VM=0;
 let viewMode='month', wcCenterDate=null;
-const WC_HOUR_H=56, WC_START=6, WC_END=22;
+const WC_HOUR_H=17, WC_START=6, WC_END=22;
 let editEvId=null, editUsId=null, editCatId=null, editGrpId=null;
 let selCatColor='c-blue';
 let ddDate=null;
@@ -1265,7 +1265,7 @@ function sortEvs(evs,cats){
 function changeMonth(d){
   if(viewMode==='week'){
     if(!wcCenterDate) wcCenterDate=new Date();
-    wcCenterDate=new Date(wcCenterDate.getTime()+d*7*86400000);
+    wcCenterDate=new Date(wcCenterDate.getTime()+d*86400000);
     renderWeek(); return;
   }
   VM+=d; if(VM<0){VM=11;VY--;} if(VM>11){VM=0;VY++;} renderCal();
@@ -1301,14 +1301,14 @@ function renderWeek(){
   const todayStr=fd(new Date());
   const DAY=['일','월','화','수','목','금','토'];
 
-  // 7일 (center ±3)
+  // 3일 (center ±1)
   const days=[];
-  for(let i=-3;i<=3;i++){
+  for(let i=-1;i<=1;i++){
     const d=new Date(wcCenterDate); d.setDate(d.getDate()+i); days.push(d);
   }
 
   // 헤더 타이틀
-  const f=days[0],l=days[6];
+  const f=days[0],l=days[2];
   document.getElementById('hmonth').textContent=
     `${f.getMonth()+1}/${f.getDate()} ~ ${l.getMonth()+1}/${l.getDate()}`;
 
@@ -1380,7 +1380,7 @@ function renderWeek(){
   // ─── 이벤트 블록 배치 (layout 후) ───
   requestAnimationFrame(()=>{
     const totalW=inner.offsetWidth||380;
-    const dayW=(totalW-40)/7;
+    const dayW=(totalW-40)/3;
 
     events.forEach(ev=>{
       if(!canSeeEvent(ev)||hiddenCats.has(ev.categoryId)) return;
@@ -1410,18 +1410,20 @@ function renderWeek(){
         const attCnt=(ev.attendees||[]).length;
         const chatCnt=(ev.chat||[]).length;
         const attNames=_wcAttNames(ev);
-        const memoSnip=ev.memo?ev.memo.slice(0,20)+(ev.memo.length>20?'…':''):'';
+        const memoSnip=ev.memo?ev.memo.slice(0,50)+(ev.memo.length>50?'…':''):'';
 
         const el=document.createElement('div');
         el.className='wc-ev '+cls;
         el.style.cssText=`top:${top}px;left:${left}px;width:${width}px;height:${height}px`;
         let inner2=`<div class="wc-ev-name">${ev.title}</div>`;
-        if(height>28&&(attCnt||chatCnt))
-          inner2+=`<div class="wc-ev-meta">${attCnt?'👥'+attCnt:''}${attCnt&&chatCnt?' ':''}${chatCnt?'💬'+chatCnt:''}</div>`;
-        if(height>44&&attNames)
-          inner2+=`<div class="wc-ev-meta">${attNames}</div>`;
-        if(height>62&&memoSnip)
-          inner2+=`<div class="wc-ev-meta">📝 ${memoSnip}</div>`;
+        if(height>24){
+          const attStr=attCnt?(attNames?`👥${attCnt} (${attNames})`:`👥${attCnt}`):'';
+          const chatStr=chatCnt?`💬${chatCnt}`:'';
+          if(attStr||chatStr)
+            inner2+=`<div class="wc-ev-meta" style="white-space:normal">${[attStr,chatStr].filter(Boolean).join(' ')}</div>`;
+        }
+        if(height>36&&memoSnip)
+          inner2+=`<div class="wc-ev-meta" style="white-space:normal">📝 ${memoSnip}</div>`;
         el.innerHTML=inner2;
         el.onclick=()=>openEvDetail(ev.id);
         document.getElementById('wcInner').appendChild(el);
@@ -1438,7 +1440,7 @@ function renderWeek(){
 
 function _wcAttNames(ev){
   const users=getUsers();
-  return (ev.attendees||[]).slice(0,3).map(uid=>{
+  return (ev.attendees||[]).map(uid=>{
     const u=users.find(x=>x.id===uid); return u?u.name:null;
   }).filter(Boolean).join(', ');
 }
