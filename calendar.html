@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>공유 캘린더</title>
 <!-- Firebase SDK (Realtime Database) -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://unpkg.com/firebase@9.23.0/compat/app.js"></script>
+<script src="https://unpkg.com/firebase@9.23.0/compat/database.js"></script>
 <style>
 :root{--P:#1a73e8;--PD:#1557b0;--SUN:#e53935;--SAT:#1a73e8;--BD:#f0f0f0;--SH:0 2px 14px rgba(0,0,0,.13)}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -631,7 +631,8 @@ let _db = null;
     if(FIREBASE_DB_URL.includes('YOUR-PROJECT')) return;
     firebase.initializeApp({databaseURL:FIREBASE_DB_URL});
     _db = firebase.database();
-  }catch(e){ console.warn('Firebase init failed:',e); }
+    console.log('Firebase _db ready');
+  }catch(e){ console.warn('Firebase init failed:',e); _db=null; }
 })();
 
 // 인메모리 데이터 캐시
@@ -640,8 +641,15 @@ let _fbReady = false;
 
 async function loadAllData(){
   if(_db){
-    await new Promise(resolve=>{
+    await new Promise((resolve,reject)=>{
+      // 10초 안에 응답 없으면 로컬 폴백
+      const timeout=setTimeout(()=>{
+        console.warn('Firebase timeout — falling back to localStorage');
+        _db=null; reject();
+      },10000);
+
       _db.ref('/cal').on('value', snap=>{
+        clearTimeout(timeout);
         const d = snap.val()||{};
         _D.users  = d.users  ?? [];
         _D.events = d.events ?? [];
@@ -651,7 +659,12 @@ async function loadAllData(){
         _D.groups = d.groups ?? [];
         _D.splash = d.splash ?? null;
 
-        if(!_fbReady){ _fbReady=true; resolve(); return; }
+        if(!_fbReady){
+          _fbReady=true;
+          console.log('Firebase data loaded ✓');
+          resolve();
+          return;
+        }
 
         // 이후 변경 시 실시간 반영 ───────────────
         // 스플래시 화면 갱신
@@ -671,17 +684,22 @@ async function loadAllData(){
           if(document.getElementById('ddM').classList.contains('open')) refreshDd();
         }
       });
+    }).catch(()=>{
+      // 타임아웃 → localStorage 폴백
+      _loadFromLS();
     });
   } else {
-    // localStorage 폴백
-    _D.users  = JSON.parse(localStorage.getItem(UK)||'[]');
-    _D.events = JSON.parse(localStorage.getItem(EK)||'[]');
-    _D.cats   = JSON.parse(localStorage.getItem(CK)||'null');
-    _D.media  = JSON.parse(localStorage.getItem(MK)||'{}');
-    _D.covers = JSON.parse(localStorage.getItem(CVK)||'{}');
-    _D.groups = JSON.parse(localStorage.getItem(GK)||'[]');
-    _D.splash = JSON.parse(localStorage.getItem(SPK)||'null');
+    _loadFromLS();
   }
+}
+function _loadFromLS(){
+  _D.users  = JSON.parse(localStorage.getItem(UK)||'[]');
+  _D.events = JSON.parse(localStorage.getItem(EK)||'[]');
+  _D.cats   = JSON.parse(localStorage.getItem(CK)||'null');
+  _D.media  = JSON.parse(localStorage.getItem(MK)||'{}');
+  _D.covers = JSON.parse(localStorage.getItem(CVK)||'{}');
+  _D.groups = JSON.parse(localStorage.getItem(GK)||'[]');
+  _D.splash = JSON.parse(localStorage.getItem(SPK)||'null');
 }
 
 function _save(key,val){
@@ -728,6 +746,13 @@ async function init(){
   await loadAllData();
 
   ldg.style.display='none';
+
+  // Firebase 연결 상태 알림
+  if(_db && _fbReady){
+    toast('☁️ 실시간 동기화 연결됨');
+  } else {
+    toast('⚠️ 오프라인 모드 (데이터가 이 기기에만 저장됩니다)');
+  }
 
   // 기본 관리자 계정
   let users=getUsers();
