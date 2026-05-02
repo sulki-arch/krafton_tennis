@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>공유 캘린더</title>
+<!-- Firebase SDK (Realtime Database) -->
+<script src="https://unpkg.com/firebase@9.23.0/compat/app.js"></script>
+<script src="https://unpkg.com/firebase@9.23.0/compat/database.js"></script>
 <style>
 :root{--P:#1a73e8;--PD:#1557b0;--SUN:#e53935;--SAT:#1a73e8;--BD:#f0f0f0;--SH:0 2px 14px rgba(0,0,0,.13)}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -65,6 +68,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sa
 .ep{display:block;width:100%;font-size:10px;padding:1px 4px;border-radius:3px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;line-height:17px;font-weight:500}
 .ep:active{opacity:.75}
 .ep-more{font-size:10px;color:#aaa;padding-left:3px;cursor:pointer}
+.ep.ep-grp{border-left:3px solid rgba(255,167,38,.8)}
+
+/* ── SCOPE FILTER BAR ── */
+.scope-bar{display:flex;align-items:center;gap:7px;padding:5px 12px;overflow-x:auto;border-bottom:1px solid var(--BD);background:#fffef5;scrollbar-width:none}
+.scope-bar::-webkit-scrollbar{display:none}
+.scope-label{font-size:10px;font-weight:700;color:#ccc;white-space:nowrap;flex-shrink:0;letter-spacing:.3px}
+.sc-chip{display:flex;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;border:1.5px solid #e0e0e0;color:#bbb;background:#f5f5f5;transition:all .15s;flex-shrink:0}
+.sc-chip.on-all{background:#e8f5e9;border-color:#66bb6a;color:#2e7d32}
+.sc-chip.on-grp{background:#fff3e0;border-color:#ffa726;color:#e65100}
+.sc-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
 
 /* ── CELL MEDIA ROW ── */
 .cmedia{display:flex;align-items:center;gap:2px;padding:0 3px;min-height:16px;flex-wrap:nowrap;overflow:hidden}
@@ -144,6 +157,19 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 .photo-wrap{position:relative;border-radius:10px;overflow:hidden;aspect-ratio:1}
 .photo-wrap img{width:100%;height:100%;object-fit:cover;cursor:pointer;display:block}
 .photo-del{position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;border:none;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center}
+.photo-cover-btn{position:absolute;bottom:4px;left:4px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.45);color:rgba(255,255,255,.7);border:none;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s;line-height:1}
+.photo-cover-btn.active{background:#f5a623;color:#fff}
+
+/* ── COVER PHOTO CELL ── */
+.dc.has-cover{position:relative;background-size:cover;background-position:center top;background-repeat:no-repeat}
+.dc.has-cover::before{content:'';position:absolute;inset:0;background:rgba(0,0,0,.3);pointer-events:none;z-index:0}
+.dc.has-cover .dnum{position:relative;z-index:1;background:rgba(0,0,0,.38)!important;color:#fff!important}
+.dc.has-cover.today .dnum{background:var(--P)!important}
+.dc.has-cover .ep{position:relative;z-index:1;background:rgba(0,0,0,.38)!important;color:#fff!important}
+.dc.has-cover .ep-more{position:relative;z-index:1;color:rgba(255,255,255,.8)}
+.dc.has-cover .cmedia{position:relative;z-index:1}
+.dc.has-cover .cm-stk{filter:drop-shadow(0 1px 2px rgba(0,0,0,.7))}
+.dc.has-cover .cm-photo{color:rgba(255,255,255,.9);filter:drop-shadow(0 1px 2px rgba(0,0,0,.7))}
 .media-add-row{display:flex;gap:8px;margin-top:4px}
 .media-add-btn{flex:1;padding:10px;border:1.5px dashed #ddd;background:none;border-radius:10px;font-size:13px;color:#aaa;cursor:pointer;font-family:inherit;transition:all .15s}
 .media-add-btn:hover{border-color:var(--P);color:var(--P)}
@@ -164,6 +190,20 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 .cat-edit-btn:hover{color:#555}
 .cat-add-btn{width:100%;padding:13px;border:2px dashed #ddd;background:none;border-radius:12px;color:#aaa;font-size:14px;cursor:pointer;margin-top:12px;font-family:inherit;transition:all .2s}
 .cat-add-btn:hover{border-color:var(--P);color:var(--P)}
+
+/* ── MEMBER SELECTOR (group edit) ── */
+.mem-list{max-height:180px;overflow-y:auto;border:1.5px solid #e0e0e0;border-radius:10px;margin-top:4px}
+.mem-item{display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid #f5f5f5;cursor:pointer;transition:background .12s}
+.mem-item:last-child{border-bottom:none}
+.mem-item:active{background:#f9f9f9}
+.mem-chk{width:18px;height:18px;border-radius:5px;border:2px solid #ddd;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;transition:all .15s}
+.mem-chk.on{background:var(--P);border-color:var(--P);color:#fff}
+.mem-name{font-size:14px;color:#333;font-weight:500}
+.mem-id{font-size:11px;color:#aaa;margin-top:1px}
+/* scope tag in day detail */
+.scope-tag{font-size:10px;padding:2px 7px;border-radius:8px;font-weight:600;white-space:nowrap;flex-shrink:0}
+.scope-tag.s-all{background:#e8f5e9;color:#2e7d32}
+.scope-tag.s-grp{background:#fff3e0;color:#e65100}
 
 /* ── USER MGMT ── */
 .u-item{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--BD)}
@@ -220,6 +260,15 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 <body>
 <div id="root">
 
+<!-- ═══ LOADING SCREEN ═══ -->
+<div id="ldg" style="display:none;position:fixed;inset:0;z-index:900;background:#0f2027;flex-direction:column;align-items:center;justify-content:center;gap:14px">
+  <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="1.5" style="animation:spin 1.4s linear infinite">
+    <circle cx="12" cy="12" r="10" stroke-dasharray="30 60"/>
+  </svg>
+  <div style="color:rgba(255,255,255,.45);font-size:13px">연결 중...</div>
+</div>
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+
 <!-- ═══ SPLASH + LOGIN (3단 구성) ═══ -->
 <div id="splash">
   <div class="sp-overlay"></div>
@@ -266,6 +315,9 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
   <!-- Category filter bar -->
   <div class="cat-bar" id="catBar"></div>
 
+  <!-- Scope filter bar (shown when groups exist) -->
+  <div class="scope-bar" id="scopeBar" style="display:none"></div>
+
   <!-- Search bar -->
   <div class="sbar" id="sbar">
     <input id="sinput" type="text" placeholder="일정 검색..." oninput="doSearch(this.value)">
@@ -308,6 +360,11 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
       메인 화면 편집
     </button>
     <div class="d-div" id="dsplashdiv" style="display:none"></div>
+    <button class="d-item" onclick="openGroupMgmt();closeDrawer()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      그룹 관리
+    </button>
+    <div class="d-div"></div>
     <button class="d-item" onclick="openCatMgmt();closeDrawer()">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
       카테고리 관리
@@ -338,6 +395,8 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
     <input id="evTime" type="time">
     <label class="fl">카테고리</label>
     <select id="evCat"></select>
+    <label class="fl">공개 범위</label>
+    <select id="evScope"></select>
     <div class="bs-acts">
       <button class="btn btn-s" onclick="closeM('evM')">취소</button>
       <button class="btn btn-d" id="evDel" style="display:none" onclick="delEvent()">삭제</button>
@@ -475,6 +534,36 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
   </div>
 </div>
 
+<!-- ═══ GROUP MGMT ═══ -->
+<div class="bso" id="grpM">
+  <div class="bs">
+    <div class="bs-h"></div>
+    <div class="bs-t">그룹 관리</div>
+    <div style="font-size:13px;color:#aaa;margin-bottom:12px;line-height:1.6">그룹을 만들면 그룹 멤버만 볼 수 있는 일정을 공유할 수 있어요.</div>
+    <div id="grpList"></div>
+    <button class="cat-add-btn" onclick="openGrpEdit(null)">+ 새 그룹 만들기</button>
+    <button class="btn btn-s" style="margin-top:12px;width:100%" onclick="closeM('grpM')">닫기</button>
+  </div>
+</div>
+
+<!-- ═══ GROUP EDIT ═══ -->
+<div class="bso" id="grpEM">
+  <div class="bs">
+    <div class="bs-h"></div>
+    <div class="bs-t" id="grpEMT">새 그룹 만들기</div>
+    <label class="fl">그룹 이름</label>
+    <input id="grpEName" type="text" placeholder="예: 테니스팀 A조">
+    <label class="fl">멤버 선택</label>
+    <div class="mem-list" id="memList"></div>
+    <div class="ferr" id="grpErr"></div>
+    <div class="bs-acts">
+      <button class="btn btn-s" onclick="closeM('grpEM')">취소</button>
+      <button class="btn btn-d" id="grpEDel" style="display:none" onclick="delGroup()">삭제</button>
+      <button class="btn btn-p" onclick="saveGroup()">저장</button>
+    </div>
+  </div>
+</div>
+
 <!-- PHOTO INPUT (hidden) -->
 <input type="file" id="photoIn"       accept="image/*" style="display:none">
 <input type="file" id="splashPhotoIn" accept="image/*" style="display:none">
@@ -487,7 +576,7 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 /* ═══════════════════════════════════════
    1.  CONSTANTS & STATE
 ═══════════════════════════════════════ */
-const UK='shcal_u', EK='shcal_e', CK='shcal_c', MK='shcal_m', TK='shcal_t', SPK='shcal_sp';
+const UK='shcal_u', EK='shcal_e', CK='shcal_c', MK='shcal_m', TK='shcal_t', SPK='shcal_sp', CVK='shcal_cv', GK='shcal_g';
 const TOKEN_MS = 90*24*60*60*1000;
 
 const STICKERS=['🌸','🌺','🌻','🌹','🌷','🍀','🌿','🍁','🌈','⭐','☀️','🌙','❄️','🌊',
@@ -517,54 +606,171 @@ const DEFAULT_CATS=[
 ];
 
 let CU=null, VY=0, VM=0;
-let editEvId=null, editUsId=null, editCatId=null;
+let editEvId=null, editUsId=null, editCatId=null, editGrpId=null;
 let selCatColor='c-blue';
 let ddDate=null;
 let hiddenCats=new Set();
+let hiddenScopes=new Set();
+let grpSelMembers=new Set();
 let splashPhoto=null; // temp storage during splash edit
 
 /* ═══════════════════════════════════════
-   2.  STORAGE
-═══════════════════════════════════════ */
-const getUsers  =()=>JSON.parse(localStorage.getItem(UK)||'[]');
-const getEvents =()=>JSON.parse(localStorage.getItem(EK)||'[]');
-const getCats   =()=>JSON.parse(localStorage.getItem(CK)||JSON.stringify(DEFAULT_CATS)).sort((a,b)=>a.order-b.order);
-const getMedia  =()=>JSON.parse(localStorage.getItem(MK)||'{}');
-const setUsers  =v=>localStorage.setItem(UK,JSON.stringify(v));
-const setEvents =v=>localStorage.setItem(EK,JSON.stringify(v));
-const setCats   =v=>localStorage.setItem(CK,JSON.stringify(v));
-const setMedia  =v=>{ try{localStorage.setItem(MK,JSON.stringify(v))}catch(e){toast('저장 공간이 부족합니다. 오래된 사진을 삭제해 주세요.')} };
+   2.  STORAGE — Firebase + localStorage fallback
+   ─────────────────────────────────────
+   Firebase 설정 방법:
+   1. https://console.firebase.google.com → 새 프로젝트
+   2. 빌드 → Realtime Database → 데이터베이스 만들기 (테스트 모드)
+   3. 아래 FIREBASE_DB_URL 에 본인 URL 붙여넣기
+      예) 'https://my-tennis-cal-default-rtdb.firebaseio.com'
+   ─────────────────────────────────────  */
+const FIREBASE_DB_URL = 'https://krafton-tennis-default-rtdb.asia-southeast1.firebasedatabase.app';
 
-function getToken(){ return JSON.parse(localStorage.getItem(TK)||'null'); }
-function setToken(userId){
-  localStorage.setItem(TK, JSON.stringify({userId, expires: Date.now()+TOKEN_MS}));
+let _db = null;
+(function(){
+  try{
+    if(FIREBASE_DB_URL.includes('YOUR-PROJECT')) return;
+    firebase.initializeApp({databaseURL:FIREBASE_DB_URL});
+    _db = firebase.database();
+    console.log('Firebase _db ready');
+  }catch(e){ console.warn('Firebase init failed:',e); _db=null; }
+})();
+
+// 인메모리 데이터 캐시
+let _D = {users:[],events:[],cats:null,media:{},covers:{},groups:[],splash:null};
+let _fbReady = false;
+
+async function loadAllData(){
+  if(_db){
+    await new Promise((resolve,reject)=>{
+      // 10초 안에 응답 없으면 로컬 폴백
+      const timeout=setTimeout(()=>{
+        console.warn('Firebase timeout — falling back to localStorage');
+        _db=null; reject();
+      },10000);
+
+      _db.ref('/cal').on('value', snap=>{
+        clearTimeout(timeout);
+        const d = snap.val()||{};
+        _D.users  = d.users  ?? [];
+        _D.events = d.events ?? [];
+        _D.cats   = d.cats   ?? null;
+        _D.media  = d.media  ?? {};
+        _D.covers = d.covers ?? {};
+        _D.groups = d.groups ?? [];
+        _D.splash = d.splash ?? null;
+
+        if(!_fbReady){
+          _fbReady=true;
+          console.log('Firebase data loaded ✓');
+          resolve();
+          return;
+        }
+
+        // 이후 변경 시 실시간 반영 ───────────────
+        // 스플래시 화면 갱신
+        const spEl=document.getElementById('splash');
+        if(spEl && spEl.style.display!=='none'){
+          const sp=getSplash();
+          document.getElementById('spTitle').textContent=sp.title||'공유 캘린더';
+          document.getElementById('spDesc').textContent=sp.desc||'';
+          spEl.style.backgroundImage=sp.photo?`url(${sp.photo})`:'linear-gradient(135deg,#0f2027 0%,#203a43 50%,#2c5364 100%)';
+        }
+        // 캘린더 화면 갱신
+        if(CU){
+          const u=_D.users.find(x=>x.id===CU.id);
+          if(!u){ doLogout(); return; }
+          CU=u;
+          renderCatBar(); renderScopeBar(); renderCal();
+          if(document.getElementById('ddM').classList.contains('open')) refreshDd();
+        }
+      });
+    }).catch(()=>{
+      // 타임아웃 → localStorage 폴백
+      _loadFromLS();
+    });
+  } else {
+    _loadFromLS();
+  }
 }
-function clearToken(){ localStorage.removeItem(TK); }
+function _loadFromLS(){
+  _D.users  = JSON.parse(localStorage.getItem(UK)||'[]');
+  _D.events = JSON.parse(localStorage.getItem(EK)||'[]');
+  _D.cats   = JSON.parse(localStorage.getItem(CK)||'null');
+  _D.media  = JSON.parse(localStorage.getItem(MK)||'{}');
+  _D.covers = JSON.parse(localStorage.getItem(CVK)||'{}');
+  _D.groups = JSON.parse(localStorage.getItem(GK)||'[]');
+  _D.splash = JSON.parse(localStorage.getItem(SPK)||'null');
+}
 
-const getSplash=()=>JSON.parse(localStorage.getItem(SPK)||'{"title":"공유 캘린더","desc":"","photo":""}');
-const setSplash=v=>{ try{localStorage.setItem(SPK,JSON.stringify(v))}catch(e){toast('저장 공간이 부족합니다.')} };
+function _save(key,val){
+  _D[key]=val;
+  if(_db){
+    _db.ref('/cal/'+key).set(val).catch(e=>console.warn('Firebase write:',e));
+  } else {
+    const lsKey={users:UK,events:EK,cats:CK,media:MK,covers:CVK,groups:GK,splash:SPK}[key];
+    if(lsKey){ try{ localStorage.setItem(lsKey,JSON.stringify(val)); }
+      catch(e){ if(key==='media'||key==='splash') toast('저장 공간이 부족합니다.'); } }
+  }
+}
+
+const getUsers  =()=> _D.users;
+const getEvents =()=> _D.events;
+const getCats   =()=> (_D.cats||DEFAULT_CATS).slice().sort((a,b)=>a.order-b.order);
+const getMedia  =()=> _D.media||{};
+const getCovers =()=> _D.covers||{};
+const getGroups =()=> _D.groups||[];
+const getSplash =()=> _D.splash||{title:'공유 캘린더',desc:'',photo:''};
+
+const setUsers  =v=> _save('users',v);
+const setEvents =v=> _save('events',v);
+const setCats   =v=> _save('cats',v);
+const setMedia  =v=> _save('media',v);
+const setCovers =v=> _save('covers',v);
+const setGroups =v=> _save('groups',v);
+const setSplash =v=> _save('splash',v);
+
+// 토큰은 디바이스별 localStorage (90일 자동로그인)
+function getToken(){ return JSON.parse(localStorage.getItem(TK)||'null'); }
+function setToken(userId){ localStorage.setItem(TK,JSON.stringify({userId,expires:Date.now()+TOKEN_MS})); }
+function clearToken(){ localStorage.removeItem(TK); }
 
 /* ═══════════════════════════════════════
    3.  INIT
 ═══════════════════════════════════════ */
-function init(){
-  // Default admin
+async function init(){
+  // 로딩 화면 표시
+  const ldg=document.getElementById('ldg');
+  ldg.style.display='flex';
+
+  // Firebase (또는 localStorage) 에서 데이터 로드
+  await loadAllData();
+
+  ldg.style.display='none';
+
+  // Firebase 연결 상태 알림
+  if(_db && _fbReady){
+    toast('☁️ 실시간 동기화 연결됨');
+  } else {
+    toast('⚠️ 오프라인 모드 (데이터가 이 기기에만 저장됩니다)');
+  }
+
+  // 기본 관리자 계정
   let users=getUsers();
   if(!users.find(u=>u.role==='admin')){
     users.push({id:'admin',username:'admin',password:'admin1234',name:'관리자',role:'admin'});
     setUsers(users);
   }
-  // Default categories
-  if(!localStorage.getItem(CK)) setCats(DEFAULT_CATS);
+  // 기본 카테고리
+  if(!_D.cats) setCats(DEFAULT_CATS);
 
-  // Register event listeners first
+  // 키보드 이벤트
   ['lu','lp'].forEach(id=>{
     document.getElementById(id).addEventListener('keydown',e=>{
       if(e.key==='Enter'){ id==='lu'?document.getElementById('lp').focus():doLogin(); }
     });
   });
 
-  // Photo input handler
+  // 사진 입력 핸들러
   document.getElementById('photoIn').addEventListener('change',async e=>{
     const file=e.target.files[0]; if(!file) return;
     toast('사진을 처리 중...');
@@ -575,7 +781,7 @@ function init(){
     toast('사진이 추가되었습니다');
   });
 
-  // Splash photo input handler
+  // 스플래시 사진 핸들러
   document.getElementById('splashPhotoIn').addEventListener('change',async e=>{
     const file=e.target.files[0]; if(!file) return;
     toast('사진을 처리 중...');
@@ -586,12 +792,12 @@ function init(){
     toast('사진이 등록되었습니다');
   });
 
-  // Close modal on backdrop
+  // 모달 바깥 클릭 시 닫기
   document.querySelectorAll('.bso').forEach(el=>{
     el.addEventListener('click',function(e){ if(e.target===this) this.classList.remove('open'); });
   });
 
-  // Show splash 1.5초 → 로그인 여부에 따라 분기
+  // 스플래시 1.5초 → 로그인 여부 분기
   showSplash(()=>{
     const tok=getToken();
     if(tok && tok.expires>Date.now()){
@@ -599,7 +805,6 @@ function init(){
       if(u){ CU=u; hideSplashToApp(); return; }
       clearToken();
     }
-    // 로그인 폼 서서히 등장
     document.getElementById('spLogin').classList.add('show');
   });
 }
@@ -699,6 +904,7 @@ function showApp(){
   document.getElementById('dsplashdiv').style.display=isA?'block':'none';
   const now=new Date(); VY=now.getFullYear(); VM=now.getMonth();
   renderCatBar();
+  renderScopeBar();
   renderCal();
   posFab();
 }
@@ -723,6 +929,7 @@ function renderCal(){
   const events=getEvents();
   const media=getMedia();
   const cats=getCats();
+  const covers=getCovers();
 
   const cells=[];
   for(let i=0;i<first.getDay();i++) cells.push({d:new Date(VY,VM,1-(first.getDay()-i)),other:true});
@@ -733,14 +940,21 @@ function renderCal(){
     const ds=fd(cell.d);
     const dow=cell.d.getDay();
     // Filter & sort events
-    let evs=events.filter(e=>e.date===ds && !hiddenCats.has(e.categoryId));
+    let evs=events.filter(e=>e.date===ds && !hiddenCats.has(e.categoryId) && canSeeEvent(e));
     evs=sortEvs(evs,cats);
     const m=media[ds]||[];
     const stks=m.filter(x=>x.type==='sticker');
     const phos=m.filter(x=>x.type==='photo');
 
+    // Cover photo
+    const coverId=covers[ds];
+    const coverItem=coverId?phos.find(x=>x.id===coverId):null;
+
     const div=document.createElement('div');
-    div.className='dc'+(cell.other?' other':'')+(dow===0?' sun':'')+(dow===6?' sat':'')+(ds===today?' today':'');
+    div.className='dc'+(cell.other?' other':'')+(dow===0?' sun':'')+(dow===6?' sat':'')+(ds===today?' today':'')+(coverItem?' has-cover':'');
+    if(coverItem){
+      div.style.backgroundImage=`url(${coverItem.data})`;
+    }
 
     // Date number
     const dn=document.createElement('div');
@@ -752,8 +966,9 @@ function renderCal(){
     evs.slice(0,2).forEach(ev=>{
       const cat=cats.find(c=>c.id===ev.categoryId);
       const cls=cat?cat.color:(ev.color||'c-blue');
+      const isGrp=(ev.scope||'all')!=='all';
       const p=document.createElement('div');
-      p.className='ep '+cls;
+      p.className='ep '+cls+(isGrp?' ep-grp':'');
       p.textContent=(ev.time?ev.time.slice(0,5)+' ':'')+ev.title;
       p.onclick=e=>{e.stopPropagation();openEvModal(ev.id,null);};
       div.appendChild(p);
@@ -862,7 +1077,7 @@ function openDd(date,ds){
 function refreshDd(){
   if(!ddDate) return;
   const cats=getCats();
-  let evs=getEvents().filter(e=>e.date===ddDate);
+  let evs=getEvents().filter(e=>e.date===ddDate && canSeeEvent(e));
   evs=sortEvs(evs,cats);
   const media=getMedia();
   const m=media[ddDate]||[];
@@ -875,6 +1090,7 @@ function refreshDd(){
   else eDiv.innerHTML=evs.map(ev=>{
     const cat=cats.find(c=>c.id===ev.categoryId);
     const bg=CBG[cat?cat.color:ev.color||'c-blue']||'#90caf9';
+    const sl=getScopeLabel(ev.scope||'all');
     return `<div class="dd-ev" onclick="openEvModal('${ev.id}',null)">
       <div class="dd-dot" style="background:${bg}"></div>
       <div class="dd-info">
@@ -882,6 +1098,7 @@ function refreshDd(){
         ${ev.time?`<div class="dd-time">${ev.time.slice(0,5)}</div>`:''}
         ${cat?`<div style="font-size:11px;color:#aaa;margin-top:1px">${cat.name}</div>`:''}
       </div>
+      <span class="scope-tag ${sl.cls}">${sl.text}</span>
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ddd" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
     </div>`;
   }).join('');
@@ -896,10 +1113,13 @@ function refreshDd(){
 
   // Photos
   const pDiv=document.getElementById('ddPho');
+  const cvs=getCovers();
+  const covId=cvs[ddDate]||null;
   pDiv.innerHTML=phos.map(p=>`
     <div class="photo-wrap">
       <img src="${p.data}" onclick="openLbox('${p.id}','${ddDate}')" loading="lazy">
       <button class="photo-del" onclick="delMediaItem('${ddDate}','${p.id}')">×</button>
+      <button class="photo-cover-btn ${p.id===covId?'active':''}" onclick="setCoverPhoto('${ddDate}','${p.id}')" title="대표사진으로 설정">★</button>
     </div>`).join('');
 }
 
@@ -922,8 +1142,25 @@ function delMediaItem(ds,id){
   m[ds]=m[ds].filter(x=>x.id!==id);
   if(!m[ds].length) delete m[ds];
   setMedia(m);
+  // Clean up cover if the deleted photo was the cover
+  const cvs=getCovers();
+  if(cvs[ds]===id){ delete cvs[ds]; setCovers(cvs); }
   refreshDd(); renderCal();
   toast('삭제되었습니다');
+}
+
+function setCoverPhoto(ds,photoId){
+  const cvs=getCovers();
+  if(cvs[ds]===photoId){
+    delete cvs[ds];
+    toast('대표사진이 해제되었습니다');
+  } else {
+    cvs[ds]=photoId;
+    toast('대표사진으로 설정되었습니다 ★');
+  }
+  setCovers(cvs);
+  refreshDd();
+  renderCal();
 }
 
 function triggerPhoto(){ document.getElementById('photoIn').click(); }
@@ -980,6 +1217,12 @@ function openEvModal(evId,dateStr){
     `<option value="${c.id}">${c.name}</option>`
   ).join('');
 
+  // Populate scope options
+  const myGrps=getMyGroups();
+  document.getElementById('evScope').innerHTML=
+    `<option value="all">📢 전체 공유</option>`+
+    myGrps.map(g=>`<option value="grp_${g.id}">👥 ${g.name}</option>`).join('');
+
   if(evId){
     const ev=getEvents().find(e=>e.id===evId);
     if(!ev) return;
@@ -989,6 +1232,7 @@ function openEvModal(evId,dateStr){
     document.getElementById('evDate').value=ev.date;
     document.getElementById('evTime').value=ev.time||'';
     document.getElementById('evCat').value=ev.categoryId||cats[0]?.id||'';
+    document.getElementById('evScope').value=ev.scope||'all';
     document.getElementById('evDel').style.display='inline-block';
     closeM('ddM');
   } else {
@@ -997,6 +1241,7 @@ function openEvModal(evId,dateStr){
     document.getElementById('evDate').value=dateStr||fd(new Date());
     document.getElementById('evTime').value='';
     document.getElementById('evCat').value=cats[0]?.id||'';
+    document.getElementById('evScope').value='all';
     document.getElementById('evDel').style.display='none';
   }
   openM('evM');
@@ -1008,16 +1253,17 @@ function saveEvent(){
   const date=document.getElementById('evDate').value;
   const time=document.getElementById('evTime').value;
   const categoryId=document.getElementById('evCat').value;
+  const scope=document.getElementById('evScope').value||'all';
   if(!title){ toast('제목을 입력하세요'); return; }
   if(!date){ toast('날짜를 선택하세요'); return; }
   const evs=getEvents();
   if(editEvId){
     const i=evs.findIndex(e=>e.id===editEvId);
-    if(i!==-1) evs[i]={...evs[i],title,date,time,categoryId};
+    if(i!==-1) evs[i]={...evs[i],title,date,time,categoryId,scope};
     toast('일정이 수정되었습니다');
   } else {
     evs.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),
-      title,date,time,categoryId,createdBy:CU.id});
+      title,date,time,categoryId,scope,createdBy:CU.id});
     toast('일정이 추가되었습니다');
   }
   setEvents(evs); closeM('evM'); renderCal();
@@ -1029,7 +1275,167 @@ function delEvent(){
 }
 
 /* ═══════════════════════════════════════
-   13.  CATEGORY MANAGEMENT
+   13.  SCOPE / GROUP HELPERS
+═══════════════════════════════════════ */
+function getMyGroups(){
+  const grps=getGroups();
+  return CU.role==='admin' ? grps : grps.filter(g=>g.members.includes(CU.id));
+}
+
+function getScopeLabel(scope){
+  if(!scope||scope==='all') return {text:'전체공유',cls:'s-all'};
+  if(scope.startsWith('grp_')){
+    const gid=scope.slice(4);
+    const grp=getGroups().find(g=>g.id===gid);
+    return grp ? {text:'👥 '+grp.name,cls:'s-grp'} : {text:'그룹',cls:'s-grp'};
+  }
+  return {text:'전체공유',cls:'s-all'};
+}
+
+function canSeeEvent(ev){
+  const scope=ev.scope||'all';
+  // Check user access
+  if(scope.startsWith('grp_')){
+    const gid=scope.slice(4);
+    const grp=getGroups().find(g=>g.id===gid);
+    if(!grp) return false;
+    if(CU.role!=='admin' && !grp.members.includes(CU.id)) return false;
+  }
+  // Check hidden filter
+  return !hiddenScopes.has(scope);
+}
+
+function renderScopeBar(){
+  const myGrps=getMyGroups();
+  const bar=document.getElementById('scopeBar');
+  if(!myGrps.length){ bar.style.display='none'; return; }
+  bar.style.display='flex';
+  const allOn=!hiddenScopes.has('all');
+  let h=`<span class="scope-label">공유</span>`;
+  h+=`<div class="sc-chip ${allOn?'on-all':''}" onclick="toggleScope('all')">`;
+  if(allOn) h+=`<div class="sc-dot" style="background:#66bb6a"></div>`;
+  h+=`전체공유</div>`;
+  myGrps.forEach(g=>{
+    const sk='grp_'+g.id;
+    const on=!hiddenScopes.has(sk);
+    h+=`<div class="sc-chip ${on?'on-grp':''}" onclick="toggleScope('${sk}')">`;
+    if(on) h+=`<div class="sc-dot" style="background:#ffa726"></div>`;
+    h+=`${g.name}</div>`;
+  });
+  bar.innerHTML=h;
+}
+
+function toggleScope(sk){
+  if(hiddenScopes.has(sk)) hiddenScopes.delete(sk); else hiddenScopes.add(sk);
+  renderScopeBar(); renderCal();
+}
+
+/* ═══════════════════════════════════════
+   13b. GROUP MANAGEMENT
+═══════════════════════════════════════ */
+function openGroupMgmt(){ renderGroupList(); openM('grpM'); }
+
+function renderGroupList(){
+  const myGrps=getMyGroups();
+  const users=getUsers();
+  const el=document.getElementById('grpList');
+  if(!myGrps.length){
+    el.innerHTML='<div class="dd-empty">그룹이 없습니다</div>';
+    return;
+  }
+  el.innerHTML=myGrps.map(g=>{
+    const names=users.filter(u=>g.members.includes(u.id)).map(u=>u.name).join(', ');
+    const canEdit=CU.role==='admin'||g.createdBy===CU.id;
+    return `<div class="cat-item">
+      <div style="flex:1;min-width:0">
+        <div class="cat-name">${g.name}</div>
+        <div style="font-size:11px;color:#aaa;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${names||'멤버 없음'}</div>
+      </div>
+      ${canEdit?`<button class="cat-edit-btn" onclick="openGrpEdit('${g.id}')">✏️</button>`:''}
+    </div>`;
+  }).join('');
+}
+
+function openGrpEdit(gid){
+  editGrpId=gid;
+  grpSelMembers=new Set();
+  document.getElementById('grpErr').textContent='';
+  if(gid){
+    const grp=getGroups().find(g=>g.id===gid); if(!grp) return;
+    document.getElementById('grpEMT').textContent='그룹 수정';
+    document.getElementById('grpEName').value=grp.name;
+    grpSelMembers=new Set(grp.members);
+    document.getElementById('grpEDel').style.display='inline-block';
+  } else {
+    document.getElementById('grpEMT').textContent='새 그룹 만들기';
+    document.getElementById('grpEName').value='';
+    grpSelMembers=new Set([CU.id]);
+    document.getElementById('grpEDel').style.display='none';
+  }
+  renderMemList();
+  openM('grpEM');
+}
+
+function renderMemList(){
+  const users=getUsers();
+  document.getElementById('memList').innerHTML=users.map(u=>{
+    const on=grpSelMembers.has(u.id);
+    return `<div class="mem-item" onclick="toggleMem('${u.id}')">
+      <div class="mem-chk ${on?'on':''}">${on?'✓':''}</div>
+      <div>
+        <div class="mem-name">${u.name}${u.role==='admin'?' 👑':''}</div>
+        <div class="mem-id">@${u.username}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleMem(uid){
+  if(grpSelMembers.has(uid)) grpSelMembers.delete(uid); else grpSelMembers.add(uid);
+  renderMemList();
+}
+
+function saveGroup(){
+  const name=document.getElementById('grpEName').value.trim();
+  const err=document.getElementById('grpErr');
+  if(!name){err.textContent='그룹 이름을 입력하세요';return;}
+  if(grpSelMembers.size===0){err.textContent='멤버를 한 명 이상 선택해 주세요';return;}
+  const grps=getGroups();
+  if(editGrpId){
+    const i=grps.findIndex(g=>g.id===editGrpId); if(i===-1) return;
+    grps[i]={...grps[i],name,members:[...grpSelMembers]};
+    toast('그룹이 수정되었습니다');
+  } else {
+    grps.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,4),
+      name,members:[...grpSelMembers],createdBy:CU.id,createdAt:Date.now()});
+    toast('그룹이 생성되었습니다 👥');
+  }
+  setGroups(grps);
+  closeM('grpEM');
+  renderGroupList();
+  renderScopeBar();
+  // Repopulate evScope if event modal is open
+  const myGrps=getMyGroups();
+  document.getElementById('evScope').innerHTML=
+    `<option value="all">📢 전체 공유</option>`+
+    myGrps.map(g=>`<option value="grp_${g.id}">👥 ${g.name}</option>`).join('');
+}
+
+function delGroup(){
+  if(!editGrpId||!confirm('이 그룹을 삭제할까요?\n그룹 전용 일정도 모두 삭제됩니다.')) return;
+  const sk='grp_'+editGrpId;
+  setEvents(getEvents().filter(e=>(e.scope||'all')!==sk));
+  setGroups(getGroups().filter(g=>g.id!==editGrpId));
+  hiddenScopes.delete(sk);
+  closeM('grpEM');
+  renderGroupList();
+  renderScopeBar();
+  renderCal();
+  toast('그룹이 삭제되었습니다');
+}
+
+/* ═══════════════════════════════════════
+   14.  CATEGORY MANAGEMENT
 ═══════════════════════════════════════ */
 function openCatMgmt(){ renderCatList(); openM('catM'); }
 
