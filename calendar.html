@@ -58,7 +58,7 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,'Apple SD Gothi
 .dh:first-child{color:var(--SUN)}.dh:last-child{color:var(--SAT)}
 .cgrid{display:grid;grid-template-columns:repeat(7,1fr)}
 
-.dc{min-height:82px;border-right:1px solid #f2f2f2;border-bottom:1px solid #f2f2f2;padding:3px 2px 2px;cursor:pointer;transition:background .1s}
+.dc{min-height:82px;border-right:1px solid #f2f2f2;border-bottom:1px solid #f2f2f2;padding:3px 2px 2px;cursor:pointer;overflow:hidden;min-width:0;transition:background .1s}
 .dc:hover{background:#f8faff}
 .dc:nth-child(7n){border-right:none}
 .dnum{font-size:13px;font-weight:500;width:26px;height:26px;display:flex;align-items:center;justify-content:center;margin:0 auto 2px;border-radius:50%}
@@ -164,7 +164,7 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 .photo-cover-btn.active{background:#f5a623;color:#fff}
 
 /* ── COVER PHOTO CELL ── */
-.dc.has-cover{position:relative;background-size:auto 100%;background-position:center center;background-repeat:no-repeat}
+.dc.has-cover{position:relative;background-size:cover;background-position:center center;background-repeat:no-repeat}
 .dc.has-cover::before{content:'';position:absolute;inset:0;background:rgba(0,0,0,.3);pointer-events:none;z-index:0}
 .dc.has-cover .dnum{position:relative;z-index:1;background:rgba(0,0,0,.38)!important;color:#fff!important}
 .dc.has-cover.today .dnum{background:var(--P)!important}
@@ -1228,8 +1228,8 @@ function renderCal(){
       +(hasCover2?' has-cover-2':hasCover?' has-cover':'');
     if(hasCover2){
       div.style.backgroundImage=`url(${coverPhotos[0].data}),url(${coverPhotos[1].data})`;
-      div.style.backgroundSize='auto 100%,auto 100%';
-      div.style.backgroundPosition='0% center,100% center';
+      div.style.backgroundSize='cover,cover';
+      div.style.backgroundPosition='25% center,75% center';
       div.style.backgroundRepeat='no-repeat,no-repeat';
     } else if(hasCover){
       div.style.backgroundImage=`url(${coverPhotos[0].data})`;
