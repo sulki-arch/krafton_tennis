@@ -52,13 +52,13 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,'Apple SD Gothi
 .sres-empty{font-size:13px;color:#bbb;padding:14px 0;text-align:center}
 
 /* ── CALENDAR ── */
-.cal{flex:1}
+.cal{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .dhdr{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--BD)}
 .dh{text-align:center;padding:7px 0;font-size:12px;font-weight:600;color:#888}
 .dh:first-child{color:var(--SUN)}.dh:last-child{color:var(--SAT)}
 .cgrid{display:grid;grid-template-columns:repeat(7,1fr)}
 
-.dc{min-height:82px;border-right:1px solid #f2f2f2;border-bottom:1px solid #f2f2f2;padding:3px 2px 2px;cursor:pointer;overflow:hidden;transition:background .1s}
+.dc{min-height:82px;border-right:1px solid #f2f2f2;border-bottom:1px solid #f2f2f2;padding:3px 2px 2px;cursor:pointer;transition:background .1s}
 .dc:hover{background:#f8faff}
 .dc:nth-child(7n){border-right:none}
 .dnum{font-size:13px;font-weight:500;width:26px;height:26px;display:flex;align-items:center;justify-content:center;margin:0 auto 2px;border-radius:50%}
@@ -251,7 +251,7 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 
 /* ── WEEKLY CALENDAR ── */
 #wcalWrap{flex-direction:column;flex:1;overflow:hidden}
-.wc-day-hdr{display:grid;grid-template-columns:40px repeat(7,1fr);background:#fff;border-bottom:1px solid var(--BD);flex-shrink:0;position:sticky;top:0;z-index:10}
+.wc-day-hdr{display:grid;grid-template-columns:40px repeat(3,1fr);background:#fff;border-bottom:1px solid var(--BD);flex-shrink:0;position:sticky;top:0;z-index:10}
 .wc-dh-cell{text-align:center;padding:5px 1px 4px}
 .wc-dh-name{font-size:10px;font-weight:600;color:#888}
 .wc-dh-date{font-size:14px;font-weight:700;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:50%;margin:2px auto 0;color:#333}
@@ -295,6 +295,12 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 .chat-avatar{width:26px;height:26px;border-radius:50%;object-fit:cover;flex-shrink:0;background:#e8e8e8;display:flex;align-items:center;justify-content:center;font-size:13px;overflow:hidden}
 .chat-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
 .chat-hd{display:flex;align-items:center;gap:6px;margin-bottom:2px}
+.chat-del-btn{background:none;border:none;cursor:pointer;font-size:13px;margin-left:auto;padding:0 2px;opacity:.45;flex-shrink:0;line-height:1}
+.chat-del-btn:active{opacity:1}
+.chat-rxn-bar{display:flex;flex-wrap:wrap;gap:3px;margin:4px 0 2px}
+.chat-rxn-btn{background:#f5f5f5;border:1.5px solid #e8e8e8;border-radius:14px;cursor:pointer;font-size:12px;padding:2px 7px;display:inline-flex;align-items:center;gap:2px;line-height:1.4;font-family:inherit}
+.chat-rxn-btn.mine{background:#e3f2fd;border-color:#90caf9}
+.chat-rxn-cnt{font-size:10px;color:#555;font-weight:700}
 .prof-avatar-wrap{width:80px;height:80px;border-radius:50%;background:#f0f0f0;margin:0 auto 8px;overflow:hidden;cursor:pointer;border:2px solid #e0e0e0;display:flex;align-items:center;justify-content:center;position:relative}
 .prof-avatar-wrap img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:none}
 .prof-avatar-wrap .pa-icon{font-size:32px}
@@ -1230,8 +1236,8 @@ function renderCal(){
     if(stks[1]){ const sr=document.createElement('span'); sr.className='dc-stk'; sr.textContent=stks[1].data; dnRow.appendChild(sr); }
     div.appendChild(dnRow);
 
-    // Events (max 2) — 이름만, 시간 없음
-    evs.slice(0,2).forEach(ev=>{
+    // Events — 전체 표시, 이름만, 시간 없음
+    evs.forEach(ev=>{
       const cat=cats.find(c=>c.id===ev.categoryId);
       const cls=cat?cat.color:(ev.color||'c-blue');
       const isGrp=(ev.scope||'all')!=='all';
@@ -1243,13 +1249,6 @@ function renderCal(){
       p.onclick=e=>{e.stopPropagation();openEvDetail(ev.id);};
       div.appendChild(p);
     });
-    if(evs.length>2){
-      const m2=document.createElement('div');
-      m2.className='ep-more';
-      m2.textContent=`+${evs.length-2}개`;
-      m2.onclick=e=>{e.stopPropagation();openDd(cell.d,ds);};
-      div.appendChild(m2);
-    }
 
     // 사진 수 (이벤트 전체)
     const photoCnt=evs.reduce((acc,ev)=>acc+(ev.photos||[]).length,0);
@@ -1669,27 +1668,69 @@ function _renderEvPhotos(ev){
     </div>`).join('');
 }
 
+const REACT_EMOJIS=['👍','❤️','😂','😮','😢','🎾'];
+
 function _renderEvChat(ev){
   const area=document.getElementById('evDChatArea');
-  const msgs=ev.chat||[];
+  const msgs=fbArr(ev.chat);
   const users=getUsers();
   if(!msgs.length){ area.innerHTML='<div class="chat-empty">아직 메시지가 없습니다</div>'; return; }
+  const isAdmin=CU&&CU.role==='admin';
   area.innerHTML=msgs.map(msg=>{
     const u=users.find(x=>x.id===msg.userId);
     const nick=u?u.name:(msg.userId==='__guest__'?'게스트':msg.userId);
-    const isMine=msg.userId===CU.id;
+    const isMine=CU&&msg.userId===CU.id;
+    const canDel=isMine||isAdmin;
     const ts=new Date(msg.ts);
     const timeStr=ts.getHours().toString().padStart(2,'0')+':'+ts.getMinutes().toString().padStart(2,'0');
     const avHtml=u&&u.avatar
       ?`<div class="chat-avatar"><img src="${u.avatar}" alt=""></div>`
       :`<div class="chat-avatar">${nick.slice(0,1)}</div>`;
+    const rxns=msg.reactions||{};
+    const rxnBtns=REACT_EMOJIS.map(em=>{
+      const uids=fbArr(rxns[em])||[];
+      const mine=CU&&uids.includes(CU.id);
+      return `<button class="chat-rxn-btn${mine?' mine':''}" onclick="toggleReaction('${ev.id}','${msg.id}','${em}')">${em}${uids.length?`<span class="chat-rxn-cnt">${uids.length}</span>`:''}</button>`;
+    }).join('');
     return `<div class="chat-bubble${isMine?' chat-mine':''}">
-      <div class="chat-hd">${avHtml}<div class="chat-nick">${nick}</div></div>
+      <div class="chat-hd">${avHtml}<div class="chat-nick">${nick}</div>${canDel?`<button class="chat-del-btn" onclick="deleteChat('${ev.id}','${msg.id}')">🗑</button>`:''}</div>
       <div class="chat-text">${msg.text.replace(/</g,'&lt;')}</div>
+      <div class="chat-rxn-bar">${rxnBtns}</div>
       <div class="chat-ts">${timeStr}</div>
     </div>`;
   }).join('');
   area.scrollTop=area.scrollHeight;
+}
+
+function deleteChat(evId,msgId){
+  const isAdmin=CU&&CU.role==='admin';
+  const evs=getEvents();
+  const i=evs.findIndex(e=>e.id===evId); if(i===-1) return;
+  const chat=fbArr(evs[i].chat).filter(m=>{
+    if(m.id!==msgId) return true;
+    return !(m.userId===CU.id||isAdmin);
+  });
+  evs[i]={...evs[i],chat};
+  setEvents(evs);
+  _renderEvChat(evs[i]);
+}
+
+function toggleReaction(evId,msgId,emoji){
+  if(!CU||CU.role==='viewer') return;
+  const evs=getEvents();
+  const i=evs.findIndex(e=>e.id===evId); if(i===-1) return;
+  const chat=fbArr(evs[i].chat).map(m=>{
+    if(m.id!==msgId) return m;
+    const rxns={...(m.reactions||{})};
+    const uids=[...(fbArr(rxns[emoji])||[])];
+    const idx=uids.indexOf(CU.id);
+    if(idx===-1) uids.push(CU.id); else uids.splice(idx,1);
+    if(uids.length) rxns[emoji]=uids; else delete rxns[emoji];
+    return {...m,reactions:rxns};
+  });
+  evs[i]={...evs[i],chat};
+  setEvents(evs);
+  _renderEvChat(evs[i]);
 }
 
 function openEditFromDetail(){
@@ -2350,28 +2391,80 @@ function saveProfile(){
    14c.  SWIPE GESTURES
 ═══════════════════════════════════════ */
 function initSwipeGestures(){
-  // 월간 캘린더: 상하 스와이프 → 월 이동
+  let _busy=false;
+
+  /* 공통 슬라이드 애니메이션 */
+  function slideAnim(el,dir,axis,onMid){
+    if(_busy) return; _busy=true;
+    const size=axis==='X'?el.offsetWidth:el.offsetHeight;
+    const dist=Math.min(size,260);
+    el.style.transition='transform 0.2s ease,opacity 0.2s ease';
+    el.style.transform=`translate${axis}(${-dir*dist}px)`;
+    el.style.opacity='0';
+    setTimeout(()=>{
+      el.style.transition='none';
+      el.style.transform=`translate${axis}(${dir*100}px)`;
+      el.style.opacity='0';
+      onMid();
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{
+        el.style.transition='transform 0.24s cubic-bezier(0.25,0.46,0.45,0.94),opacity 0.2s ease';
+        el.style.transform=''; el.style.opacity='1';
+        setTimeout(()=>{ el.style.transition=''; _busy=false; },240);
+      }));
+    },200);
+  }
+
+  /* ── 월간: 상하 스와이프 ── */
   const calEl=document.querySelector('.cal');
-  let cty=0, ctx2=0;
+  let csy=0,csx=0,calScr=0;
   calEl.addEventListener('touchstart',e=>{
-    cty=e.touches[0].clientY; ctx2=e.touches[0].clientX;
+    if(_busy) return;
+    csy=e.touches[0].clientY; csx=e.touches[0].clientX; calScr=calEl.scrollTop;
   },{passive:true});
   calEl.addEventListener('touchend',e=>{
-    const dy=e.changedTouches[0].clientY-cty;
-    const dx=Math.abs(e.changedTouches[0].clientX-ctx2);
-    if(Math.abs(dy)>55&&Math.abs(dy)>dx){ changeMonth(dy<0?1:-1); }
+    if(_busy) return;
+    if(Math.abs(calEl.scrollTop-calScr)>8) return; // 네이티브 스크롤 중이면 무시
+    const dy=e.changedTouches[0].clientY-csy;
+    const dx=Math.abs(e.changedTouches[0].clientX-csx);
+    if(Math.abs(dy)>80&&Math.abs(dy)>dx){
+      const dir=dy<0?1:-1;
+      slideAnim(document.getElementById('cgrid'),dir,'Y',()=>changeMonth(dir));
+    }
   },{passive:true});
 
-  // 주간 캘린더: 좌우 스와이프 → 날짜 이동
+  /* ── 주간: 좌우 스와이프 (실시간 드래그 + 커밋) ── */
   const wcEl=document.getElementById('wcalWrap');
-  let wsx=0, wsy=0;
+  const wcS=document.getElementById('wcScroll');
+  let wsx=0,wsy=0,wDir=0,wLocked=false;
   wcEl.addEventListener('touchstart',e=>{
+    if(_busy) return;
     wsx=e.touches[0].clientX; wsy=e.touches[0].clientY;
+    wDir=0; wLocked=false;
+  },{passive:true});
+  wcEl.addEventListener('touchmove',e=>{
+    if(_busy||wDir===-1) return;
+    const dx=e.touches[0].clientX-wsx, dy=Math.abs(e.touches[0].clientY-wsy);
+    if(!wLocked&&(Math.abs(dx)>10||dy>10)){
+      wLocked=true; wDir=Math.abs(dx)>dy?1:-1;
+    }
+    if(wDir===1){
+      wcS.style.transform=`translateX(${dx*0.5}px)`;
+      wcS.style.opacity=`${Math.max(0.25,1-Math.abs(dx)/360)}`;
+    }
   },{passive:true});
   wcEl.addEventListener('touchend',e=>{
+    function _resetWc(){
+      wcS.style.transition='transform 0.18s,opacity 0.18s';
+      wcS.style.transform=''; wcS.style.opacity='';
+      setTimeout(()=>wcS.style.transition='',180);
+    }
+    if(_busy||wDir!==1){ _resetWc(); return; }
     const dx=e.changedTouches[0].clientX-wsx;
-    const dy=Math.abs(e.changedTouches[0].clientY-wsy);
-    if(Math.abs(dx)>55&&Math.abs(dx)>dy){ changeMonth(dx<0?1:-1); }
+    if(Math.abs(dx)>55){
+      const dir=dx<0?1:-1;
+      slideAnim(wcS,dir,'X',()=>changeMonth(dir));
+    } else { _resetWc(); }
+    wDir=0;
   },{passive:true});
 }
 
