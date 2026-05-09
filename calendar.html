@@ -1650,6 +1650,7 @@ function openEvDetail(evId){
   // 참석 버튼 — 관리자만 표시
   const attBtn=document.getElementById('evDAttBtn');
   const isAdmin=CU&&CU.role==='admin';
+  const isViewer=CU&&CU.role==='viewer';
   attBtn.style.display=isAdmin?'block':'none';
 
   // 참석자 명단
