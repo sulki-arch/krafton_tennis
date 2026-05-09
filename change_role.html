@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>역할 변경</title>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<style>
+body{font-family:'Apple SD Gothic Neo',sans-serif;max-width:500px;margin:60px auto;padding:20px;background:#f4f6fb}
+h2{color:#1a73e8}
+button{background:#1a73e8;color:#fff;border:none;padding:12px 32px;border-radius:10px;font-size:15px;cursor:pointer}
+#log{margin-top:20px;background:#fff;border-radius:10px;padding:16px;font-size:13px;line-height:2;border:1px solid #e0e0e0}
+.ok{color:#2e7d32}.err{color:#e53935}
+</style>
+</head>
+<body>
+<h2>👤 sulki → 일반 사용자 변경</h2>
+<button onclick="run()">실행</button>
+<div id="log"></div>
+<script>
+const FIREBASE_CONFIG={databaseURL:'https://krafton-tennis-default-rtdb.asia-southeast1.firebasedatabase.app'};
+function fbArr(v){if(!v)return[];if(Array.isArray(v))return v;if(typeof v==='object')return Object.keys(v).sort((a,b)=>Number(a)-Number(b)).map(k=>v[k]);return[];}
+function log(msg,cls=''){document.getElementById('log').innerHTML+=`<div class="${cls}">${msg}</div>`;}
+async function run(){
+  if(!firebase.apps.length)firebase.initializeApp(FIREBASE_CONFIG);
+  const db=firebase.database();
+  const snap=await db.ref('/cal/users').once('value');
+  const users=fbArr(snap.val());
+  const i=users.findIndex(u=>u.id==='sulki'||u.username==='sulki');
+  if(i===-1){log('❌ sulki 계정을 찾을 수 없습니다','err');return;}
+  log(`현재 역할: ${users[i].role}`);
+  users[i]={...users[i],role:'user'};
+  await db.ref('/cal/users').set(users);
+  log('✅ sulki 역할이 일반 사용자(user)로 변경되었습니다','ok');
+}
+</script>
+</body>
+</html>
