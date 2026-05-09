@@ -675,8 +675,26 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
     </div>
     <!-- 참석 -->
     <div class="dd-sec">참석</div>
-    <button id="evDAttBtn" class="btn btn-attend" style="width:100%;margin-bottom:8px;display:none" onclick="toggleAttend()"></button>
+    <button id="evDAttBtn" class="btn btn-attend" style="width:100%;margin-bottom:8px;display:none" onclick="openAttendModal()">👥 참석자 관리</button>
     <div class="attend-names" id="evDAttNames">참석자 없음</div>
+
+    <!-- 참석자 관리 모달 (관리자 전용) -->
+    <div id="attendMgrM" class="modal-bg" onclick="if(event.target===this)closeM('attendMgrM')">
+      <div class="modal-sheet" style="max-height:80vh;display:flex;flex-direction:column">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px 12px;border-bottom:1px solid #f0f0f0;flex-shrink:0">
+          <span style="font-size:16px;font-weight:700">참석자 관리</span>
+          <button onclick="closeM('attendMgrM')" style="background:none;border:none;font-size:22px;cursor:pointer;color:#aaa;line-height:1">×</button>
+        </div>
+        <div style="padding:10px 14px 6px;flex-shrink:0">
+          <input id="attendSearch" type="text" placeholder="이름 검색..." oninput="filterAttendList()"
+            style="width:100%;padding:9px 12px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:14px;outline:none;font-family:inherit">
+        </div>
+        <div id="attendList" style="overflow-y:auto;flex:1;padding:6px 8px 16px"></div>
+        <div style="padding:12px 16px;border-top:1px solid #f0f0f0;flex-shrink:0">
+          <button class="btn" style="width:100%;background:var(--P);color:#fff" onclick="saveAttendees()">저장</button>
+        </div>
+      </div>
+    </div>
     <!-- 사진 -->
     <div class="dd-sec">사진</div>
     <div class="photo-grid" id="evDPhotos" style="margin-bottom:6px"></div>
@@ -1629,13 +1647,10 @@ function openEvDetail(evId){
   // 수정 버튼
   document.getElementById('evDEditBtn').style.display=canEdit()?'':'none';
 
-  // 참석 버튼
+  // 참석 버튼 — 관리자만 표시
   const attBtn=document.getElementById('evDAttBtn');
-  const isViewer=CU.role==='viewer';
-  attBtn.style.display=isViewer?'none':'block';
-  const attending=(ev.attendees||[]).includes(CU.id);
-  attBtn.textContent=attending?'✅ 참석 취소':'🙋 참석하기';
-  attBtn.className='btn btn-attend'+(attending?' going':'');
+  const isAdmin=CU&&CU.role==='admin';
+  attBtn.style.display=isAdmin?'block':'none';
 
   // 참석자 명단
   _renderAttNames(ev);
@@ -1765,26 +1780,64 @@ function openEditFromDetail(){
   openEvModal(detailEvId,null);
 }
 
-function toggleAttend(){
-  if(!detailEvId||!canEdit()) return;
+/* ── 참석자 관리 (관리자 전용) ── */
+let _attendDraft=[];
+
+function openAttendModal(){
+  if(!detailEvId||!CU||CU.role!=='admin') return;
+  const ev=getEvents().find(e=>e.id===detailEvId); if(!ev) return;
+  _attendDraft=[...(ev.attendees||[])];
+  document.getElementById('attendSearch').value='';
+  _renderAttendList('');
+  openM('attendMgrM');
+}
+
+function filterAttendList(){
+  const q=document.getElementById('attendSearch').value;
+  _renderAttendList(q);
+}
+
+function _renderAttendList(q){
+  const users=getUsers().filter(u=>u.role!=='admin'||_attendDraft.includes(u.id));
+  const filtered=q?users.filter(u=>u.name.includes(q)||u.id.includes(q)):users;
+  filtered.sort((a,b)=>{
+    const aOn=_attendDraft.includes(a.id);
+    const bOn=_attendDraft.includes(b.id);
+    if(aOn!==bOn) return aOn?-1:1;
+    return (a.name||'').localeCompare(b.name||'','ko');
+  });
+  document.getElementById('attendList').innerHTML=filtered.map(u=>{
+    const checked=_attendDraft.includes(u.id);
+    return `<label style="display:flex;align-items:center;gap:10px;padding:10px 8px;border-radius:10px;cursor:pointer;${checked?'background:#e8f5e9':''}">
+      <input type="checkbox" ${checked?'checked':''} onchange="_toggleDraft('${u.id}',this.checked)"
+        style="width:18px;height:18px;accent-color:var(--P);flex-shrink:0">
+      <span style="font-size:15px;font-weight:500">${u.name}</span>
+      <span style="font-size:12px;color:#bbb;margin-left:auto">@${u.id}</span>
+    </label>`;
+  }).join('') || '<div style="text-align:center;color:#bbb;padding:20px;font-size:13px">검색 결과 없음</div>';
+}
+
+function _toggleDraft(uid, checked){
+  if(checked){ if(!_attendDraft.includes(uid)) _attendDraft.push(uid); }
+  else { _attendDraft=_attendDraft.filter(x=>x!==uid); }
+  // 체크박스 배경 즉시 갱신
+  const q=document.getElementById('attendSearch').value;
+  _renderAttendList(q);
+}
+
+function saveAttendees(){
+  if(!detailEvId||!CU||CU.role!=='admin') return;
   const evs=getEvents();
   const i=evs.findIndex(e=>e.id===detailEvId); if(i===-1) return;
-  const ev=evs[i];
-  const atts=[...(ev.attendees||[])];
-  const idx=atts.indexOf(CU.id);
-  if(idx===-1) atts.push(CU.id); else atts.splice(idx,1);
-  evs[i]={...ev,attendees:atts};
+  evs[i]={...evs[i],attendees:[..._attendDraft]};
   setEvents(evs);
-  // 버튼 즉시 갱신
-  const updEv=evs[i];
-  const attending=atts.includes(CU.id);
-  const attBtn=document.getElementById('evDAttBtn');
-  attBtn.textContent=attending?'✅ 참석 취소':'🙋 참석하기';
-  attBtn.className='btn btn-attend'+(attending?' going':'');
-  _renderAttNames(updEv);
+  _renderAttNames(evs[i]);
   renderCal();
-  toast(attending?'참석으로 등록되었습니다 ✅':'참석이 취소되었습니다');
+  closeM('attendMgrM');
+  toast(`참석자 ${_attendDraft.length}명 저장되었습니다 ✅`);
 }
+
+function toggleAttend(){} // (legacy — unused)
 
 function sendChat(){
   if(!detailEvId) return;
