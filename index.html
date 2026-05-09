@@ -679,11 +679,11 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
     <div class="attend-names" id="evDAttNames">참석자 없음</div>
 
     <!-- 참석자 관리 모달 (관리자 전용) -->
-    <div id="attendMgrM" class="modal-bg" onclick="if(event.target===this)closeM('attendMgrM')">
+    <div id="attendMgrM" class="modal-bg" onclick="if(event.target===this){_attendDraft=[];closeM('attendMgrM')}">
       <div class="modal-sheet" style="max-height:80vh;display:flex;flex-direction:column">
         <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px 12px;border-bottom:1px solid #f0f0f0;flex-shrink:0">
           <span style="font-size:16px;font-weight:700">참석자 관리</span>
-          <button onclick="closeM('attendMgrM')" style="background:none;border:none;font-size:22px;cursor:pointer;color:#aaa;line-height:1">×</button>
+          <button onclick="_attendDraft=[];closeM('attendMgrM')" style="background:none;border:none;font-size:22px;cursor:pointer;color:#aaa;line-height:1">×</button>
         </div>
         <div style="padding:10px 14px 6px;flex-shrink:0">
           <input id="attendSearch" type="text" placeholder="이름 검색..." oninput="filterAttendList()"
@@ -1834,8 +1834,10 @@ function saveAttendees(){
   setEvents(evs);
   _renderAttNames(evs[i]);
   renderCal();
+  const _cnt=_attendDraft.length;
+  _attendDraft=[];
   closeM('attendMgrM');
-  toast(`참석자 ${_attendDraft.length}명 저장되었습니다 ✅`);
+  toast(`참석자 ${_cnt}명 저장되었습니다 ✅`);
 }
 
 function toggleAttend(){} // (legacy — unused)
