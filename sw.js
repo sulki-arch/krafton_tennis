@@ -1,5 +1,5 @@
 // 크래프톤 테니스 동호회 캘린더 - Service Worker
-const CACHE = 'krafton-tennis-v1';
+const CACHE = 'krafton-tennis-v3';
 const STATIC = [
   '/krafton_tennis/',
   '/krafton_tennis/index.html',
