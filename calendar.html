@@ -357,6 +357,12 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 #memberListM .ml-role{font-size:11px;padding:2px 8px;border-radius:20px;flex-shrink:0}
 #memberListM .ml-role.admin{background:#fce8e6;color:#c62828}
 #memberListM .ml-role.user{background:#e8f5e9;color:#2e7d32}
+/* ── 음료 선택 ── */
+.drink-grid{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:4px}
+.drink-btn{display:inline-flex;flex-direction:column;align-items:center;padding:7px 12px 5px;border-radius:20px;border:1.5px solid #e0e0e0;background:#fff;font-size:13px;font-weight:500;color:#555;cursor:pointer;transition:all .15s;min-width:70px;line-height:1.4}
+.drink-btn.selected{background:#e8f0fe;border-color:#4285f4;color:#1a73e8;font-weight:700}
+.drink-btn .drink-voters{font-size:10px;color:#888;font-weight:400;margin-top:2px;text-align:center;max-width:120px;word-break:break-all;line-height:1.3}
+.drink-btn.selected .drink-voters{color:#5c85d6}
 #memberListM .ml-role.viewer{background:#f5f5f5;color:#888}
 /* ── 배경 크롭 모달 ── */
 #bgCropM .bs{padding:0;background:#111;border-radius:20px 20px 0 0;overflow:hidden}
@@ -870,6 +876,10 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
     <div class="dd-sec">참석</div>
     <button id="evDAttBtn" class="btn btn-attend" style="width:100%;margin-bottom:8px;display:none" onclick="handleAttendBtn()"></button>
     <div class="attend-names" id="evDAttNames">참석자 없음</div>
+
+    <!-- 음료 선택 -->
+    <div class="dd-sec" id="evDDrinkSec" style="display:none;margin-top:16px">음료 선택</div>
+    <div class="drink-grid" id="evDDrinks" style="display:none;margin-bottom:14px"></div>
 
     <!-- 참석자 관리 모달 (관리자 전용) -->
     <div id="attendMgrM" class="modal-bg" onclick="if(event.target===this){_attendDraft=[];closeM('attendMgrM')}">
@@ -2246,6 +2256,9 @@ function openEvDetail(evId){
   // 참석자 명단
   _renderAttNames(ev);
 
+  // 음료 선택
+  _renderDrinks(ev);
+
   // 사진
   _renderEvPhotos(ev);
   document.getElementById('evDPhotoAdd').style.display=canEdit()?'block':'none';
@@ -2279,6 +2292,72 @@ function _renderAttNames(ev){
   }).join('');
   wrap.innerHTML=`<div style="margin-bottom:4px;font-size:12px;color:#888">참석 ${attUsers.length}명</div><div style="display:flex;flex-wrap:wrap;gap:6px">${chips}</div>`;
 }
+
+/* ─── 음료 선택 ──────────────────────────────────────────────── */
+const DRINK_MENUS=[
+  {id:'ice_ame',    label:'아이스아메리카노',       emoji:'☕'},
+  {id:'decaf_ame',  label:'디카페인아이스아메리카노', emoji:'🌿'},
+  {id:'ice_tea',    label:'아이스티',               emoji:'🍵'},
+  {id:'grapefruit', label:'자몽에이드',             emoji:'🍊'},
+  {id:'other',      label:'기타',                  emoji:'🥤'},
+];
+
+function _renderDrinks(ev){
+  const sec=document.getElementById('evDDrinkSec');
+  const wrap=document.getElementById('evDDrinks');
+  if(!sec||!wrap) return;
+  const hasAtt=(ev.attendees||[]).length>0;
+  sec.style.display=hasAtt?'':'none';
+  wrap.style.display=hasAtt?'flex':'none';
+  if(!hasAtt) return;
+
+  const drinks=ev.drinks||{};
+  const users=getUsers();
+  const myId=CU&&CU.id;
+  const isViewer=CU&&CU.role==='viewer';
+
+  wrap.innerHTML=DRINK_MENUS.map(function(m){
+    const voters=drinks[m.id]||[];
+    const isMine=voters.includes(myId);
+    const names=voters.map(function(uid){
+      const u=users.find(function(x){return x.id===uid;});
+      return u?(u.name||u.username||uid):uid;
+    }).join(', ');
+    const cls='drink-btn'+(isMine?' selected':'');
+    const extra=isViewer?' style="cursor:default"':'';
+    return '<button class="'+cls+'" data-menu="'+m.id+'"'+extra+'>'
+      +'<span>'+m.emoji+' '+m.label+'</span>'
+      +(voters.length>0?'<span class="drink-voters">'+names+'</span>':'<span class="drink-voters" style="min-height:1.3em"></span>')
+      +'</button>';
+  }).join('');
+
+  // 이벤트 위임으로 클릭 처리
+  if(!isViewer){
+    wrap.onclick=function(ev2){
+      const btn=ev2.target.closest('[data-menu]');
+      if(btn) toggleDrink(btn.dataset.menu);
+    };
+  } else {
+    wrap.onclick=null;
+  }
+}
+
+async function toggleDrink(menuId){
+  if(!CU||CU.role==='viewer'||!detailEvId) return;
+  const evs=getEvents();
+  const ei=evs.findIndex(x=>x.id===detailEvId); if(ei===-1) return;
+  const ev=evs[ei];
+  const drinks=ev.drinks ? JSON.parse(JSON.stringify(ev.drinks)) : {};
+  if(!drinks[menuId]) drinks[menuId]=[];
+  const myId=CU.id;
+  const pos=drinks[menuId].indexOf(myId);
+  if(pos===-1){ drinks[menuId].push(myId); }
+  else { drinks[menuId].splice(pos,1); }
+  evs[ei]={...ev, drinks};
+  setEvents(evs);
+  _renderDrinks(evs[ei]);
+}
+
 
 function _renderEvPhotos(ev){
   const pDiv=document.getElementById('evDPhotos');
@@ -2435,6 +2514,7 @@ function saveAttendees(){
   evs[i]={...evs[i],attendees:[..._attendDraft]};
   setEvents(evs);
   _renderAttNames(evs[i]);
+  _renderDrinks(evs[i]);
   renderCal();
   const _cnt=_attendDraft.length;
   _attendDraft=[];
@@ -2458,6 +2538,7 @@ function toggleOwnAttend(){
   if(idx===-1) atts.push(CU.id); else atts.splice(idx,1);
   evs[i]={...ev,attendees:atts};
   setEvents(evs);
+  _renderDrinks(evs[i]);
   // 버튼 즉시 갱신
   const attending=atts.includes(CU.id);
   const attBtn=document.getElementById('evDAttBtn');
@@ -3294,62 +3375,73 @@ async function confirmCrop(){
   const offscreen=document.createElement('canvas');
   offscreen.width=SIZE; offscreen.height=SIZE;
   const ctx=offscreen.getContext('2d');
-  // 원형 클리핑
   ctx.beginPath(); ctx.arc(SIZE/2,SIZE/2,SIZE/2,0,Math.PI*2); ctx.clip();
-  // cropCanvas 좌표를 200×200으로 스케일
   const sf=SIZE/CROP_SIZE;
   const drawX=(_cropX-(_cropImg.width*_cropScale)/2)*sf;
   const drawY=(_cropY-(_cropImg.height*_cropScale)/2)*sf;
   ctx.drawImage(_cropImg, drawX, drawY, _cropImg.width*_cropScale*sf, _cropImg.height*_cropScale*sf);
-  const dataUrl=offscreen.toDataURL('image/jpeg',0.88);
   closeM('cropM');
   toast('사진 업로드 중...');
+  console.log('[Avatar] 업로드 시작. _storage:', !!_storage, 'CU:', CU&&CU.id);
 
-  // Storage 업로드 (기존 사진 백업 후 교체)
-  let avatarUrl = dataUrl; // base64 fallback
-  if(_storage){
-    try{
-      const uid=CU.id||CU.username;
-      // 기존 사진 → _prev 백업
-      if(CU.avatar && CU.avatar.startsWith('http')){
-        try{
-          const prevRef=_storage.ref('photos/avatars/'+uid+'_prev.jpg');
-          const curRef=_storage.ref('photos/avatars/'+uid+'.jpg');
-          // Firebase Storage에는 직접 copy API가 없으므로 download→upload
-          const curBlob=await(await fetch(CU.avatar)).blob();
-          await prevRef.put(curBlob);
-          // DB에 _prev URL 저장
-          const prevUrl=await prevRef.getDownloadURL();
-          const _pu=getUsers(); const _pi=_pu.findIndex(x=>x.id===CU.id||x.username===CU.username);
-          if(_pi!==-1){ _pu[_pi].avatarPrev=prevUrl; CU.avatarPrev=prevUrl; setUsers(_pu); }
-        }catch(bkErr){ console.warn('Avatar backup failed (non-critical):', bkErr); }
-      }
-      // 새 사진 업로드
-      const blob=await(await fetch(dataUrl)).blob();
-      const storageRef=_storage.ref('photos/avatars/'+uid+'.jpg');
-      const snap=await storageRef.put(blob);
-      avatarUrl=await snap.ref.getDownloadURL();
-    }catch(ex){ console.warn('Avatar Storage upload failed, using base64 fallback', ex); }
+  // 이전 사진 URL을 DB에만 보관 (fetch CORS 없이)
+  if(CU && CU.avatar && CU.avatar.startsWith('http') && !CU.avatarPrev){
+    const users2=getUsers(); const ui2=users2.findIndex(x=>x.id===CU.id||x.username===CU.username);
+    if(ui2!==-1){ users2[ui2].avatarPrev=CU.avatar; CU.avatarPrev=CU.avatar; setUsers(users2); }
+    console.log('[Avatar] 이전 URL 백업 완료:', CU.avatarPrev&&CU.avatarPrev.substring(0,60));
   }
-  // 즉시 DB에도 반영
+
+  let avatarUrl = null;
+  // Storage 업로드: canvas.toBlob 사용 (fetch dataUrl보다 안정적)
+  if(_storage){
+    avatarUrl = await new Promise(resolve=>{
+      offscreen.toBlob(async function(blob){
+        if(!blob){ console.warn('[Avatar] toBlob 실패'); resolve(null); return; }
+        console.log('[Avatar] blob size:', blob.size, 'type:', blob.type);
+        try{
+          const uid=CU.id||CU.username;
+          const ref=_storage.ref('photos/avatars/'+uid+'.jpg');
+          console.log('[Avatar] Storage 업로드 시작...');
+          const snap=await ref.put(blob, {contentType:'image/jpeg'});
+          console.log('[Avatar] 업로드 완료:', snap.metadata.fullPath);
+          const url=await snap.ref.getDownloadURL();
+          console.log('[Avatar] Download URL 획득:', url.substring(0,80));
+          resolve(url);
+        }catch(err){
+          console.error('[Avatar] Storage 업로드 실패:', err.code, err.message);
+          resolve(null);
+        }
+      }, 'image/jpeg', 0.88);
+    });
+  }
+
+  // fallback: base64 저장
+  if(!avatarUrl){
+    console.warn('[Avatar] Storage 실패 → base64 fallback 사용');
+    avatarUrl = offscreen.toDataURL('image/jpeg', 0.88);
+  }
+
+  // DB 반영
   if(CU){ CU.avatar=avatarUrl; }
   const _cuUsers=getUsers();
   const _cuIdx=_cuUsers.findIndex(u=>u.id===CU.id||u.username===CU.username);
   if(_cuIdx!==-1){ _cuUsers[_cuIdx].avatar=avatarUrl; setUsers(_cuUsers); }
   window._profPhotoData=avatarUrl;
-  {
-    const imgEl=document.getElementById('profAvatarImg');
-    imgEl.src=avatarUrl; imgEl.style.display='block';
-    document.getElementById('profAvatarDelBtn').style.display='inline-block';
-    document.getElementById('profAvatarIcon').style.display='none';
-  }
+  console.log('[Avatar] DB 반영 완료. URL type:', avatarUrl.startsWith('http')?'Storage URL':'base64');
+
+  // 프로필 모달 미리보기
+  const imgEl=document.getElementById('profAvatarImg');
+  imgEl.src=avatarUrl; imgEl.style.display='block';
+  document.getElementById('profAvatarDelBtn').style.display='inline-block';
+  document.getElementById('profAvatarIcon').style.display='none';
+  // 이전 사진 버튼 숨기기 (방금 최신으로 업데이트됨)
+  const prevBtn=document.getElementById('profAvatarPrevBtn');
+  if(prevBtn) prevBtn.style.display=CU.avatarPrev?'inline-flex':'none';
   // 드로어 아바타도 갱신
-  {
-    const davImg=document.getElementById('davImg');
-    if(davImg){ davImg.src=avatarUrl; davImg.style.display='block'; }
-    const davFb=document.getElementById('davFallback');
-    if(davFb) davFb.style.display='none';
-  }
+  const davImg=document.getElementById('davImg');
+  if(davImg){ davImg.src=avatarUrl; davImg.style.display='block'; }
+  const davFb=document.getElementById('davFallback');
+  if(davFb) davFb.style.display='none';
   toast('사진이 등록되었습니다 ✓');
 }
 
@@ -3529,7 +3621,7 @@ function cancelBgCrop(){ closeM('bgCropM'); _bgCropImg=null; }
 
 async function confirmBgCrop(){
   if(!_bgCropImg){ closeM('bgCropM'); return; }
-  const SIZE=600; // 배경 사진은 600×600 정사각형
+  const SIZE=600;
   const offscreen=document.createElement('canvas');
   offscreen.width=SIZE; offscreen.height=SIZE;
   const ctx=offscreen.getContext('2d');
@@ -3537,44 +3629,60 @@ async function confirmBgCrop(){
   const drawX=(_bgCropX-(_bgCropImg.width*_bgCropScale)/2)*sf;
   const drawY=(_bgCropY-(_bgCropImg.height*_bgCropScale)/2)*sf;
   ctx.drawImage(_bgCropImg,drawX,drawY,_bgCropImg.width*_bgCropScale*sf,_bgCropImg.height*_bgCropScale*sf);
-  const dataUrl=offscreen.toDataURL('image/jpeg',0.85);
   closeM('bgCropM');
   toast('배경 사진 업로드 중...');
-  let savedUrl=dataUrl;
-  if(_storage){
-    try{
-      const uid=CU.id||CU.username;
-      // 기존 배경 → _prev 백업
-      if(CU.drawerBg && CU.drawerBg.startsWith('http')){
-        try{
-          const bgPrevRef=_storage.ref('photos/bg/'+uid+'_prev.jpg');
-          const curBgBlob=await(await fetch(CU.drawerBg)).blob();
-          await bgPrevRef.put(curBgBlob);
-          const bgPrevUrl=await bgPrevRef.getDownloadURL();
-          const _bpu=getUsers(); const _bpi=_bpu.findIndex(x=>x.id===CU.id||x.username===CU.username);
-          if(_bpi!==-1){ _bpu[_bpi].drawerBgPrev=bgPrevUrl; CU.drawerBgPrev=bgPrevUrl; setUsers(_bpu); }
-        }catch(bgBkErr){ console.warn('BG backup failed (non-critical):', bgBkErr); }
-      }
-      const blob=await(await fetch(dataUrl)).blob();
-      const storageRef=_storage.ref('photos/bg/'+uid+'.jpg');
-      const snap=await storageRef.put(blob);
-      const url=await snap.ref.getDownloadURL();
-      savedUrl=url;
-    }catch(ex){ console.warn('BG Storage upload failed, using base64',ex); }
+  console.log('[BgPhoto] 업로드 시작. _storage:', !!_storage, 'CU:', CU&&CU.id);
+
+  // 이전 배경 URL을 DB에만 보관
+  if(CU && CU.drawerBg && CU.drawerBg.startsWith('http') && !CU.drawerBgPrev){
+    const bu=getUsers(); const bi=bu.findIndex(x=>x.id===CU.id||x.username===CU.username);
+    if(bi!==-1){ bu[bi].drawerBgPrev=CU.drawerBg; CU.drawerBgPrev=CU.drawerBg; setUsers(bu); }
+    console.log('[BgPhoto] 이전 URL 백업 완료');
   }
-  // DB에 저장
+
+  let savedUrl = null;
+  if(_storage){
+    savedUrl = await new Promise(resolve=>{
+      offscreen.toBlob(async function(blob){
+        if(!blob){ console.warn('[BgPhoto] toBlob 실패'); resolve(null); return; }
+        console.log('[BgPhoto] blob size:', blob.size, 'type:', blob.type);
+        try{
+          const uid=CU.id||CU.username;
+          const ref=_storage.ref('photos/bg/'+uid+'.jpg');
+          console.log('[BgPhoto] Storage 업로드 시작...');
+          const snap=await ref.put(blob, {contentType:'image/jpeg'});
+          console.log('[BgPhoto] 업로드 완료:', snap.metadata.fullPath);
+          const url=await snap.ref.getDownloadURL();
+          console.log('[BgPhoto] Download URL:', url.substring(0,80));
+          resolve(url);
+        }catch(err){
+          console.error('[BgPhoto] Storage 업로드 실패:', err.code, err.message);
+          resolve(null);
+        }
+      }, 'image/jpeg', 0.85);
+    });
+  }
+
+  if(!savedUrl){
+    console.warn('[BgPhoto] Storage 실패 → base64 fallback');
+    savedUrl = offscreen.toDataURL('image/jpeg', 0.85);
+  }
+
   if(CU){ CU.drawerBg=savedUrl; }
   const users=getUsers();
   const idx=users.findIndex(u=>u.id===CU.id||u.username===CU.username);
   if(idx!==-1){ users[idx].drawerBg=savedUrl; setUsers(users); }
   _applyDrawerBg(savedUrl);
-  // 프로필 모달 미리보기 갱신
+  console.log('[BgPhoto] DB 반영 완료. type:', savedUrl.startsWith('http')?'Storage URL':'base64');
+
   const bgPreviewImg=document.getElementById('profBgPreviewImg');
   const bgPreviewPh=document.getElementById('profBgPreviewPlaceholder');
   const bgDelBtn=document.getElementById('profBgDelBtn');
   if(bgPreviewImg){ bgPreviewImg.src=savedUrl; bgPreviewImg.style.display='block'; }
   if(bgPreviewPh) bgPreviewPh.style.display='none';
   if(bgDelBtn) bgDelBtn.style.display='inline-flex';
+  const prevBgBtn2=document.getElementById('profBgPrevBtn');
+  if(prevBgBtn2) prevBgBtn2.style.display=CU.drawerBgPrev?'inline-flex':'none';
   _bgCropImg=null;
   toast('배경 사진이 저장됐습니다 ✓');
 }
