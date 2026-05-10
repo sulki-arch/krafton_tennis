@@ -336,6 +336,21 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 .ev-prof-name{font-size:15px;font-weight:700;color:#1a237e;margin-bottom:2px;padding-right:24px}
 .ev-prof-row{font-size:12px;color:#3c4566;line-height:1.7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ev-prof-row span{color:#888}
+.att-chip{display:inline-flex;align-items:center;background:#f5f5f5;border-radius:20px;padding:4px 10px 4px 4px;font-size:13px;font-weight:500;color:#333;border:1px solid #eee;transition:background .15s}
+.att-chip:hover{background:#e8f0fe}
+/* 전체 멤버 리스트 모달 */
+#memberListM .ml-item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #f5f5f5}
+#memberListM .ml-item:last-child{border-bottom:none}
+#memberListM .ml-av{width:44px;height:44px;border-radius:50%;overflow:hidden;flex-shrink:0;cursor:pointer}
+#memberListM .ml-av img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+#memberListM .ml-info{flex:1;min-width:0}
+#memberListM .ml-name{font-size:14px;font-weight:700;color:#222;cursor:pointer}
+#memberListM .ml-name:hover{color:#1a73e8}
+#memberListM .ml-sub{font-size:12px;color:#888;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#memberListM .ml-role{font-size:11px;padding:2px 8px;border-radius:20px;flex-shrink:0}
+#memberListM .ml-role.admin{background:#fce8e6;color:#c62828}
+#memberListM .ml-role.user{background:#e8f5e9;color:#2e7d32}
+#memberListM .ml-role.viewer{background:#f5f5f5;color:#888}
 .chat-hd{display:flex;align-items:center;gap:6px;margin-bottom:2px}
 .chat-del-btn{background:none;border:none;cursor:pointer;font-size:13px;margin-left:auto;padding:0 2px;opacity:.45;flex-shrink:0;line-height:1}
 .chat-del-btn:active{opacity:1}
@@ -531,6 +546,11 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
       내 프로필
     </button>
     <div class="d-div" id="dprodiv" style="display:none"></div>
+    <button class="d-item" onclick="openMemberList();closeDrawer()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      전체 멤버 보기
+    </button>
+    <div class="d-div"></div>
     <button class="d-item" onclick="openGroupMgmt();closeDrawer()">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       그룹 관리
@@ -724,9 +744,10 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
         <img id="evProfPhoto" class="ev-prof-photo" src="" alt="">
         <div class="ev-prof-info">
           <div class="ev-prof-name" id="evProfName"></div>
-          <div class="ev-prof-row" id="evProfSub"></div>
-          <div class="ev-prof-row" id="evProfBio"></div>
-          <div class="ev-prof-row" id="evProfLoc"></div>
+          <div class="ev-prof-row" id="evProfSub" style="display:none"></div>
+          <div class="ev-prof-row" id="evProfBio" style="display:none"></div>
+          <div class="ev-prof-row" id="evProfLoc" style="display:none"></div>
+          <span class="d-role" id="evProfRole" style="font-size:11px;margin-top:5px;display:inline-block;background:rgba(26,115,232,.15);color:#1a73e8">멤버</span>
         </div>
       </div>
     </div>
@@ -871,6 +892,18 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
     <img id="avPopImg" class="av-pop-img" src="" alt="" style="display:none">
     <canvas id="avPopCanvas" class="av-pop-canvas" width="200" height="200" style="display:none"></canvas>
     <div class="av-pop-name" id="avPopName"></div>
+  </div>
+</div>
+
+<!-- ═══ MEMBER LIST MODAL ═══ -->
+<div class="bso" id="memberListM" onclick="if(event.target===this)closeM('memberListM')">
+  <div class="bs" style="max-height:85vh;display:flex;flex-direction:column;padding-bottom:20px">
+    <div class="bs-h"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0 14px;flex-shrink:0">
+      <div class="bs-t" style="margin:0">전체 멤버</div>
+      <button onclick="closeM('memberListM')" style="background:none;border:none;font-size:22px;cursor:pointer;color:#aaa;line-height:1;padding:0">×</button>
+    </div>
+    <div id="memberListBody" style="overflow-y:auto;flex:1"></div>
   </div>
 </div>
 
@@ -1147,32 +1180,34 @@ function openAvatarPopup(userId, userName){
 }
 function closeAvatarPopup(){ document.getElementById('avatarPopup').classList.remove('open'); }
 
-function openEvProfileCard(u, userId, userName){
-  const card=document.getElementById('evProfileCard');
+function _fillEvProfileCard(u, userId, userName){
   const photo=document.getElementById('evProfPhoto');
   const seed=u&&u.avatarSeed!==undefined?u.avatarSeed:getDefaultAvatarSeed(userId);
   photo.src=(u&&u.avatar&&u.avatar.startsWith('http'))?u.avatar:getAnimalAvatarUrl(seed);
   document.getElementById('evProfName').textContent=u?u.name||userName:userName||userId;
-  // ID / 소속
-  const sub=[];
-  if(u&&u.username) sub.push(u.username);
-  if(u&&u.team) sub.push(u.team);
+  const sub=[]; if(u&&u.username) sub.push('@'+u.username); if(u&&u.team) sub.push(u.team);
   const subEl=document.getElementById('evProfSub');
-  subEl.innerHTML=sub.length?`<span>ID</span> ${sub.join(' / ')}`:'';
-  // 자기소개
+  subEl.textContent=sub.join('  ·  '); subEl.style.display=sub.length?'block':'none';
   const bioEl=document.getElementById('evProfBio');
-  bioEl.textContent=(u&&u.bio)||'';
-  bioEl.style.display=(u&&u.bio)?'block':'none';
-  // 지역 / 구력
-  const loc=[];
-  if(u&&u.region) loc.push(u.region);
-  if(u&&u.level) loc.push(u.level+'년차');
+  bioEl.textContent=(u&&u.bio)||''; bioEl.style.display=(u&&u.bio)?'block':'none';
+  const loc=[]; if(u&&u.region) loc.push(u.region); if(u&&u.level) loc.push(u.level+'년차');
   const locEl=document.getElementById('evProfLoc');
-  locEl.innerHTML=loc.length?`<span>📍</span> ${loc.join(' · ')}`:'';
-  locEl.style.display=loc.length?'block':'none';
-  // 모달 스크롤 맨 위로
-  const bs=card.closest('.bs'); if(bs) bs.scrollTo({top:0,behavior:'smooth'});
-  card.classList.add('open');
+  locEl.textContent=loc.join(' · '); locEl.style.display=loc.length?'block':'none';
+  // 역할 배지
+  const roleMap={admin:'관리자',user:'멤버',viewer:'게스트'};
+  const roleEl=document.getElementById('evProfRole');
+  if(roleEl){ roleEl.textContent=roleMap[u&&u.role]||'멤버'; }
+}
+
+function openEvProfileCard(u, userId, userName){
+  const card=document.getElementById('evProfileCard');
+  const alreadyOpen=card.classList.contains('open');
+  _fillEvProfileCard(u, userId, userName);
+  if(!alreadyOpen){
+    const bs=card.closest('.bs'); if(bs) bs.scrollTo({top:0,behavior:'smooth'});
+    card.classList.add('open');
+  }
+  // 이미 열려있으면 콘텐츠만 교체 (애니 없이 자연스럽게)
 }
 function closeEvProfileCard(){
   document.getElementById('evProfileCard').classList.remove('open');
@@ -1809,6 +1844,62 @@ function toggleAllCats(){ hiddenCats.clear(); renderCatBar(); renderCal(); }
 /* ═══════════════════════════════════════
    8.  DRAWER
 ═══════════════════════════════════════ */
+/* ═══════════════════════════════════════
+   전체 멤버 리스트
+═══════════════════════════════════════ */
+function openMemberList(){
+  const roleLabel={admin:'관리자',user:'멤버',viewer:'게스트'};
+  // 가나다 순 정렬 (admin 먼저, 그 다음 user, viewer)
+  const users=[...getUsers()].filter(u=>u.role!=='viewer').sort((a,b)=>{
+    const rOrder={admin:0,user:1,viewer:2};
+    if((rOrder[a.role]||1)!==(rOrder[b.role]||1)) return (rOrder[a.role]||1)-(rOrder[b.role]||1);
+    return (a.name||a.username||'').localeCompare(b.name||b.username||'','ko');
+  });
+  const body=document.getElementById('memberListBody');
+  body.innerHTML=users.map(u=>{
+    const seed=u.avatarSeed!==undefined?u.avatarSeed:getDefaultAvatarSeed(u.id||u.username);
+    const photoSrc=(u.avatar&&u.avatar.startsWith('http'))?u.avatar:getAnimalAvatarUrl(seed);
+    const sub=[];
+    if(u.username) sub.push('@'+u.username);
+    if(u.team) sub.push(u.team);
+    if(u.region) sub.push(u.region);
+    if(u.level) sub.push(u.level+'년차');
+    const roleClass=u.role==='admin'?'admin':u.role==='viewer'?'viewer':'user';
+    const uid=u.id||u.username;
+    const uname=JSON.stringify(u.name||uid).replace(/'/g,"\'");
+    return `<div class="ml-item">
+      <div class="ml-av" onclick="openMemberProfile('${uid}',${uname})"><img src="${photoSrc}" alt="" onerror="this.src='${getAnimalAvatarUrl(seed)}'"></div>
+      <div class="ml-info">
+        <div class="ml-name" onclick="openMemberProfile('${uid}',${uname})">${u.name||uid}</div>
+        ${sub.length?`<div class="ml-sub">${sub.join('  ·  ')}</div>`:''}
+        ${u.bio?`<div class="ml-sub" style="color:#aaa;font-style:italic">${u.bio}</div>`:''}
+      </div>
+      <span class="ml-role ${roleClass}">${roleLabel[u.role]||'멤버'}</span>
+    </div>`;
+  }).join('');
+  openM('memberListM');
+}
+
+function openMemberProfile(userId, userName){
+  const users=getUsers();
+  const u=users.find(x=>x.id===userId||x.username===userId);
+  // 상세일정이 열려있으면 인라인 카드, 아니면 fullscreen
+  const evDM=document.getElementById('evDM');
+  if(evDM&&evDM.classList.contains('open')){
+    closeM('memberListM');
+    openEvProfileCard(u, userId, userName);
+    return;
+  }
+  // fullscreen overlay
+  document.getElementById('avPopName').textContent=userName||userId;
+  const img=document.getElementById('avPopImg');
+  const seed=u&&u.avatarSeed!==undefined?u.avatarSeed:getDefaultAvatarSeed(userId);
+  img.src=(u&&u.avatar&&u.avatar.startsWith('http'))?u.avatar:getAnimalAvatarUrl(seed);
+  img.style.display='block';
+  document.getElementById('avPopCanvas').style.display='none';
+  openM('avatarPopup');
+}
+
 function openDrawer(){ document.getElementById('drawer').classList.add('open'); document.getElementById('ovl').style.display='block'; }
 function closeDrawer(){ document.getElementById('drawer').classList.remove('open'); document.getElementById('ovl').style.display='none'; }
 
@@ -1981,12 +2072,22 @@ function openEvDetail(evId){
 
 function _renderAttNames(ev){
   const users=getUsers();
-  const names=(ev.attendees||[]).map(uid=>{
-    const u=users.find(x=>x.id===uid);
-    return u?u.name:uid;
-  });
-  document.getElementById('evDAttNames').textContent=
-    names.length ? '참석 ('+names.length+'명): '+names.join(', ') : '아직 참석자가 없습니다';
+  // 가나다 정렬
+  const attUsers=(ev.attendees||[]).map(uid=>users.find(x=>x.id===uid)||{id:uid,name:uid})
+    .sort((a,b)=>(a.name||a.id||'').localeCompare(b.name||b.id||'','ko'));
+  const wrap=document.getElementById('evDAttNames');
+  if(!attUsers.length){ wrap.innerHTML='<span style="color:#bbb">아직 참석자가 없습니다</span>'; return; }
+  const chips=attUsers.map(u=>{
+    const seed=u.avatarSeed!==undefined?u.avatarSeed:getDefaultAvatarSeed(u.id||u.username||u.name);
+    const src=(u.avatar&&u.avatar.startsWith('http'))?u.avatar:getAnimalAvatarUrl(seed);
+    const uid=u.id||u.username;
+    const uname=JSON.stringify(u.name||uid).replace(/'/g,"\'");
+    return `<span class="att-chip" onclick="openAvatarPopup('${uid}',${uname})" style="cursor:pointer">
+      <img src="${src}" style="width:22px;height:22px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:4px;border:1.5px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.15)">
+      <span style="vertical-align:middle">${u.name||uid}</span>
+    </span>`;
+  }).join('');
+  wrap.innerHTML=`<div style="margin-bottom:4px;font-size:12px;color:#888">참석 ${attUsers.length}명</div><div style="display:flex;flex-wrap:wrap;gap:6px">${chips}</div>`;
 }
 
 function _renderEvPhotos(ev){
@@ -2042,7 +2143,7 @@ function _renderEvChat(ev){
     }).join('');
     const pickerOpenCls=_openPickers.has(msg.id)?' open':'';
     return `<div class="chat-bubble${isMine?' chat-mine':''}">
-      <div class="chat-hd">${avHtml}<div class="chat-nick">${nick}</div>${canDel?`<button class="chat-del-btn" onclick="deleteChat('${ev.id}','${msg.id}')">🗑</button>`:''}</div>
+      <div class="chat-hd">${avHtml}<div class="chat-nick" style="cursor:pointer" onclick="openAvatarPopup('${uid}','${nick}')">${nick}</div>${canDel?`<button class="chat-del-btn" onclick="deleteChat('${ev.id}','${msg.id}')">🗑</button>`:''}</div>
       <div class="chat-text">${msg.text.replace(/</g,'&lt;')}</div>
       <div class="chat-rxn-wrap">
         <div class="chat-rxn-bar">${activePills}<button class="chat-rxn-toggle" onclick="toggleRxnPicker('${msg.id}')">+ 반응</button></div>
