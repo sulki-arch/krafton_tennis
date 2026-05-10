@@ -342,7 +342,11 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 .att-chip{display:inline-flex;align-items:center;background:#f5f5f5;border-radius:20px;padding:4px 10px 4px 4px;font-size:13px;font-weight:500;color:#333;border:1px solid #eee;transition:background .15s}
 .att-chip:hover{background:#e8f0fe}
 /* 전체 멤버 리스트 모달 */
-#memberListM .ml-item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #f5f5f5}
+#mlProfileCard{overflow:hidden;max-height:0;transition:max-height .3s cubic-bezier(.4,0,.2,1),margin .3s,opacity .3s;opacity:0;margin-bottom:0;flex-shrink:0}
+#mlProfileCard.open{max-height:180px;opacity:1;margin-bottom:10px}
+#memberListM .ml-item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #f5f5f5;cursor:pointer;border-radius:8px;transition:background .12s}
+#memberListM .ml-item:hover{background:#f8f9ff}
+#memberListM .ml-item:active{background:#eef2ff}
 #memberListM .ml-item:last-child{border-bottom:none}
 #memberListM .ml-av{width:44px;height:44px;border-radius:50%;overflow:hidden;flex-shrink:0;cursor:pointer}
 #memberListM .ml-av img{width:100%;height:100%;object-fit:cover;border-radius:50%}
@@ -730,7 +734,8 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
       </div>
       <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:4px">
         <button class="btn btn-s" style="font-size:12px;padding:4px 12px" onclick="document.getElementById('profAvatarInput').click()">📷 사진 등록</button>
-        <button class="btn btn-s btn-d" id="profAvatarDelBtn" style="font-size:12px;padding:4px 12px;display:none" onclick="deleteProfilePhoto()">🗑 사진 삭제</button>
+        <button class="btn btn-s" id="profAvatarPrevBtn" style="font-size:12px;padding:4px 12px;display:none;background:#f0f4ff;color:#1a73e8;border-color:#c0d4f8" onclick="usePrevAvatar()">🔄 이전 사진</button>
+        <button class="btn btn-s btn-d" id="profAvatarDelBtn" style="font-size:12px;padding:4px 12px;display:none" onclick="deleteProfilePhoto()">🗑 삭제</button>
       </div>
       <input id="profAvatarInput" type="file" accept="image/*" style="display:none" onchange="handleProfPhoto(this)">
     </div>
@@ -741,8 +746,9 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
         <img id="profBgPreviewImg" src="" alt="" style="width:100%;height:100%;object-fit:cover;display:none">
         <span id="profBgPreviewPlaceholder" style="font-size:13px;color:#888">배경 사진 없음</span>
       </div>
-      <div style="display:flex;gap:8px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn btn-s" style="font-size:12px;padding:4px 12px;flex:1" onclick="document.getElementById('drawerBgInput').click()">📷 배경 변경</button>
+        <button class="btn btn-s" id="profBgPrevBtn" style="font-size:12px;padding:4px 12px;display:none;background:#f0f4ff;color:#1a73e8;border-color:#c0d4f8" onclick="usePrevBg()">🔄 이전 배경</button>
         <button class="btn btn-s btn-d" id="profBgDelBtn" style="font-size:12px;padding:4px 12px;display:none" onclick="deleteDrawerBg()">🗑 삭제</button>
       </div>
       <input id="drawerBgInput" type="file" accept="image/*" style="display:none" onchange="handleDrawerBgPhoto(this)">
@@ -996,6 +1002,20 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
     <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0 14px;flex-shrink:0">
       <div class="bs-t" style="margin:0">전체 멤버</div>
       <button onclick="closeM('memberListM')" style="background:none;border:none;font-size:22px;cursor:pointer;color:#aaa;line-height:1;padding:0">×</button>
+    </div>
+    <!-- 인라인 프로필 카드 (멤버 행 클릭 시 슬라이드인) -->
+    <div id="mlProfileCard">
+      <div class="ev-prof-inner" style="background:linear-gradient(135deg,#e8f0fe 0%,#f0f4ff 100%)">
+        <button class="ev-prof-close" onclick="closeMlProfileCard()">×</button>
+        <img id="mlProfPhoto" class="ev-prof-photo" src="" alt="" onclick="openPhotoViewer(this.src,document.getElementById('mlProfName').textContent)" style="cursor:pointer">
+        <div class="ev-prof-info">
+          <div class="ev-prof-name" id="mlProfName"></div>
+          <div class="ev-prof-row" id="mlProfSub" style="display:none"></div>
+          <div class="ev-prof-row" id="mlProfBio" style="display:none"></div>
+          <div class="ev-prof-row" id="mlProfLoc" style="display:none"></div>
+          <span class="d-role" id="mlProfRole" style="font-size:11px;margin-top:5px;display:inline-block;background:rgba(26,115,232,.15);color:#1a73e8">멤버</span>
+        </div>
+      </div>
     </div>
     <div id="memberListBody" style="overflow-y:auto;flex:1"></div>
   </div>
@@ -1987,10 +2007,10 @@ function openMemberList(){
     const uname=JSON.stringify(u.name||uid).replace(/'/g,"\'");
     const safeUid=(uid).replace(/"/g,'&quot;');
     const safeName=(u.name||uid).replace(/"/g,'&quot;');
-    return `<div class="ml-item">
-      <div class="ml-av" data-uid="${safeUid}" data-name="${safeName}" onclick="openMemberProfile(this.dataset.uid,this.dataset.name)"><img src="${photoSrc}" alt="" onerror="this.src='${getAnimalAvatarUrl(seed)}'"></div>
+    return `<div class="ml-item" data-uid="${safeUid}" data-name="${safeName}" onclick="openMlProfileCard(this.dataset.uid,this.dataset.name)">
+      <div class="ml-av"><img src="${photoSrc}" alt="" onerror="this.src='${getAnimalAvatarUrl(seed)}'"></div>
       <div class="ml-info">
-        <div class="ml-name" data-uid="${safeUid}" data-name="${safeName}" onclick="openMemberProfile(this.dataset.uid,this.dataset.name)">${u.name||uid}</div>
+        <div class="ml-name">${u.name||uid}</div>
         ${sub.length?`<div class="ml-sub">${sub.join('  ·  ')}</div>`:''}
         ${u.bio?`<div class="ml-sub" style="color:#aaa;font-style:italic">${u.bio}</div>`:''}
       </div>
@@ -2000,52 +2020,58 @@ function openMemberList(){
   openM('memberListM');
 }
 
-function openMemberProfile(userId, userName){
+function openMlProfileCard(userId, userName){
   const users=getUsers();
   const u=users.find(x=>x.id===userId||x.username===userId);
-  // 상세일정이 열려있으면 인라인 카드
+  const card=document.getElementById('mlProfileCard');
+  
+  const seed=u&&u.avatarSeed!==undefined?u.avatarSeed:getDefaultAvatarSeed(userId);
+  const avatarSrc=(u&&u.avatar&&u.avatar.startsWith('http'))?u.avatar:getAnimalAvatarUrl(seed);
+  
+  document.getElementById('mlProfPhoto').src=avatarSrc;
+  document.getElementById('mlProfName').textContent=u?u.name||userName:userName||userId;
+  
+  const sub=[]; if(u&&u.username) sub.push('@'+u.username); if(u&&u.team) sub.push(u.team);
+  const subEl=document.getElementById('mlProfSub');
+  subEl.textContent=sub.join('  ·  '); subEl.style.display=sub.length?'block':'none';
+  
+  const bioEl=document.getElementById('mlProfBio');
+  bioEl.textContent=(u&&u.bio)||''; bioEl.style.display=(u&&u.bio)?'block':'none';
+  
+  const loc=[]; if(u&&u.region) loc.push(u.region); if(u&&u.level) loc.push(u.level+'년차');
+  const locEl=document.getElementById('mlProfLoc');
+  locEl.textContent=loc.join(' · '); locEl.style.display=loc.length?'block':'none';
+  
+  const roleMap={admin:'관리자',user:'멤버',viewer:'게스트'};
+  const roleEl=document.getElementById('mlProfRole');
+  if(roleEl){ 
+    roleEl.textContent=roleMap[u&&u.role]||'멤버';
+    if(u&&u.role==='admin'){
+      roleEl.style.background='rgba(198,40,40,.12)'; roleEl.style.color='#c62828';
+    } else {
+      roleEl.style.background='rgba(26,115,232,.15)'; roleEl.style.color='#1a73e8';
+    }
+  }
+  
+  if(!card.classList.contains('open')){
+    const bs=card.closest('.bs');
+    if(bs) bs.scrollTo({top:0,behavior:'smooth'});
+    requestAnimationFrame(()=>card.classList.add('open'));
+  }
+}
+function closeMlProfileCard(){
+  document.getElementById('mlProfileCard').classList.remove('open');
+}
+function openMemberProfile(userId, userName){
+  // 이전 코드와의 호환 (상세 일정 내 참석자 클릭 등)
+  const users=getUsers();
+  const u=users.find(x=>x.id===userId||x.username===userId);
   const evDM=document.getElementById('evDM');
   if(evDM&&evDM.classList.contains('open')){
-    closeM('memberListM');
     openEvProfileCard(u, userId, userName);
     return;
   }
-  // 멤버 프로필 카드 바텀시트
-  const seed=u&&u.avatarSeed!==undefined?u.avatarSeed:getDefaultAvatarSeed(userId);
-  const avatarSrc=(u&&u.avatar&&u.avatar.startsWith('http'))?u.avatar:getAnimalAvatarUrl(seed);
-  // 배경
-  const mcBgImg=document.getElementById('mcBgImg');
-  if(u&&u.drawerBg&&u.drawerBg.startsWith('http')){
-    mcBgImg.src=u.drawerBg; mcBgImg.style.display='block';
-    document.getElementById('mcBg').style.background='#111';
-  } else {
-    mcBgImg.style.display='none';
-    const _gradients=['linear-gradient(135deg,#667eea 0%,#764ba2 100%)','linear-gradient(135deg,#f093fb 0%,#f5576c 100%)','linear-gradient(135deg,#4facfe 0%,#00f2fe 100%)','linear-gradient(135deg,#43e97b 0%,#38f9d7 100%)','linear-gradient(135deg,#fa709a 0%,#fee140 100%)','linear-gradient(135deg,#a18cd1 0%,#fbc2eb 100%)'];
-    const _gi=(userId||'').split('').reduce((s,c)=>s+c.charCodeAt(0),0)%_gradients.length;
-    document.getElementById('mcBg').style.background=_gradients[_gi];
-  }
-  // 아바타
-  const mcAvImg=document.getElementById('mcAvImg');
-  mcAvImg.src=avatarSrc;
-  const mcAvWrap=document.getElementById('mcAvWrap');
-  mcAvWrap.dataset.src=avatarSrc;
-  mcAvWrap.dataset.name=userName||userId;
-  // 이름·배지
-  document.getElementById('mcName').textContent=userName||userId;
-  const badge=document.getElementById('mcRoleBadge');
-  const roleLabel={admin:'관리자',user:'멤버',viewer:'게스트'};
-  badge.textContent=roleLabel[u&&u.role]||'멤버';
-  badge.className='mc-role-badge '+(u&&u.role==='admin'?'admin':'user');
-  // 메타 정보
-  const meta=[];
-  if(u&&u.username) meta.push({icon:'🆔',text:'@'+u.username});
-  if(u&&u.team) meta.push({icon:'🏢',text:u.team});
-  if(u&&u.region) meta.push({icon:'📍',text:u.region});
-  if(u&&u.level) meta.push({icon:'🎾',text:'구력 약 '+u.level+'년'});
-  if(u&&u.playTime) meta.push({icon:'⏱',text:'플레이타임 약 '+u.playTime+'시간'});
-  if(u&&u.bio) meta.push({icon:'💬',text:u.bio});
-  document.getElementById('mcMeta').innerHTML=meta.map(m=>`<div class="mc-meta-row"><span class="mc-icon">${m.icon}</span><span>${m.text}</span></div>`).join('');
-  openM('memberCardM');
+  openMlProfileCard(userId, userName);
 }
 
 function openPhotoViewer(src, name){
@@ -2199,6 +2225,9 @@ function openEvDetail(evId){
   const attBtn=document.getElementById('evDAttBtn');
   const isAdmin=CU&&CU.role==='admin';
   const isViewer=CU&&CU.role==='viewer';
+  // 참석자 관리 모달: 관리자만 접근 가능하도록 가시성 제어
+  const attendMgrEl=document.getElementById('attendMgrM');
+  if(attendMgrEl) attendMgrEl.style.display=isAdmin?'':'none';
   if(isViewer){
     attBtn.style.display='none';
   } else if(isAdmin){
@@ -2207,7 +2236,7 @@ function openEvDetail(evId){
     attBtn.textContent='👥 참석자 관리';
     attBtn.className='btn btn-attend';
   } else {
-    // 일반 사용자: 본인 참석 토글
+    // 일반 사용자: 본인 참석 토글만 표시
     attBtn.style.display='block';
     const attending=(ev.attendees||[]).includes(CU.id);
     attBtn.textContent=attending?'✅ 참석 취소':'🙋 참석하기';
@@ -3276,12 +3305,27 @@ async function confirmCrop(){
   closeM('cropM');
   toast('사진 업로드 중...');
 
-  // Storage 업로드
+  // Storage 업로드 (기존 사진 백업 후 교체)
   let avatarUrl = dataUrl; // base64 fallback
   if(_storage){
     try{
-      const blob=await(await fetch(dataUrl)).blob();
       const uid=CU.id||CU.username;
+      // 기존 사진 → _prev 백업
+      if(CU.avatar && CU.avatar.startsWith('http')){
+        try{
+          const prevRef=_storage.ref('photos/avatars/'+uid+'_prev.jpg');
+          const curRef=_storage.ref('photos/avatars/'+uid+'.jpg');
+          // Firebase Storage에는 직접 copy API가 없으므로 download→upload
+          const curBlob=await(await fetch(CU.avatar)).blob();
+          await prevRef.put(curBlob);
+          // DB에 _prev URL 저장
+          const prevUrl=await prevRef.getDownloadURL();
+          const _pu=getUsers(); const _pi=_pu.findIndex(x=>x.id===CU.id||x.username===CU.username);
+          if(_pi!==-1){ _pu[_pi].avatarPrev=prevUrl; CU.avatarPrev=prevUrl; setUsers(_pu); }
+        }catch(bkErr){ console.warn('Avatar backup failed (non-critical):', bkErr); }
+      }
+      // 새 사진 업로드
+      const blob=await(await fetch(dataUrl)).blob();
       const storageRef=_storage.ref('photos/avatars/'+uid+'.jpg');
       const snap=await storageRef.put(blob);
       avatarUrl=await snap.ref.getDownloadURL();
@@ -3329,6 +3373,11 @@ function openProfile(){
   document.getElementById('profErr').textContent='';
   window._profPhotoData=null;
   window._profPhotoDelete=false;
+  // 이전 사진 버튼 표시
+  const prevAvatarBtn=document.getElementById('profAvatarPrevBtn');
+  if(prevAvatarBtn) prevAvatarBtn.style.display=(CU.avatarPrev)?'inline-flex':'none';
+  const prevBgBtn=document.getElementById('profBgPrevBtn');
+  if(prevBgBtn) prevBgBtn.style.display=(CU.drawerBgPrev)?'inline-flex':'none';
   const imgEl=document.getElementById('profAvatarImg');
   const iconEl=document.getElementById('profAvatarIcon');
   const delBtn=document.getElementById('profAvatarDelBtn');
@@ -3494,8 +3543,19 @@ async function confirmBgCrop(){
   let savedUrl=dataUrl;
   if(_storage){
     try{
-      const blob=await(await fetch(dataUrl)).blob();
       const uid=CU.id||CU.username;
+      // 기존 배경 → _prev 백업
+      if(CU.drawerBg && CU.drawerBg.startsWith('http')){
+        try{
+          const bgPrevRef=_storage.ref('photos/bg/'+uid+'_prev.jpg');
+          const curBgBlob=await(await fetch(CU.drawerBg)).blob();
+          await bgPrevRef.put(curBgBlob);
+          const bgPrevUrl=await bgPrevRef.getDownloadURL();
+          const _bpu=getUsers(); const _bpi=_bpu.findIndex(x=>x.id===CU.id||x.username===CU.username);
+          if(_bpi!==-1){ _bpu[_bpi].drawerBgPrev=bgPrevUrl; CU.drawerBgPrev=bgPrevUrl; setUsers(_bpu); }
+        }catch(bgBkErr){ console.warn('BG backup failed (non-critical):', bgBkErr); }
+      }
+      const blob=await(await fetch(dataUrl)).blob();
       const storageRef=_storage.ref('photos/bg/'+uid+'.jpg');
       const snap=await storageRef.put(blob);
       const url=await snap.ref.getDownloadURL();
@@ -3517,6 +3577,35 @@ async function confirmBgCrop(){
   if(bgDelBtn) bgDelBtn.style.display='inline-flex';
   _bgCropImg=null;
   toast('배경 사진이 저장됐습니다 ✓');
+}
+
+function usePrevAvatar(){
+  if(!CU||!CU.avatarPrev) return;
+  const url=CU.avatarPrev;
+  window._profPhotoData=url;
+  const imgEl=document.getElementById('profAvatarImg');
+  imgEl.src=url; imgEl.style.display='block';
+  document.getElementById('profAvatarDelBtn').style.display='inline-block';
+  document.getElementById('profAvatarIcon').style.display='none';
+  toast('이전 사진으로 변경됐습니다 (저장 후 적용)');
+}
+
+function usePrevBg(){
+  if(!CU||!CU.drawerBgPrev) return;
+  const url=CU.drawerBgPrev;
+  // 즉시 DB에 저장 (bg는 saveProfile과 별도로 처리)
+  CU.drawerBg=url;
+  const users=getUsers();
+  const idx=users.findIndex(u=>u.id===CU.id||u.username===CU.username);
+  if(idx!==-1){ users[idx].drawerBg=url; setUsers(users); }
+  _applyDrawerBg(url);
+  const bgPreviewImg=document.getElementById('profBgPreviewImg');
+  const bgPreviewPh=document.getElementById('profBgPreviewPlaceholder');
+  const bgDelBtn=document.getElementById('profBgDelBtn');
+  if(bgPreviewImg){ bgPreviewImg.src=url; bgPreviewImg.style.display='block'; }
+  if(bgPreviewPh) bgPreviewPh.style.display='none';
+  if(bgDelBtn) bgDelBtn.style.display='inline-flex';
+  toast('이전 배경으로 변경됐습니다 ✓');
 }
 
 function deleteDrawerBg(){
