@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>사용자 일괄 등록</title>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<style>
+body{font-family:'Apple SD Gothic Neo',sans-serif;max-width:600px;margin:40px auto;padding:20px;background:#f4f6fb}
+h2{color:#1a73e8;margin-bottom:8px}
+.desc{font-size:13px;color:#888;margin-bottom:24px;line-height:1.6}
+button{background:#1a73e8;color:#fff;border:none;padding:12px 32px;border-radius:10px;font-size:15px;cursor:pointer;font-family:inherit}
+button:disabled{background:#bbb;cursor:not-allowed}
+#log{margin-top:20px;background:#fff;border-radius:10px;padding:16px;font-size:12px;line-height:2;max-height:400px;overflow-y:auto;border:1px solid #e0e0e0}
+.ok{color:#2e7d32}.skip{color:#888}.err{color:#e53935}
+#summary{font-size:14px;font-weight:700;margin-top:12px;padding:12px 16px;background:#e8f5e9;border-radius:8px;display:none}
+</style>
+</head>
+<body>
+<h2>📋 사용자 일괄 등록</h2>
+<p class="desc">
+  아이디 = 비밀번호로 80명의 사용자를 Firebase에 등록합니다.<br>
+  이미 존재하는 계정은 건너뜁니다. 관리자(sulki) 계정은 보존됩니다.<br>
+  계정명이 없는 <b>조동욱·조문주</b>는 등록 대상에서 제외됩니다.
+</p>
+<button id="btn" onclick="run()">🚀 일괄 등록 시작</button>
+<div id="log"></div>
+<div id="summary"></div>
+
+<script>
+const FIREBASE_CONFIG = {
+  databaseURL: 'https://krafton-tennis-default-rtdb.asia-southeast1.firebasedatabase.app'
+};
+const UK = 'shcal_u';
+
+const NEW_USERS = [
+  {id:'sulki',    name:'박슬기',   role:'admin'},
+  {id:'bjsin',    name:'신병재'},
+  {id:'seokangseok', name:'서강석'},
+  {id:'union2',   name:'황시연'},
+  {id:'dana.kang', name:'강예은'},
+  {id:'philsoo',  name:'신필수'},
+  {id:'chk',      name:'김창현'},
+  {id:'sieun.bae', name:'배시은'},
+  {id:'vkcvkc',   name:'유협상'},
+  {id:'eblade7',  name:'조재현'},
+  {id:'donghyunko94', name:'고동현'},
+  {id:'andy.lee', name:'이학영'},
+  {id:'msjo',     name:'조민상'},
+  {id:'inyoung419', name:'이인영'},
+  {id:'smartgjs', name:'이승헌'},
+  {id:'nangandago', name:'김정규'},
+  {id:'dh.choe',  name:'최동헌'},
+  {id:'s.j.chung', name:'정승준'},
+  {id:'youngsun', name:'신영선'},
+  {id:'okju6666', name:'박옥주'},
+  {id:'yoonjy',   name:'윤지윤'},
+  {id:'nobanjang', name:'노재환'},
+  {id:'lozephon', name:'김준엽'},
+  {id:'hjkim20',  name:'김현정'},
+  {id:'baek.ha',  name:'백윤경'},
+  {id:'jw_choi',  name:'최지원'},
+  {id:'soyeon.lee', name:'이소연'},
+  {id:'nawon',    name:'정나원'},
+  {id:'katiekim', name:'김효정'},
+  {id:'yangyang', name:'양진영'},
+  {id:'haekyeung', name:'강해경'},
+  {id:'hanbeuli', name:'강한별'},
+  {id:'nky',      name:'남궁윤'},
+  {id:'yeonjoo.kim', name:'김연주'},
+  {id:'carolina.chin', name:'진하경'},
+  {id:'may.kim',  name:'김경미'},
+  {id:'sunio',    name:'오태양'},
+  {id:'js.cho',   name:'조정석'},
+  {id:'gomjang5392', name:'장준영'},
+  {id:'blair.ki', name:'기소정'},
+  {id:'ghjeong',  name:'정근호'},
+  {id:'yunjeong.jang', name:'장윤정'},
+  {id:'annalee',  name:'이에나'},
+  {id:'calyang',  name:'양태원'},
+  {id:'pamipack', name:'박민재'},
+  {id:'m123.lee', name:'이민준'},
+  {id:'junyoungkim', name:'김준영'},
+  {id:'sinjae777', name:'신재욱'},
+  {id:'brotherjoon', name:'주형준'},
+  {id:'bella.kim', name:'김지은'},
+  {id:'sk.nam',   name:'남수경'},
+  {id:'yerim.seo', name:'서예림'},
+  {id:'hyejin.won', name:'원혜진'},
+  {id:'pong_e.sh', name:'김준형'},
+  {id:'jy_park',  name:'박준용'},
+  {id:'hjim',     name:'임효정'},
+  {id:'starvo',   name:'박우진'},
+  {id:'besthumor', name:'강태승'},
+  {id:'sohee7',   name:'이소희'},
+  {id:'honey',    name:'이재헌'},
+  {id:'jenlee',   name:'이지은'},
+  {id:'dnjstjr5645', name:'장원석'},
+  {id:'mj.lee',   name:'이명재'},
+  {id:'cjh90',    name:'차정환'},
+  {id:'firenzvdka91', name:'박광영'},
+  {id:'shawn.park', name:'박성찬'},
+  {id:'junyong.park', name:'박준용'},
+  {id:'An',       name:'안형주'},
+  {id:'yuna',     name:'구유나'},
+  {id:'jyshim',   name:'심지연'},
+  {id:'yonghwan1', name:'김용환'},
+  {id:'minsoopark', name:'박민수'},
+  {id:'seongwon.park', name:'박성원'},
+  {id:'ayn',      name:'안용남'},
+  {id:'bsb6842',  name:'백승윤'},
+  {id:'yoonju.bae', name:'배윤주'},
+  {id:'deicide21', name:'박성환'},
+  {id:'jooh34',   name:'남중혁'},
+  {id:'sungkim',  name:'김성훈'},
+];
+
+function log(msg, cls=''){
+  const d = document.getElementById('log');
+  d.innerHTML += `<div class="${cls}">${msg}</div>`;
+  d.scrollTop = d.scrollHeight;
+}
+
+function fbArr(v){
+  if(!v) return [];
+  if(Array.isArray(v)) return v;
+  if(typeof v==='object') return Object.keys(v).sort((a,b)=>Number(a)-Number(b)).map(k=>v[k]);
+  return [];
+}
+
+async function run(){
+  const btn = document.getElementById('btn');
+  btn.disabled = true;
+  btn.textContent = '등록 중...';
+  document.getElementById('log').innerHTML = '';
+
+  try {
+    if(!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    const db = firebase.database();
+
+    log('🔗 Firebase 연결 중...');
+    const snap = await db.ref(UK).once('value');
+    const existing = fbArr(snap.val());
+    log(`✅ 기존 사용자 ${existing.length}명 확인`);
+
+    let added = 0, skipped = 0;
+    const users = [...existing];
+
+    for(const nu of NEW_USERS){
+      const exists = users.find(u => (u.id||u.username) === nu.id);
+      if(exists){
+        log(`⬜ 건너뜀 (이미 존재): ${nu.name} (${nu.id})`, 'skip');
+        skipped++;
+        continue;
+      }
+      const userObj = {
+        id: nu.id,
+        username: nu.id,
+        name: nu.name,
+        password: nu.id,
+        role: nu.role || 'user',
+        avatar: null
+      };
+      users.push(userObj);
+      log(`✅ 등록: ${nu.name} (${nu.id})`, 'ok');
+      added++;
+    }
+
+    log('💾 Firebase에 저장 중...');
+    await db.ref(UK).set(users);
+    log(`🎉 완료! 총 ${users.length}명 (신규 ${added}명 / 건너뜀 ${skipped}명)`);
+
+    const sum = document.getElementById('summary');
+    sum.style.display = 'block';
+    sum.textContent = `✅ 등록 완료 — 전체 ${users.length}명 (신규 ${added}명 추가, ${skipped}명 중복 건너뜀)`;
+    btn.textContent = '✅ 완료';
+  } catch(e){
+    log('❌ 오류: ' + e.message, 'err');
+    btn.disabled = false;
+    btn.textContent = '다시 시도';
+  }
+}
+</script>
+</body>
+</html>

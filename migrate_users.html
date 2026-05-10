@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>사용자 마이그레이션 — shcal_u → /cal/users</title>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<style>
+body{font-family:'Apple SD Gothic Neo',sans-serif;max-width:600px;margin:40px auto;padding:20px;background:#f4f6fb}
+h2{color:#1a73e8;margin-bottom:8px}
+.desc{font-size:13px;color:#888;margin-bottom:24px;line-height:1.6}
+button{background:#1a73e8;color:#fff;border:none;padding:12px 32px;border-radius:10px;font-size:15px;cursor:pointer;font-family:inherit;margin-right:10px}
+button:disabled{background:#bbb;cursor:not-allowed}
+#log{margin-top:20px;background:#fff;border-radius:10px;padding:16px;font-size:12px;line-height:2;max-height:400px;overflow-y:auto;border:1px solid #e0e0e0}
+.ok{color:#2e7d32}.skip{color:#888}.err{color:#e53935}
+#summary{font-size:14px;font-weight:700;margin-top:12px;padding:12px 16px;background:#e8f5e9;border-radius:8px;display:none}
+</style>
+</head>
+<body>
+<h2>🔧 사용자 경로 마이그레이션</h2>
+<p class="desc">
+  <b>문제:</b> 사용자가 <code>shcal_u</code>(루트)에 등록되어 있지만,<br>
+  앱은 <code>/cal/users</code>에서 사용자를 읽습니다.<br><br>
+  이 도구는 <code>shcal_u</code>의 사용자를 <code>/cal/users</code>로 복사합니다.<br>
+  기존 <code>/cal/users</code> 데이터와 병합(중복 제외)됩니다.
+</p>
+<button id="btn" onclick="run()">🚀 마이그레이션 시작</button>
+<div id="log"></div>
+<div id="summary"></div>
+
+<script>
+const FIREBASE_CONFIG = {
+  databaseURL: 'https://krafton-tennis-default-rtdb.asia-southeast1.firebasedatabase.app'
+};
+
+function log(msg, cls=''){
+  const d = document.getElementById('log');
+  d.innerHTML += `<div class="${cls}">${msg}</div>`;
+  d.scrollTop = d.scrollHeight;
+}
+
+function fbArr(v){
+  if(!v) return [];
+  if(Array.isArray(v)) return v;
+  if(typeof v==='object') return Object.keys(v).sort((a,b)=>Number(a)-Number(b)).map(k=>v[k]);
+  return [];
+}
+
+async function run(){
+  const btn = document.getElementById('btn');
+  btn.disabled = true;
+  btn.textContent = '마이그레이션 중...';
+  document.getElementById('log').innerHTML = '';
+
+  try {
+    if(!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    const db = firebase.database();
+
+    // 1. shcal_u에서 읽기
+    log('📂 shcal_u (루트) 읽는 중...');
+    const srcSnap = await db.ref('shcal_u').once('value');
+    const srcUsers = fbArr(srcSnap.val());
+    log(`✅ shcal_u: ${srcUsers.length}명 발견`, 'ok');
+
+    if(srcUsers.length === 0){
+      log('⚠️ shcal_u에 사용자가 없습니다. 마이그레이션할 데이터가 없어요.', 'err');
+      btn.disabled = false;
+      btn.textContent = '다시 시도';
+      return;
+    }
+
+    // 각 사용자 정보 출력
+    srcUsers.slice(0,5).forEach(u => log(`  → ${u.name} (${u.id||u.username}), pw: ${u.password}`, 'skip'));
+    if(srcUsers.length > 5) log(`  ... 외 ${srcUsers.length-5}명`, 'skip');
+
+    // 2. /cal/users에서 기존 데이터 읽기
+    log('📂 /cal/users 읽는 중...');
+    const dstSnap = await db.ref('/cal/users').once('value');
+    const dstUsers = fbArr(dstSnap.val());
+    log(`✅ /cal/users: 기존 ${dstUsers.length}명`, 'ok');
+
+    // 3. 병합
+    let added = 0, skipped = 0;
+    const merged = [...dstUsers];
+    for(const u of srcUsers){
+      const uid = u.id || u.username;
+      const exists = merged.find(x=>(x.id||x.username)===uid);
+      if(exists){
+        log(`⬜ 건너뜀 (이미 존재): ${u.name} (${uid})`, 'skip');
+        skipped++;
+      } else {
+        merged.push(u);
+        log(`✅ 추가: ${u.name} (${uid})`, 'ok');
+        added++;
+      }
+    }
+
+    // 4. /cal/users에 저장
+    log(`💾 /cal/users에 저장 중... (총 ${merged.length}명)`);
+    await db.ref('/cal/users').set(merged);
+    log(`🎉 완료! /cal/users에 ${merged.length}명 저장됨 (신규 ${added}명 / 건너뜀 ${skipped}명)`, 'ok');
+
+    const sum = document.getElementById('summary');
+    sum.style.display = 'block';
+    sum.textContent = `✅ 마이그레이션 완료 — /cal/users에 총 ${merged.length}명 (신규 ${added}명 추가, ${skipped}명 중복 건너뜀)`;
+    btn.textContent = '✅ 완료';
+
+  } catch(e){
+    log('❌ 오류: ' + e.message, 'err');
+    btn.disabled = false;
+    btn.textContent = '다시 시도';
+  }
+}
+</script>
+</body>
+</html>

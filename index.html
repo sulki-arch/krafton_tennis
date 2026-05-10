@@ -4,9 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>공유 캘린더</title>
-<!-- Firebase SDK (Realtime Database) — v8 UMD, gstatic 공식 CDN -->
+<!-- PWA -->
+<link rel="manifest" href="/krafton_tennis/manifest.json">
+<link rel="apple-touch-icon" href="/krafton_tennis/apple-touch-icon.png">
+<meta name="theme-color" content="#1a73e8">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="테니스 캘린더">
+<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
 <!-- Noto Sans KR -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -842,15 +851,17 @@ let splashPhoto=null; // temp storage during splash edit
       예) 'https://my-tennis-cal-default-rtdb.firebaseio.com'
    ─────────────────────────────────────  */
 const FIREBASE_DB_URL = 'https://krafton-tennis-default-rtdb.asia-southeast1.firebasedatabase.app';
+const FIREBASE_STORAGE_BUCKET = 'krafton-tennis.appspot.com';
 
-let _db = null;
+let _db = null, _storage = null;
 (function(){
   try{
     if(FIREBASE_DB_URL.includes('YOUR-PROJECT')) return;
-    firebase.initializeApp({databaseURL:FIREBASE_DB_URL});
+    firebase.initializeApp({databaseURL:FIREBASE_DB_URL, storageBucket:FIREBASE_STORAGE_BUCKET});
     _db = firebase.database();
+    _storage = firebase.storage();
     console.log('Firebase _db ready');
-  }catch(e){ console.warn('Firebase init failed:',e); _db=null; }
+  }catch(e){ console.warn('Firebase init failed:',e); _db=null; _storage=null; }
 })();
 
 // 인메모리 데이터 캐시
@@ -1030,9 +1041,16 @@ async function init(){
   // 사진 입력 핸들러
   document.getElementById('photoIn').addEventListener('change',async e=>{
     const file=e.target.files[0]; if(!file) return;
-    toast('사진을 처리 중...');
+    toast('사진 업로드 중...');
+    const photoId=Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+    if(_storage){
+      const blob=await compressFile(file,1200,0.82);
+      const url=await uploadToStorage(blob, `photos/media/${ddDate||'misc'}/${photoId}.jpg`);
+      if(url){ addMediaItem(ddDate,{type:'photo',url,id:photoId}); e.target.value=''; refreshDd(); toast('사진이 추가되었습니다'); return; }
+    }
+    // fallback: base64
     const data=await compressImage(file);
-    addMediaItem(ddDate,{type:'photo',data});
+    addMediaItem(ddDate,{type:'photo',data,id:photoId});
     e.target.value='';
     refreshDd();
     toast('사진이 추가되었습니다');
@@ -1041,9 +1059,16 @@ async function init(){
   // 이벤트 사진 핸들러
   document.getElementById('evPhotoIn').addEventListener('change',async e=>{
     const file=e.target.files[0]; if(!file) return;
-    toast('사진을 처리 중...');
+    toast('사진 업로드 중...');
+    const photoId=Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+    if(_storage){
+      const blob=await compressFile(file,1200,0.82);
+      const url=await uploadToStorage(blob, `photos/events/${detailEvId||'misc'}/${photoId}.jpg`);
+      if(url){ addEvPhoto({url, id:photoId}); e.target.value=''; return; }
+    }
+    // fallback: base64
     const data=await compressImage(file);
-    addEvPhoto(data);
+    addEvPhoto({data, id:photoId});
     e.target.value='';
   });
 
@@ -1245,12 +1270,12 @@ function renderCal(){
     div.className='dc'+(cell.other?' other':'')+(dow===0?' sun':'')+(dow===6?' sat':'')+(ds===today?' today':'')
       +(hasCover2?' has-cover-2':hasCover?' has-cover':'');
     if(hasCover2){
-      div.style.backgroundImage=`url(${coverPhotos[0].data}),url(${coverPhotos[1].data})`;
+      div.style.backgroundImage=`url(${coverPhotos[0].url||coverPhotos[0].data}),url(${coverPhotos[1].url||coverPhotos[1].data})`;
       div.style.backgroundSize='cover,cover';
       div.style.backgroundPosition='25% center,75% center';
       div.style.backgroundRepeat='no-repeat,no-repeat';
     } else if(hasCover){
-      div.style.backgroundImage=`url(${coverPhotos[0].data})`;
+      div.style.backgroundImage=`url(${coverPhotos[0].url||coverPhotos[0].data})`;
     }
 
     // 날짜 숫자 + 스티커 좌/우
@@ -1686,7 +1711,7 @@ function _renderEvPhotos(ev){
   const edit=canEdit();
   pDiv.innerHTML=photos.map(p=>`
     <div class="photo-wrap">
-      <img src="${p.data}" onclick="openEvLbox('${p.id}')" loading="lazy">
+      <img src="${p.url||p.data}" onclick="openEvLbox('${p.id}')" loading="lazy">
       ${edit?`<button class="photo-del" onclick="delEvPhoto('${p.id}')">×</button>`:''}
       ${edit?`<button class="photo-cover-btn ${p.id===covId?'active':''}" onclick="setEvCover('${p.id}')" title="대표사진">★</button>`:''}
     </div>`).join('');
@@ -1859,13 +1884,13 @@ function sendChat(){
 
 function triggerEvPhoto(){ document.getElementById('evPhotoIn').click(); }
 
-function addEvPhoto(data){
+function addEvPhoto(photoObj){
+  // photoObj: {id, url?, data?, ts?, by?}
   if(!detailEvId) return;
   const evs=getEvents();
   const i=evs.findIndex(e=>e.id===detailEvId); if(i===-1) return;
   const photos=[...(evs[i].photos||[])];
-  photos.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),
-    data,ts:Date.now(),by:CU.id});
+  photos.push({...photoObj, ts:Date.now(), by:CU.id});
   evs[i]={...evs[i],photos};
   setEvents(evs);
   _renderEvPhotos(evs[i]);
@@ -1878,6 +1903,9 @@ function delEvPhoto(photoId){
   const evs=getEvents();
   const i=evs.findIndex(e=>e.id===detailEvId); if(i===-1) return;
   const ev=evs[i];
+  // Storage에서 삭제
+  const target=(ev.photos||[]).find(p=>p.id===photoId);
+  if(target&&target.url) deleteFromStorage(target.url);
   const photos=(ev.photos||[]).filter(p=>p.id!==photoId);
   const coverPhotoId=ev.coverPhotoId===photoId?null:ev.coverPhotoId;
   evs[i]={...ev,photos,coverPhotoId};
@@ -1904,7 +1932,7 @@ function openEvLbox(photoId){
   if(!detailEvId) return;
   const ev=getEvents().find(e=>e.id===detailEvId); if(!ev) return;
   const photo=(ev.photos||[]).find(p=>p.id===photoId); if(!photo) return;
-  document.getElementById('lbox-img').src=photo.data;
+  document.getElementById('lbox-img').src=photo.url||photo.data;
   document.getElementById('lbox').classList.add('open');
 }
 
@@ -1948,6 +1976,49 @@ function setCoverPhoto(ds,photoId){
 }
 
 function triggerPhoto(){ document.getElementById('photoIn').click(); }
+
+/* ── Firebase Storage 업로드/삭제 헬퍼 ── */
+async function uploadToStorage(file, path){
+  if(!_storage) return null;
+  try{
+    const ref = _storage.ref(path);
+    await ref.put(file);
+    return await ref.getDownloadURL();
+  }catch(e){
+    console.warn('Storage upload failed:', e);
+    return null;
+  }
+}
+
+async function deleteFromStorage(url){
+  if(!_storage || !url) return;
+  try{
+    await _storage.refFromURL(url).delete();
+  }catch(e){
+    console.warn('Storage delete failed (already gone?):', e);
+  }
+}
+
+async function compressFile(file, maxH=800, quality=0.72){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = e=>{
+      const img = new Image();
+      img.onload = ()=>{
+        const ratio = Math.min(maxH/img.height, 1);
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.width*ratio);
+        c.height = Math.round(img.height*ratio);
+        c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+        c.toBlob(b=>resolve(b), 'image/jpeg', quality);
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 async function compressImage(file){
   return new Promise(res=>{
@@ -2572,6 +2643,15 @@ function toast(msg){
 ═══════════════════════════════════════ */
 init();
 initSwipeGestures();
+</script>
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('/krafton_tennis/sw.js')
+      .then(r=>console.log('SW registered'))
+      .catch(e=>console.warn('SW failed:',e));
+  });
+}
 </script>
 </body>
 </html>
