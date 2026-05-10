@@ -123,10 +123,10 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,'Apple SD Gothi
 .ovl{display:none;position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:200}
 .drawer{position:fixed;top:0;left:-295px;width:295px;height:100%;background:#fff;z-index:201;transition:left .28s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;box-shadow:var(--SH)}
 .drawer.open{left:0}
-.d-head{padding:28px 20px 20px;background:var(--P);position:relative;overflow:hidden;transition:background .3s}
-.d-head-bg{position:absolute;inset:0;object-fit:cover;width:100%;height:100%;opacity:.35;pointer-events:none}
+.d-head{padding:0;background:var(--P);position:relative;overflow:hidden;transition:background .3s;aspect-ratio:1/1;display:flex;flex-direction:column;justify-content:flex-end}
+.d-head-bg{position:absolute;inset:0;object-fit:cover;width:100%;height:100%;opacity:.55;pointer-events:none}
 .d-head-edit-btn{position:absolute;bottom:10px;right:12px;background:rgba(255,255,255,.22);border:none;border-radius:20px;color:#fff;font-size:11px;padding:4px 10px;cursor:pointer;backdrop-filter:blur(4px)}
-.d-head-row{display:flex;align-items:flex-start;gap:14px}
+.d-head-row{display:flex;align-items:flex-end;gap:14px;padding:20px 18px 18px;position:relative;z-index:1;background:linear-gradient(to top,rgba(0,0,0,.55) 0%,transparent 100%)}
 .d-av{width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.22);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:28px}
 .d-av img{width:100%;height:100%;object-fit:cover;border-radius:50%}
 .d-info{flex:1;min-width:0}
@@ -188,13 +188,14 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 .photo-cover-btn.active{background:#f5a623;color:#fff}
 
 /* ── COVER PHOTO CELL ── */
-.dc.has-cover{position:relative;background-size:cover;background-position:center center;background-repeat:no-repeat}
-.dc.has-cover::before{content:'';position:absolute;inset:0;background:rgba(0,0,0,.3);pointer-events:none;z-index:0}
-.dc.has-cover .dnum{position:relative;z-index:1;background:rgba(0,0,0,.38)!important;color:#fff!important}
+.dc.has-cover,.dc.has-cover-2{position:relative}
+.dc-bg-img{position:absolute;inset:0;background-size:cover;background-position:center;background-repeat:no-repeat;opacity:.5;z-index:0;border-radius:inherit}
+.dc.has-cover::before,.dc.has-cover-2::before{content:'';position:absolute;inset:0;background:rgba(255,255,255,.08);pointer-events:none;z-index:1}
+.dc.has-cover .dnum{position:relative;z-index:2;background:rgba(0,0,0,.38)!important;color:#fff!important}
 .dc.has-cover.today .dnum{background:var(--P)!important}
-.dc.has-cover .ep{position:relative;z-index:1;background:rgba(0,0,0,.38)!important;color:#fff!important}
-.dc.has-cover .ep-more{position:relative;z-index:1;color:rgba(255,255,255,.8)}
-.dc.has-cover .cmedia{position:relative;z-index:1}
+.dc.has-cover .ep{position:relative;z-index:2;background:rgba(0,0,0,.38)!important;color:#fff!important}
+.dc.has-cover .ep-more{position:relative;z-index:2;color:rgba(255,255,255,.8)}
+.dc.has-cover .cmedia{position:relative;z-index:2}
 .dc.has-cover .cm-stk{filter:drop-shadow(0 1px 2px rgba(0,0,0,.7))}
 .dc.has-cover .cm-photo{color:rgba(255,255,255,.9);filter:drop-shadow(0 1px 2px rgba(0,0,0,.7))}
 .media-add-row{display:flex;gap:8px;margin-top:4px}
@@ -262,10 +263,9 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 .dc-stk{font-size:13px;width:18px;text-align:center;flex-shrink:0;line-height:1}
 
 /* ── DUAL COVER PHOTO ── */
-.dc.has-cover-2{position:relative;background-repeat:no-repeat}
-.dc.has-cover-2::before{content:'';position:absolute;inset:0;background:rgba(0,0,0,.3);pointer-events:none;z-index:0}
-.dc.has-cover-2 .dc-stk-row,.dc.has-cover-2 .ep,.dc.has-cover-2 .ep-more,.dc.has-cover-2 .cmedia{position:relative;z-index:1}
-.dc.has-cover-2 .dnum{position:relative;z-index:1;background:rgba(0,0,0,.38)!important;color:#fff!important}
+.dc.has-cover-2{background-repeat:no-repeat}
+.dc.has-cover-2 .dc-stk-row,.dc.has-cover-2 .ep,.dc.has-cover-2 .ep-more,.dc.has-cover-2 .cmedia{position:relative;z-index:2}
+.dc.has-cover-2 .dnum{position:relative;z-index:2;background:rgba(0,0,0,.38)!important;color:#fff!important}
 .dc.has-cover-2 .ep{background:rgba(0,0,0,.38)!important;color:#fff!important}
 
 /* ── VIEW TOGGLE ── */
@@ -533,8 +533,7 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
         <div class="d-role" id="drole"></div>
       </div>
     </div>
-    <button class="d-head-edit-btn" id="drawerBgEditBtn" style="display:none" onclick="document.getElementById('drawerBgInput').click()">📷 배경 변경</button>
-    <input id="drawerBgInput" type="file" accept="image/*" style="display:none" onchange="handleDrawerBgPhoto(this)">
+
   </div>
   <div class="d-menu">
     <button class="d-item" id="d-splash" style="display:none" onclick="openSplashEdit();closeDrawer()">
@@ -702,7 +701,7 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
     <div class="bs-t">내 프로필</div>
     <!-- 프로필 사진 -->
     <div style="text-align:center;margin-bottom:16px">
-      <div class="prof-avatar-wrap" id="profAvatarWrap" onclick="document.getElementById('profAvatarInput').click()">
+      <div class="prof-avatar-wrap" id="profAvatarWrap" onclick="document.getElementById('profAvatarInput').click()" style="cursor:pointer">
         <span class="pa-icon" id="profAvatarIcon">👤</span>
         <img id="profAvatarImg" src="" alt="">
       </div>
@@ -711,6 +710,19 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
         <button class="btn btn-s btn-d" id="profAvatarDelBtn" style="font-size:12px;padding:4px 12px;display:none" onclick="deleteProfilePhoto()">🗑 사진 삭제</button>
       </div>
       <input id="profAvatarInput" type="file" accept="image/*" style="display:none" onchange="handleProfPhoto(this)">
+    </div>
+    <!-- 커버 배경 사진 -->
+    <div style="margin-bottom:16px">
+      <label class="fl" style="margin-bottom:8px">커버 배경 사진</label>
+      <div id="profBgPreviewWrap" style="position:relative;width:100%;height:80px;border-radius:12px;overflow:hidden;background:#e8f0fe;margin-bottom:8px;display:flex;align-items:center;justify-content:center">
+        <img id="profBgPreviewImg" src="" alt="" style="width:100%;height:100%;object-fit:cover;display:none">
+        <span id="profBgPreviewPlaceholder" style="font-size:13px;color:#888">배경 사진 없음</span>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-s" style="font-size:12px;padding:4px 12px;flex:1" onclick="document.getElementById('drawerBgInput').click()">📷 배경 변경</button>
+        <button class="btn btn-s btn-d" id="profBgDelBtn" style="font-size:12px;padding:4px 12px;display:none" onclick="deleteDrawerBg()">🗑 삭제</button>
+      </div>
+      <input id="drawerBgInput" type="file" accept="image/*" style="display:none" onchange="handleDrawerBgPhoto(this)">
     </div>
     <label class="fl">아이디 <span style="font-weight:400;color:#bbb">(변경 불가)</span></label>
     <input id="profIdDisp" type="text" disabled style="background:#f5f5f5;color:#999">
@@ -733,6 +745,21 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
       <button class="btn btn-s" onclick="closeM('profM')">취소</button>
       <button class="btn btn-p" onclick="saveProfile()">저장</button>
     </div>
+  </div>
+</div>
+
+<!-- ═══ PHOTO CROP MODAL ═══ -->
+<div class="bso" id="cropM" style="z-index:1100">
+  <div class="bs" style="padding:0;background:#111;border-radius:20px 20px 0 0;overflow:hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px 10px;background:#111">
+      <button class="btn btn-s" style="background:rgba(255,255,255,.12);color:#fff;border:none;font-size:14px;padding:6px 16px;border-radius:20px" onclick="cancelCrop()">취소</button>
+      <span style="color:#fff;font-weight:700;font-size:16px">프로필 사진</span>
+      <button class="btn btn-p" style="font-size:14px;padding:6px 16px;border-radius:20px" onclick="confirmCrop()">완료</button>
+    </div>
+    <div style="position:relative;width:100%;background:#111;display:flex;align-items:center;justify-content:center;padding:8px 0 16px">
+      <canvas id="cropCanvas" width="300" height="300" style="touch-action:none;display:block;max-width:100%;border-radius:8px"></canvas>
+    </div>
+    <p style="text-align:center;color:#888;font-size:12px;padding-bottom:20px;margin:0">두 손가락으로 확대/축소 · 드래그로 위치 조정</p>
   </div>
 </div>
 
@@ -1510,8 +1537,7 @@ function showApp(){
   const dbgImg=document.getElementById('drawerBgImg');
   if(CU.drawerBg && dbgImg){ dbgImg.src=CU.drawerBg; dbgImg.style.display='block'; }
   else if(dbgImg){ dbgImg.style.display='none'; }
-  const editBtn=document.getElementById('drawerBgEditBtn');
-  if(editBtn) editBtn.style.display=(!isV)?'block':'none';
+
   // 아바타
   const davImg=document.getElementById('davImg');
   const davFb=document.getElementById('davFallback');
@@ -1595,12 +1621,18 @@ function renderCal(){
     div.className='dc'+(cell.other?' other':'')+(dow===0?' sun':'')+(dow===6?' sat':'')+(ds===today?' today':'')
       +(hasCover2?' has-cover-2':hasCover?' has-cover':'');
     if(hasCover2){
-      div.style.backgroundImage=`url(${coverPhotos[0].url||coverPhotos[0].data}),url(${coverPhotos[1].url||coverPhotos[1].data})`;
-      div.style.backgroundSize='cover,cover';
-      div.style.backgroundPosition='25% center,75% center';
-      div.style.backgroundRepeat='no-repeat,no-repeat';
+      const bg=document.createElement('div');
+      bg.className='dc-bg-img';
+      bg.style.backgroundImage=`url(${coverPhotos[0].url||coverPhotos[0].data}),url(${coverPhotos[1].url||coverPhotos[1].data})`;
+      bg.style.backgroundSize='cover,cover';
+      bg.style.backgroundPosition='25% center,75% center';
+      bg.style.backgroundRepeat='no-repeat,no-repeat';
+      div.appendChild(bg);
     } else if(hasCover){
-      div.style.backgroundImage=`url(${coverPhotos[0].url||coverPhotos[0].data})`;
+      const bg=document.createElement('div');
+      bg.className='dc-bg-img';
+      bg.style.backgroundImage=`url(${coverPhotos[0].url||coverPhotos[0].data})`;
+      div.appendChild(bg);
     }
 
     // 날짜 숫자 + 스티커 좌/우
@@ -2981,32 +3013,165 @@ function linkify(text){
 }
 
 /* ── 프로필 사진 처리 (200×200 리사이즈 + Storage 업로드) ── */
-async function handleProfPhoto(input){
-  const file=input.files[0]; if(!file) return;
-  toast('사진 처리 중...');
-  const SIZE=200;
-  // 1. 리사이즈 (정사각형 크롭 → 200×200)
-  const dataUrl=await new Promise(res=>{
-    const reader=new FileReader();
-    reader.onload=e=>{
-      const img=new Image();
-      img.onload=()=>{
-        const c=document.createElement('canvas');
-        c.width=SIZE; c.height=SIZE;
-        const ctx=c.getContext('2d');
-        // 원형 클리핑
-        ctx.beginPath(); ctx.arc(SIZE/2,SIZE/2,SIZE/2,0,Math.PI*2); ctx.clip();
-        const minSide=Math.min(img.width,img.height);
-        const sx=(img.width-minSide)/2, sy=(img.height-minSide)/2;
-        ctx.drawImage(img,sx,sy,minSide,minSide,0,0,SIZE,SIZE);
-        res(c.toDataURL('image/jpeg',0.88));
-      };
-      img.src=e.target.result;
-    };
-    reader.readAsDataURL(file);
-  });
+async // ── Crop state ──────────────────────────────────────────────
+let _cropImg=null, _cropX=0, _cropY=0, _cropScale=1;
+let _cropLastDist=0, _cropLastX=0, _cropLastY=0, _cropIsDragging=false;
+const CROP_SIZE=300;
 
-  // 2. Storage에 업로드 (가능하면)
+function handleProfPhoto(input){
+  const file=input.files[0]; if(!file) return;
+  input.value='';
+  const reader=new FileReader();
+  reader.onload=function(e){
+    const img=new Image();
+    img.onload=function(){
+      _cropImg=img;
+      // 초기 스케일: 이미지가 원을 꽉 채우도록
+      const minSide=Math.min(img.width,img.height);
+      _cropScale=CROP_SIZE/minSide;
+      _cropX=CROP_SIZE/2;
+      _cropY=CROP_SIZE/2;
+      _renderCrop();
+      openM('cropM');
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function _renderCrop(){
+  const canvas=document.getElementById('cropCanvas');
+  if(!canvas||!_cropImg) return;
+  const ctx=canvas.getContext('2d');
+  const CS=CROP_SIZE;
+  const R=CS/2;
+  const iw=_cropImg.width*_cropScale;
+  const ih=_cropImg.height*_cropScale;
+  const ix=_cropX-iw/2*(_cropImg.width>_cropImg.height?(1):(_cropImg.width/_cropImg.height));
+  // simpler: just use center offset
+  const drawX=_cropX-(_cropImg.width*_cropScale)/2;
+  const drawY=_cropY-(_cropImg.height*_cropScale)/2;
+  ctx.clearRect(0,0,CS,CS);
+  // 1. 어두운 배경
+  ctx.drawImage(_cropImg, drawX, drawY, _cropImg.width*_cropScale, _cropImg.height*_cropScale);
+  // 2. 원형 밖 어둡게 (dimmed overlay)
+  ctx.save();
+  ctx.fillStyle='rgba(0,0,0,0.55)';
+  ctx.fillRect(0,0,CS,CS);
+  ctx.globalCompositeOperation='destination-out';
+  ctx.beginPath(); ctx.arc(R,R,R-2,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+  // 3. 원 안 이미지 다시 그리기 (클리핑)
+  ctx.save();
+  ctx.beginPath(); ctx.arc(R,R,R-2,0,Math.PI*2); ctx.clip();
+  ctx.drawImage(_cropImg, drawX, drawY, _cropImg.width*_cropScale, _cropImg.height*_cropScale);
+  ctx.restore();
+  // 4. 흰 테두리 링
+  ctx.save();
+  ctx.strokeStyle='rgba(255,255,255,0.9)';
+  ctx.lineWidth=3;
+  ctx.beginPath(); ctx.arc(R,R,R-2,0,Math.PI*2); ctx.stroke();
+  ctx.restore();
+}
+
+function _clampCrop(){
+  const R=CROP_SIZE/2;
+  const iw=_cropImg.width*_cropScale;
+  const ih=_cropImg.height*_cropScale;
+  // 이미지가 항상 원을 커버하도록 제한
+  const minX=R-(iw/2-R); const maxX=R+(iw/2-R);
+  const minY=R-(ih/2-R); const maxY=R+(ih/2-R);
+  if(iw>=CROP_SIZE){ _cropX=Math.max(minX,Math.min(maxX,_cropX)); }
+  if(ih>=CROP_SIZE){ _cropY=Math.max(minY,Math.min(maxY,_cropY)); }
+}
+
+// Touch 이벤트 등록 (cropCanvas에)
+function _initCropEvents(){
+  const canvas=document.getElementById('cropCanvas');
+  if(!canvas||canvas._cropEventsAttached) return;
+  canvas._cropEventsAttached=true;
+  canvas.addEventListener('touchstart',function(e){
+    e.preventDefault();
+    if(e.touches.length===1){
+      _cropIsDragging=true;
+      _cropLastX=e.touches[0].clientX;
+      _cropLastY=e.touches[0].clientY;
+    } else if(e.touches.length===2){
+      _cropIsDragging=false;
+      _cropLastDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+    }
+  },{passive:false});
+  canvas.addEventListener('touchmove',function(e){
+    e.preventDefault();
+    const rect=canvas.getBoundingClientRect();
+    const scaleF=CROP_SIZE/rect.width;
+    if(e.touches.length===1&&_cropIsDragging){
+      const dx=(e.touches[0].clientX-_cropLastX)*scaleF;
+      const dy=(e.touches[0].clientY-_cropLastY)*scaleF;
+      _cropX+=dx; _cropY+=dy;
+      _cropLastX=e.touches[0].clientX;
+      _cropLastY=e.touches[0].clientY;
+      _clampCrop();
+      _renderCrop();
+    } else if(e.touches.length===2){
+      const dist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+      const ratio=dist/_cropLastDist;
+      _cropLastDist=dist;
+      const newScale=_cropScale*ratio;
+      // 최소 스케일: 원 전체를 커버
+      const minScale=CROP_SIZE/Math.min(_cropImg.width,_cropImg.height);
+      _cropScale=Math.max(minScale, Math.min(newScale, minScale*6));
+      _clampCrop();
+      _renderCrop();
+    }
+  },{passive:false});
+  canvas.addEventListener('touchend',function(e){
+    if(e.touches.length===0) _cropIsDragging=false;
+  });
+  // 마우스 지원 (데스크탑 테스트용)
+  let _mouseDown=false;
+  canvas.addEventListener('mousedown',function(e){
+    _mouseDown=true; _cropLastX=e.clientX; _cropLastY=e.clientY;
+  });
+  canvas.addEventListener('mousemove',function(e){
+    if(!_mouseDown) return;
+    const rect=canvas.getBoundingClientRect();
+    const scaleF=CROP_SIZE/rect.width;
+    _cropX+=(e.clientX-_cropLastX)*scaleF;
+    _cropY+=(e.clientY-_cropLastY)*scaleF;
+    _cropLastX=e.clientX; _cropLastY=e.clientY;
+    _clampCrop(); _renderCrop();
+  });
+  canvas.addEventListener('mouseup',function(){ _mouseDown=false; });
+  canvas.addEventListener('mouseleave',function(){ _mouseDown=false; });
+  canvas.addEventListener('wheel',function(e){
+    e.preventDefault();
+    const minScale=CROP_SIZE/Math.min(_cropImg.width,_cropImg.height);
+    _cropScale=Math.max(minScale, Math.min(_cropScale*(e.deltaY<0?1.1:0.9), minScale*6));
+    _clampCrop(); _renderCrop();
+  },{passive:false});
+}
+
+function cancelCrop(){ closeM('cropM'); _cropImg=null; }
+
+async function confirmCrop(){
+  if(!_cropImg){ closeM('cropM'); return; }
+  const SIZE=200;
+  const offscreen=document.createElement('canvas');
+  offscreen.width=SIZE; offscreen.height=SIZE;
+  const ctx=offscreen.getContext('2d');
+  // 원형 클리핑
+  ctx.beginPath(); ctx.arc(SIZE/2,SIZE/2,SIZE/2,0,Math.PI*2); ctx.clip();
+  // cropCanvas 좌표를 200×200으로 스케일
+  const sf=SIZE/CROP_SIZE;
+  const drawX=(_cropX-(_cropImg.width*_cropScale)/2)*sf;
+  const drawY=(_cropY-(_cropImg.height*_cropScale)/2)*sf;
+  ctx.drawImage(_cropImg, drawX, drawY, _cropImg.width*_cropScale*sf, _cropImg.height*_cropScale*sf);
+  const dataUrl=offscreen.toDataURL('image/jpeg',0.88);
+  closeM('cropM');
+  toast('사진 업로드 중...');
+
+  // Storage 업로드
   if(_storage){
     try{
       const blob=await(await fetch(dataUrl)).blob();
@@ -3017,25 +3182,22 @@ async function handleProfPhoto(input){
         imgEl.src=url; imgEl.style.display='block';
         document.getElementById('profAvatarDelBtn').style.display='inline-block';
         document.getElementById('profAvatarIcon').style.display='none';
-        const wrap=document.getElementById('profAvatarWrap');
-        const c=wrap.querySelector('canvas'); if(c) c.style.display='none';
-        input.value='';
         toast('사진이 등록되었습니다 ✓');
         return;
       }
     }catch(e){ console.warn('Storage upload failed, using base64 fallback'); }
   }
-  // 3. fallback: base64
+  // base64 fallback
   window._profPhotoData=dataUrl;
   const imgEl=document.getElementById('profAvatarImg');
   imgEl.src=dataUrl; imgEl.style.display='block';
   document.getElementById('profAvatarDelBtn').style.display='inline-block';
   document.getElementById('profAvatarIcon').style.display='none';
-  input.value='';
   toast('사진이 등록되었습니다 ✓');
 }
 
 function openProfile(){
+  _initCropEvents();
   if(!CU||CU.role==='viewer') return;
   document.getElementById('profIdDisp').value=CU.username||CU.id;
   document.getElementById('profName').value=CU.name||'';
@@ -3044,6 +3206,12 @@ function openProfile(){
   document.getElementById('profRegion').value=CU.region||'';
   document.getElementById('profLevel').value=CU.level||'';
   document.getElementById('profPlayTime').value=CU.playTime||'';
+  // bg preview
+  const bgImg=document.getElementById('profBgPreviewImg');
+  const bgPh=document.getElementById('profBgPreviewPlaceholder');
+  const bgDel=document.getElementById('profBgDelBtn');
+  if(bgImg&&CU.drawerBg){ bgImg.src=CU.drawerBg; bgImg.style.display='block'; if(bgPh) bgPh.style.display='none'; if(bgDel) bgDel.style.display='inline-flex'; }
+  else { if(bgImg){ bgImg.src=''; bgImg.style.display='none'; } if(bgPh) bgPh.style.display=''; if(bgDel) bgDel.style.display='none'; }
   document.getElementById('profPw').value='';
   document.getElementById('profErr').textContent='';
   window._profPhotoData=null;
@@ -3122,9 +3290,37 @@ function handleDrawerBgPhoto(input){
   reader.readAsDataURL(file);
   input.value='';
 }
+
+function deleteDrawerBg(){
+  const bgImg=document.getElementById('drawerBgImg');
+  if(bgImg){ bgImg.src=''; bgImg.style.display='none'; }
+  const prevImg=document.getElementById('profBgPreviewImg');
+  if(prevImg){ prevImg.src=''; prevImg.style.display='none'; }
+  const prevPh=document.getElementById('profBgPreviewPlaceholder');
+  if(prevPh) prevPh.style.display='';
+  const bgDel=document.getElementById('profBgDelBtn');
+  if(bgDel) bgDel.style.display='none';
+  if(CU) CU.drawerBg=null;
+  const users=getUsers();
+  const idx=users.findIndex(u=>u.id===CU.id||u.username===CU.username);
+  if(idx!==-1){ users[idx].drawerBg=null; setUsers(users); }
+  // Firebase 업데이트
+  if(window.firebase&&firebase.database){
+    const uid=CU.id||CU.username;
+    firebase.database().ref('cal/users/'+uid+'/drawerBg').remove();
+  }
+  toast('배경 사진이 삭제됐습니다');
+}
 function _applyDrawerBg(url){
   const dbgImg=document.getElementById('drawerBgImg');
   if(dbgImg){ dbgImg.src=url; dbgImg.style.display='block'; }
+  // 프로필 모달 미리보기도 업데이트
+  const prevImg=document.getElementById('profBgPreviewImg');
+  if(prevImg){ prevImg.src=url; prevImg.style.display='block'; }
+  const prevPh=document.getElementById('profBgPreviewPlaceholder');
+  if(prevPh) prevPh.style.display='none';
+  const bgDel=document.getElementById('profBgDelBtn');
+  if(bgDel) bgDel.style.display='inline-flex';
 }
 function _applyDrawerBgData(dataUrl){
   const dbgImg=document.getElementById('drawerBgImg');
