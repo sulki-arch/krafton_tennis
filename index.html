@@ -317,7 +317,7 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 .chat-avatar{width:32px;height:32px;border-radius:50%;flex-shrink:0;background:#e8e8e8;display:flex;align-items:center;justify-content:center;font-size:15px;overflow:hidden;cursor:pointer;border:1.5px solid rgba(0,0,0,.07);transition:transform .15s}
 .chat-avatar:hover{transform:scale(1.1)}
 .chat-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block}
-/* 아바타 팝업 */
+/* 아바타 팝업 (상세일정 외 영역용 fullscreen - 유지) */
 #avatarPopup{display:none;position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,.55);align-items:center;justify-content:center}
 #avatarPopup.open{display:flex}
 #avatarPopup .av-pop-inner{position:relative;text-align:center}
@@ -325,6 +325,17 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 #avatarPopup .av-pop-canvas{width:200px;height:200px;border-radius:50%;border:3px solid #fff;box-shadow:0 8px 32px rgba(0,0,0,.4)}
 #avatarPopup .av-pop-name{color:#fff;font-size:15px;font-weight:700;margin-top:10px;text-shadow:0 1px 4px rgba(0,0,0,.5)}
 #avatarPopup .av-pop-close{position:absolute;top:-12px;right:-12px;width:28px;height:28px;border-radius:50%;background:#fff;border:none;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;color:#555}
+/* 상세일정 내 인라인 프로필 카드 */
+#evProfileCard{overflow:hidden;max-height:0;transition:max-height .3s cubic-bezier(.4,0,.2,1),margin .3s,opacity .3s;opacity:0;margin-bottom:0}
+#evProfileCard.open{max-height:160px;opacity:1;margin-bottom:14px}
+.ev-prof-inner{background:linear-gradient(135deg,#e8f0fe 0%,#f0f4ff 100%);border-radius:14px;padding:12px 14px;position:relative;display:flex;gap:12px;align-items:center;border:1px solid #d0deff}
+.ev-prof-close{position:absolute;top:8px;right:10px;background:rgba(0,0,0,.08);border:none;cursor:pointer;width:24px;height:24px;border-radius:50%;font-size:15px;display:flex;align-items:center;justify-content:center;color:#555;line-height:1;transition:background .15s}
+.ev-prof-close:hover{background:rgba(0,0,0,.15)}
+.ev-prof-photo{width:64px;height:64px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.ev-prof-info{flex:1;min-width:0}
+.ev-prof-name{font-size:15px;font-weight:700;color:#1a237e;margin-bottom:2px;padding-right:24px}
+.ev-prof-row{font-size:12px;color:#3c4566;line-height:1.7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ev-prof-row span{color:#888}
 .chat-hd{display:flex;align-items:center;gap:6px;margin-bottom:2px}
 .chat-del-btn{background:none;border:none;cursor:pointer;font-size:13px;margin-left:auto;padding:0 2px;opacity:.45;flex-shrink:0;line-height:1}
 .chat-del-btn:active{opacity:1}
@@ -706,6 +717,19 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 <div class="bso" id="evDM">
   <div class="bs">
     <div class="bs-h"></div>
+    <!-- 인라인 프로필 카드 (참석자 아바타 클릭 시 상단 팝인) -->
+    <div id="evProfileCard">
+      <div class="ev-prof-inner">
+        <button class="ev-prof-close" onclick="closeEvProfileCard()">×</button>
+        <img id="evProfPhoto" class="ev-prof-photo" src="" alt="">
+        <div class="ev-prof-info">
+          <div class="ev-prof-name" id="evProfName"></div>
+          <div class="ev-prof-row" id="evProfSub"></div>
+          <div class="ev-prof-row" id="evProfBio"></div>
+          <div class="ev-prof-row" id="evProfLoc"></div>
+        </div>
+      </div>
+    </div>
     <!-- 제목 + 수정 버튼 -->
     <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:4px">
       <div style="flex:1">
@@ -1102,13 +1126,19 @@ function _fillAnimalAvatars(){
 function openAvatarPopup(userId, userName){
   const users=getUsers();
   const u=users.find(x=>x.id===userId||x.username===userId);
+  // 상세일정 모달이 열려 있으면 인라인 카드 사용
+  const evDM=document.getElementById('evDM');
+  if(evDM && evDM.classList.contains('open')){
+    openEvProfileCard(u, userId, userName);
+    return;
+  }
+  // 그 외: 기존 fullscreen 오버레이
   document.getElementById('avPopName').textContent=userName||userId;
   const img=document.getElementById('avPopImg');
   const cv=document.getElementById('avPopCanvas');
   if(u && u.avatar && u.avatar.startsWith('http')){
     img.src=u.avatar; img.style.display='block'; cv.style.display='none';
   } else {
-    // 동물 아바타 이미지 파일 사용
     const seed=u&&u.avatarSeed!==undefined?u.avatarSeed:getDefaultAvatarSeed(userId);
     img.src=getAnimalAvatarUrl(seed);
     img.style.display='block'; cv.style.display='none';
@@ -1116,6 +1146,37 @@ function openAvatarPopup(userId, userName){
   document.getElementById('avatarPopup').classList.add('open');
 }
 function closeAvatarPopup(){ document.getElementById('avatarPopup').classList.remove('open'); }
+
+function openEvProfileCard(u, userId, userName){
+  const card=document.getElementById('evProfileCard');
+  const photo=document.getElementById('evProfPhoto');
+  const seed=u&&u.avatarSeed!==undefined?u.avatarSeed:getDefaultAvatarSeed(userId);
+  photo.src=(u&&u.avatar&&u.avatar.startsWith('http'))?u.avatar:getAnimalAvatarUrl(seed);
+  document.getElementById('evProfName').textContent=u?u.name||userName:userName||userId;
+  // ID / 소속
+  const sub=[];
+  if(u&&u.username) sub.push(u.username);
+  if(u&&u.team) sub.push(u.team);
+  const subEl=document.getElementById('evProfSub');
+  subEl.innerHTML=sub.length?`<span>ID</span> ${sub.join(' / ')}`:'';
+  // 자기소개
+  const bioEl=document.getElementById('evProfBio');
+  bioEl.textContent=(u&&u.bio)||'';
+  bioEl.style.display=(u&&u.bio)?'block':'none';
+  // 지역 / 구력
+  const loc=[];
+  if(u&&u.region) loc.push(u.region);
+  if(u&&u.level) loc.push(u.level+'년차');
+  const locEl=document.getElementById('evProfLoc');
+  locEl.innerHTML=loc.length?`<span>📍</span> ${loc.join(' · ')}`:'';
+  locEl.style.display=loc.length?'block':'none';
+  // 모달 스크롤 맨 위로
+  const bs=card.closest('.bs'); if(bs) bs.scrollTo({top:0,behavior:'smooth'});
+  card.classList.add('open');
+}
+function closeEvProfileCard(){
+  document.getElementById('evProfileCard').classList.remove('open');
+}
 
 function _save(key,val){
   _D[key]=val;
@@ -1846,6 +1907,8 @@ let detailEvId=null;
 function openEvDetail(evId){
   const ev=getEvents().find(e=>e.id===evId); if(!ev) return;
   detailEvId=evId;
+  // 프로필 카드 초기화
+  const _pc=document.getElementById('evProfileCard'); if(_pc) _pc.classList.remove('open');
 
   // 제목
   document.getElementById('evDTitle').textContent=ev.title;
@@ -3049,7 +3112,11 @@ function initSwipeGestures(){
    15.  MODAL UTILITIES
 ═══════════════════════════════════════ */
 function openM(id){ document.getElementById(id).classList.add('open'); }
-function closeM(id){ document.getElementById(id).classList.remove('open'); }
+function closeM(id){
+  document.getElementById(id).classList.remove('open');
+  // 상세일정 닫을 때 인라인 프로필 카드도 닫기
+  if(id==='evDM'){ const c=document.getElementById('evProfileCard'); if(c) c.classList.remove('open'); }
+}
 
 /* ═══════════════════════════════════════
    16.  TOAST
