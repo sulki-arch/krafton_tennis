@@ -123,10 +123,15 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,'Apple SD Gothi
 .ovl{display:none;position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:200}
 .drawer{position:fixed;top:0;left:-295px;width:295px;height:100%;background:#fff;z-index:201;transition:left .28s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;box-shadow:var(--SH)}
 .drawer.open{left:0}
-.d-head{padding:36px 20px 18px;background:var(--P)}
-.d-av{width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:10px}
-.d-name{font-size:17px;font-weight:700;color:#fff}
-.d-role{font-size:12px;color:rgba(255,255,255,.72);margin-top:3px}
+.d-head{padding:28px 20px 20px;background:var(--P)}
+.d-head-row{display:flex;align-items:flex-start;gap:14px}
+.d-av{width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.22);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:28px}
+.d-av img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.d-info{flex:1;min-width:0}
+.d-name{font-size:17px;font-weight:700;color:#fff;line-height:1.3;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.d-sub{font-size:12px;color:rgba(255,255,255,.75);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.d-bio{font-size:11px;color:rgba(255,255,255,.60);margin-top:4px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.d-role{display:inline-block;font-size:11px;color:rgba(255,255,255,.9);background:rgba(255,255,255,.18);border-radius:20px;padding:2px 9px;margin-top:6px}
 .d-menu{padding:6px 0;flex:1;overflow-y:auto}
 .d-item{display:flex;align-items:center;gap:14px;padding:14px 20px;cursor:pointer;font-size:15px;color:#333;border:none;background:none;width:100%;text-align:left;transition:background .15s}
 .d-item:hover{background:#f5f8ff}
@@ -489,9 +494,15 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 <!-- ═══ DRAWER ═══ -->
 <div class="drawer" id="drawer">
   <div class="d-head">
-    <div class="d-av">👤</div>
-    <div class="d-name" id="dname"></div>
-    <div class="d-role" id="drole"></div>
+    <div class="d-head-row">
+      <div class="d-av" id="dav" onclick="if(CU&&CU.role!=='viewer'){openProfile();closeDrawer();}" style="cursor:pointer"><img id="davImg" src="" alt="" style="display:none"><span id="davFallback">👤</span></div>
+      <div class="d-info">
+        <div class="d-name" id="dname">게스트</div>
+        <div class="d-sub" id="dsub"></div>
+        <div class="d-bio" id="dbio"></div>
+        <div class="d-role" id="drole"></div>
+      </div>
+    </div>
   </div>
   <div class="d-menu">
     <button class="d-item" onclick="goToday();closeDrawer()">
@@ -673,6 +684,14 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
     <input id="profIdDisp" type="text" disabled style="background:#f5f5f5;color:#999">
     <label class="fl">닉네임</label>
     <input id="profName" type="text" placeholder="표시될 이름 입력">
+    <label class="fl">소속 <span style="font-weight:400;color:#bbb">(팀·부서 등)</span></label>
+    <input id="profTeam" type="text" placeholder="예) KRAFTON 개발팀">
+    <label class="fl">자기소개</label>
+    <input id="profBio" type="text" placeholder="한 줄 소개">
+    <label class="fl">지역</label>
+    <input id="profRegion" type="text" placeholder="예) 서울 강남">
+    <label class="fl">구력 <span style="font-weight:400;color:#bbb">(테니스 경력 연수)</span></label>
+    <input id="profLevel" type="number" min="0" max="50" placeholder="예) 3">
     <label class="fl">비밀번호 변경 <span style="font-weight:400;color:#bbb">(선택 — 비워두면 유지)</span></label>
     <input id="profPw" type="password" placeholder="새 비밀번호" autocomplete="new-password">
     <div class="ferr" id="profErr"></div>
@@ -1363,8 +1382,33 @@ function showApp(){
   document.getElementById('app').style.display='flex';
   const isA=CU.role==='admin', isV=CU.role==='viewer';
   const roleText={admin:'관리자 계정',user:'승인된 사용자',viewer:'게스트 모드'};
-  document.getElementById('dname').textContent=isV?'게스트':CU.name;
+  // 드로어 프로필 카드 업데이트
+  document.getElementById('dname').textContent=isV?'게스트':(CU.name||CU.username||'');
   document.getElementById('drole').textContent=roleText[CU.role]||'승인된 사용자';
+  // 부가 정보 (ID / 소속)
+  const subParts=[];
+  if(!isV && CU.username) subParts.push(CU.username);
+  if(CU.team) subParts.push(CU.team);
+  document.getElementById('dsub').textContent=subParts.join(' / ');
+  // 자기소개 + 지역 + 러닝타임 / 구력
+  const bioParts=[];
+  if(CU.bio) bioParts.push(CU.bio);
+  const locParts=[];
+  if(CU.region) locParts.push(CU.region);
+  if(CU.level) locParts.push(CU.level+'년차');
+  if(locParts.length) bioParts.push(locParts.join(' · '));
+  document.getElementById('dbio').textContent=bioParts.join(' | ');
+  // 아바타
+  const davImg=document.getElementById('davImg');
+  const davFb=document.getElementById('davFallback');
+  if(!isV && CU.avatar && CU.avatar.startsWith('http')){
+    davImg.src=CU.avatar; davImg.style.display='block'; davFb.style.display='none';
+  } else if(!isV){
+    const seed=CU.avatarSeed!==undefined?CU.avatarSeed:getDefaultAvatarSeed(CU.id||CU.username);
+    davImg.src=getAnimalAvatarUrl(seed); davImg.style.display='block'; davFb.style.display='none';
+  } else {
+    davImg.style.display='none'; davFb.style.display='inline'; davFb.textContent='👤';
+  }
   document.getElementById('d-users').style.display=isA?'flex':'none';
   document.getElementById('dadiv').style.display=isA?'block':'none';
   document.getElementById('d-splash').style.display=isA?'flex':'none';
@@ -2805,6 +2849,10 @@ function openProfile(){
   if(!CU||CU.role==='viewer') return;
   document.getElementById('profIdDisp').value=CU.username||CU.id;
   document.getElementById('profName').value=CU.name||'';
+  document.getElementById('profTeam').value=CU.team||'';
+  document.getElementById('profBio').value=CU.bio||'';
+  document.getElementById('profRegion').value=CU.region||'';
+  document.getElementById('profLevel').value=CU.level||'';
   document.getElementById('profPw').value='';
   document.getElementById('profErr').textContent='';
   window._profPhotoData=null;
@@ -2856,15 +2904,40 @@ function saveProfile(){
   const users=getUsers();
   const i=users.findIndex(u=>u.id===CU.id);
   if(i===-1){err.textContent='사용자 정보를 찾을 수 없습니다';return;}
-  const updated={...users[i],name};
+  const updated={...users[i], name,
+    team: document.getElementById('profTeam').value.trim()||null,
+    bio:  document.getElementById('profBio').value.trim()||null,
+    region: document.getElementById('profRegion').value.trim()||null,
+    level: document.getElementById('profLevel').value ? parseInt(document.getElementById('profLevel').value) : null
+  };
   if(pw) updated.password=pw;
   if(window._profPhotoData) updated.avatar=window._profPhotoData;
-  if(window._profPhotoDelete) { delete updated.avatar; updated.avatar=null; }
+  if(window._profPhotoDelete){ updated.avatar=null; }
   users[i]=updated;
   setUsers(users);
   CU=updated;
   window._profPhotoDelete=false;
+  // 드로어 프로필 카드 새로고침
+  const isV=CU.role==='viewer';
+  const roleText={admin:'관리자 계정',user:'승인된 사용자',viewer:'게스트 모드'};
   document.getElementById('dname').textContent=CU.name;
+  document.getElementById('drole').textContent=roleText[CU.role]||'승인된 사용자';
+  const subParts=[];
+  if(CU.username) subParts.push(CU.username);
+  if(CU.team) subParts.push(CU.team);
+  document.getElementById('dsub').textContent=subParts.join(' / ');
+  const bioParts=[]; if(CU.bio) bioParts.push(CU.bio);
+  const locParts=[]; if(CU.region) locParts.push(CU.region); if(CU.level) locParts.push(CU.level+'년차');
+  if(locParts.length) bioParts.push(locParts.join(' · '));
+  document.getElementById('dbio').textContent=bioParts.join(' | ');
+  const davImg=document.getElementById('davImg');
+  const davFb=document.getElementById('davFallback');
+  if(CU.avatar && CU.avatar.startsWith('http')){
+    davImg.src=CU.avatar; davImg.style.display='block'; davFb.style.display='none';
+  } else {
+    const seed=CU.avatarSeed!==undefined?CU.avatarSeed:getDefaultAvatarSeed(CU.id||CU.username);
+    davImg.src=getAnimalAvatarUrl(seed); davImg.style.display='block'; davFb.style.display='none';
+  }
   closeM('profM');
   toast('프로필이 저장되었습니다 ✓');
 }
