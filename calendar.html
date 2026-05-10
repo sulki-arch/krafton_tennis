@@ -64,7 +64,7 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,'Apple SD Gothi
 .cal{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .dhdr{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--BD)}
 .dh{text-align:center;padding:7px 0;font-size:12px;font-weight:600;color:#888}
-.dh:first-child{color:var(--SUN)}.dh:last-child{color:var(--SAT)}
+.dh:last-child{color:var(--SUN)}.dh:nth-child(6){color:var(--SAT)}
 .cgrid{display:grid;grid-template-columns:repeat(7,1fr)}
 
 .dc{min-height:82px;border-right:1px solid #f2f2f2;border-bottom:1px solid #f2f2f2;padding:3px 2px 2px;cursor:pointer;overflow:hidden;min-width:0;transition:background .1s}
@@ -490,8 +490,8 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
   <!-- Calendar -->
   <div class="cal">
     <div class="dhdr">
-      <div class="dh">일</div><div class="dh">월</div><div class="dh">화</div>
-      <div class="dh">수</div><div class="dh">목</div><div class="dh">금</div><div class="dh">토</div>
+      <div class="dh">월</div><div class="dh">화</div><div class="dh">수</div>
+      <div class="dh">목</div><div class="dh">금</div><div class="dh">토</div><div class="dh dh-sun">일</div>
     </div>
     <div class="cgrid" id="cgrid"></div>
   </div>
@@ -1127,9 +1127,10 @@ function drawAnimalAvatar(canvas, userId, size=200){
 function getAvatarHtml(u, clickable=false){
   if(!u) return '<div class="chat-avatar">?</div>';
   const uid=u.id||u.username;
-  const clickAttr=clickable?`onclick="openAvatarPopup('${uid}',${JSON.stringify(u.name||uid).replace(/'/g,"\'")})"  style="cursor:pointer"`:'';
+  // clickAttr replaced by data-* approach below
   if(u.avatar && u.avatar.startsWith('http')){
-    return `<div class="chat-avatar" ${clickAttr}><img src="${u.avatar}" alt="" onerror="this.src=getAnimalAvatarUrl(${u.avatarSeed||0})"></div>`;
+    const dAttr=clickable?`data-uid="${uid}" data-name="${(u.name||uid).replace(/"/g,'&quot;')}" onclick="openAvatarPopup(this.dataset.uid,this.dataset.name)" style="cursor:pointer"`:'';
+    return `<div class="chat-avatar" ${dAttr}><img src="${u.avatar}" alt="" onerror="this.src=getAnimalAvatarUrl(${u.avatarSeed||0})"></div>`;
   }
   if(u.avatar && u.avatar.startsWith('data:')){
     return `<div class="chat-avatar" ${clickAttr}><img src="${u.avatar}" alt=""></div>`;
@@ -1137,7 +1138,7 @@ function getAvatarHtml(u, clickable=false){
   // 동물 아바타 이미지 파일 사용
   const seed = u.avatarSeed !== undefined ? u.avatarSeed : getDefaultAvatarSeed(uid);
   const avatarUrl = getAnimalAvatarUrl(seed);
-  return `<div class="chat-avatar" ${clickAttr}><img src="${avatarUrl}" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover"></div>`;
+  return `<div class="chat-avatar" data-uid="${uid}" data-name="${(u.name||uid).replace(/"/g,'&quot;')}" ${clickable?'onclick="openAvatarPopup(this.dataset.uid,this.dataset.name)" style="cursor:pointer"':''} ><img src="${avatarUrl}" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover"></div>`;
 }
 
 // 렌더 후 canvas 아바타 채우기
@@ -1201,13 +1202,22 @@ function _fillEvProfileCard(u, userId, userName){
 
 function openEvProfileCard(u, userId, userName){
   const card=document.getElementById('evProfileCard');
+  if(!card){ // fallback: fullscreen
+    document.getElementById('avPopName').textContent=userName||userId;
+    const img=document.getElementById('avPopImg');
+    const seed=u&&u.avatarSeed!==undefined?u.avatarSeed:getDefaultAvatarSeed(userId);
+    img.src=(u&&u.avatar&&u.avatar.startsWith('http'))?u.avatar:getAnimalAvatarUrl(seed);
+    img.style.display='block'; document.getElementById('avPopCanvas').style.display='none';
+    openM('avatarPopup'); return;
+  }
   const alreadyOpen=card.classList.contains('open');
   _fillEvProfileCard(u, userId, userName);
   if(!alreadyOpen){
-    const bs=card.closest('.bs'); if(bs) bs.scrollTo({top:0,behavior:'smooth'});
-    card.classList.add('open');
+    const bs=card.closest('.bs');
+    if(bs) bs.scrollTo({top:0,behavior:'smooth'});
+    // small delay so scroll happens before card expands
+    requestAnimationFrame(()=>card.classList.add('open'));
   }
-  // 이미 열려있으면 콘텐츠만 교체 (애니 없이 자연스럽게)
 }
 function closeEvProfileCard(){
   document.getElementById('evProfileCard').classList.remove('open');
@@ -1544,7 +1554,8 @@ function renderCal(){
   const cats=getCats();
 
   const cells=[];
-  for(let i=0;i<first.getDay();i++) cells.push({d:new Date(VY,VM,1-(first.getDay()-i)),other:true});
+  const startOffset=(first.getDay()+6)%7; // Monday=0, Sun=6
+  for(let i=0;i<startOffset;i++) cells.push({d:new Date(VY,VM,1-(startOffset-i)),other:true});
   for(let d=1;d<=last;d++) cells.push({d:new Date(VY,VM,d),other:false});
   while(cells.length%7!==0){ const l=cells[cells.length-1].d; cells.push({d:new Date(l.getTime()+86400000),other:true}); }
 
@@ -2073,19 +2084,21 @@ function openEvDetail(evId){
 function _renderAttNames(ev){
   const users=getUsers();
   // 가나다 정렬
-  const attUsers=(ev.attendees||[]).map(uid=>users.find(x=>x.id===uid)||{id:uid,name:uid})
+  const attUsers=(ev.attendees||[]).map(aid=>users.find(x=>x.id===aid)||{id:aid,name:aid})
     .sort((a,b)=>(a.name||a.id||'').localeCompare(b.name||b.id||'','ko'));
   const wrap=document.getElementById('evDAttNames');
   if(!attUsers.length){ wrap.innerHTML='<span style="color:#bbb">아직 참석자가 없습니다</span>'; return; }
   const chips=attUsers.map(u=>{
-    const seed=u.avatarSeed!==undefined?u.avatarSeed:getDefaultAvatarSeed(u.id||u.username||u.name);
-    const src=(u.avatar&&u.avatar.startsWith('http'))?u.avatar:getAnimalAvatarUrl(seed);
-    const uid=u.id||u.username;
-    const uname=JSON.stringify(u.name||uid).replace(/'/g,"\'");
-    return `<span class="att-chip" onclick="openAvatarPopup('${uid}',${uname})" style="cursor:pointer">
-      <img src="${src}" style="width:22px;height:22px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:4px;border:1.5px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.15)">
-      <span style="vertical-align:middle">${u.name||uid}</span>
-    </span>`;
+    try{
+      const seed=u.avatarSeed!==undefined?u.avatarSeed:getDefaultAvatarSeed(u.id||u.username);
+      const src=(u.avatar&&u.avatar.startsWith('http'))?u.avatar:getAnimalAvatarUrl(seed);
+      const auid=u.id||u.username||'';
+      // data-uid 속성으로 저장하고 onclick은 dataset에서 읽어옴 (HTML 인코딩 문제 방지)
+      return `<span class="att-chip" data-uid="${auid.replace(/"/g,'&quot;')}" data-name="${(u.name||auid).replace(/"/g,'&quot;')}" onclick="openAvatarPopup(this.dataset.uid,this.dataset.name)" style="cursor:pointer">
+        <img src="${src}" style="width:22px;height:22px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:4px;border:1.5px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.15)" onerror="this.style.display='none'">
+        <span style="vertical-align:middle">${u.name||auid}</span>
+      </span>`;
+    }catch(e){ return `<span class="att-chip">${u.name||u.id}</span>`; }
   }).join('');
   wrap.innerHTML=`<div style="margin-bottom:4px;font-size:12px;color:#888">참석 ${attUsers.length}명</div><div style="display:flex;flex-wrap:wrap;gap:6px">${chips}</div>`;
 }
@@ -2122,8 +2135,9 @@ function _renderEvChat(ev){
   const isAdmin=CU&&CU.role==='admin';
   area.innerHTML=msgs.map(msg=>{
     const u=users.find(x=>x.id===msg.userId);
-    const nick=u?u.name:(msg.userId==='__guest__'?'게스트':msg.userId);
-    const isMine=CU&&msg.userId===CU.id;
+    const uid=msg.userId||'';
+    const nick=u?u.name:(uid==='__guest__'?'게스트':uid);
+    const isMine=CU&&uid===CU.id;
     const canDel=isMine||isAdmin;
     const ts=new Date(msg.ts);
     const timeStr=ts.getHours().toString().padStart(2,'0')+':'+ts.getMinutes().toString().padStart(2,'0');
@@ -2143,7 +2157,7 @@ function _renderEvChat(ev){
     }).join('');
     const pickerOpenCls=_openPickers.has(msg.id)?' open':'';
     return `<div class="chat-bubble${isMine?' chat-mine':''}">
-      <div class="chat-hd">${avHtml}<div class="chat-nick" style="cursor:pointer" onclick="openAvatarPopup('${uid}','${nick}')">${nick}</div>${canDel?`<button class="chat-del-btn" onclick="deleteChat('${ev.id}','${msg.id}')">🗑</button>`:''}</div>
+      <div class="chat-hd">${avHtml}<div class="chat-nick" style="cursor:pointer" data-uid="${uid}" data-name="${nick}" onclick="openAvatarPopup(this.dataset.uid,this.dataset.name)">${nick}</div>${canDel?`<button class="chat-del-btn" onclick="deleteChat('${ev.id}','${msg.id}')">🗑</button>`:''}</div>
       <div class="chat-text">${msg.text.replace(/</g,'&lt;')}</div>
       <div class="chat-rxn-wrap">
         <div class="chat-rxn-bar">${activePills}<button class="chat-rxn-toggle" onclick="toggleRxnPicker('${msg.id}')">+ 반응</button></div>
