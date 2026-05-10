@@ -309,8 +309,17 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 .chat-mine{background:#f5f9ff}
 .chat-nick{font-size:11px;font-weight:700;color:#1a73e8}
 .chat-mine .chat-nick{color:#e65100}
-.chat-avatar{width:26px;height:26px;border-radius:50%;object-fit:cover;flex-shrink:0;background:#e8e8e8;display:flex;align-items:center;justify-content:center;font-size:13px;overflow:hidden}
-.chat-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.chat-avatar{width:32px;height:32px;border-radius:50%;flex-shrink:0;background:#e8e8e8;display:flex;align-items:center;justify-content:center;font-size:15px;overflow:hidden;cursor:pointer;border:1.5px solid rgba(0,0,0,.07);transition:transform .15s}
+.chat-avatar:hover{transform:scale(1.1)}
+.chat-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block}
+/* 아바타 팝업 */
+#avatarPopup{display:none;position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,.55);align-items:center;justify-content:center}
+#avatarPopup.open{display:flex}
+#avatarPopup .av-pop-inner{position:relative;text-align:center}
+#avatarPopup .av-pop-img{width:200px;height:200px;border-radius:50%;object-fit:cover;border:3px solid #fff;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+#avatarPopup .av-pop-canvas{width:200px;height:200px;border-radius:50%;border:3px solid #fff;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+#avatarPopup .av-pop-name{color:#fff;font-size:15px;font-weight:700;margin-top:10px;text-shadow:0 1px 4px rgba(0,0,0,.5)}
+#avatarPopup .av-pop-close{position:absolute;top:-12px;right:-12px;width:28px;height:28px;border-radius:50%;background:#fff;border:none;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;color:#555}
 .chat-hd{display:flex;align-items:center;gap:6px;margin-bottom:2px}
 .chat-del-btn{background:none;border:none;cursor:pointer;font-size:13px;margin-left:auto;padding:0 2px;opacity:.45;flex-shrink:0;line-height:1}
 .chat-del-btn:active{opacity:1}
@@ -654,7 +663,10 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
         <span class="pa-icon" id="profAvatarIcon">👤</span>
         <img id="profAvatarImg" src="" alt="">
       </div>
-      <button class="btn btn-s" style="font-size:12px;padding:4px 12px" onclick="document.getElementById('profAvatarInput').click()">📷 사진 등록</button>
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:4px">
+        <button class="btn btn-s" style="font-size:12px;padding:4px 12px" onclick="document.getElementById('profAvatarInput').click()">📷 사진 등록</button>
+        <button class="btn btn-s btn-d" id="profAvatarDelBtn" style="font-size:12px;padding:4px 12px;display:none" onclick="deleteProfilePhoto()">🗑 사진 삭제</button>
+      </div>
       <input id="profAvatarInput" type="file" accept="image/*" style="display:none" onchange="handleProfPhoto(this)">
     </div>
     <label class="fl">아이디 <span style="font-weight:400;color:#bbb">(변경 불가)</span></label>
@@ -809,6 +821,16 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 <input type="file" id="splashPhotoIn" accept="image/*" style="display:none">
 <input type="file" id="grpPhotoIn"    accept="image/*" style="display:none">
 
+<!-- 아바타 팝업 -->
+<div id="avatarPopup" onclick="closeAvatarPopup()">
+  <div class="av-pop-inner" onclick="event.stopPropagation()">
+    <button class="av-pop-close" onclick="closeAvatarPopup()">×</button>
+    <img id="avPopImg" class="av-pop-img" src="" alt="" style="display:none">
+    <canvas id="avPopCanvas" class="av-pop-canvas" width="200" height="200" style="display:none"></canvas>
+    <div class="av-pop-name" id="avPopName"></div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
@@ -960,6 +982,101 @@ function _loadFromLS(){
   _D.groups = JSON.parse(localStorage.getItem(GK)||'[]');
   _D.splash = JSON.parse(localStorage.getItem(SPK)||'null');
 }
+
+/* ═══════════════════════════════════════
+   AVATAR SYSTEM — 동물 아이콘 기반 기본 아바타
+═══════════════════════════════════════ */
+const _ANIMALS = [
+  ['🐱','#FF6B6B'],['🐘','#7B68EE'],['🐶','#DEB887'],['🦒','#DAA520'],
+  ['🐭','#A0A0A0'],['🐨','#808080'],['🦔','#8B6914'],['🦘','#C4A052'],
+  ['🦭','#6EA8D5'],['🦦','#8B4513'],['🐒','#A0522D'],['🐊','#2E8B57'],
+  ['🐰','#FFC0CB'],['🐆','#D2691E'],['🦛','#A9A9A9'],['🦊','#FF7518'],
+  ['🐪','#C19A6B'],['🐹','#F4A460'],['🐷','#FFB6C1'],['🐑','#F5F5DC'],
+  ['🐯','#FF8C00'],['🐻','#8B4513'],['🦎','#3CB371'],['🐔','#FF4500'],
+  ['🦌','#CD853F'],['🦆','#4682B4'],['🐏','#DCDCDC'],['🦝','#808080'],
+  ['🐢','#228B22'],['🦇','#696969'],['🐸','#32CD32'],['🦍','#2F4F4F'],
+  ['🐴','#8B7355'],['🦁','#DAA520'],['🦬','#4A3728'],['🐼','#F0F0F0'],
+  ['🦩','#FF69B4'],['🦫','#8B6914'],['🐀','#808080'],['🦡','#C0C0C0'],
+  ['🦈','#4682B4'],['🦜','#FF4500'],['🦋','#9370DB'],['🐠','#FF6347'],
+  ['🦚','#228B22'],['🦑','#9B59B6'],['🐬','#1E90FF'],['🦀','#FF4500'],
+  ['🐓','#CD5C5C'],['🦃','#8B4513']
+];
+
+// 유저 ID 기반 결정론적 아바타 (항상 같은 동물)
+function _hashStr(s){ return s.split('').reduce((a,c)=>((a<<5)-a+c.charCodeAt(0))|0,0); }
+
+function getDefaultAvatarSeed(userId){
+  // localStorage에 저장된 랜덤 씨드 우선 (삭제 후 새 동물 배정용)
+  const key='av_seed_'+userId;
+  let seed=localStorage.getItem(key);
+  if(!seed){ seed=Math.abs(_hashStr(userId)).toString(); localStorage.setItem(key,seed); }
+  return parseInt(seed);
+}
+
+function newRandomAvatarSeed(userId){
+  const key='av_seed_'+userId;
+  const seed=Date.now()+Math.floor(Math.random()*9999);
+  localStorage.setItem(key,seed.toString());
+  return seed;
+}
+
+function drawAnimalAvatar(canvas, userId, size=200){
+  const seed=getDefaultAvatarSeed(userId);
+  const [emoji,bg]=_ANIMALS[Math.abs(seed)%_ANIMALS.length];
+  const ctx=canvas.getContext('2d');
+  canvas.width=size; canvas.height=size;
+  // 배경 원
+  ctx.beginPath(); ctx.arc(size/2,size/2,size/2,0,Math.PI*2);
+  ctx.fillStyle=bg; ctx.fill();
+  // 동물 이모지
+  ctx.font=`${Math.round(size*0.52)}px serif`;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(emoji, size/2, size/2+size*0.04);
+  return canvas;
+}
+
+function getAvatarHtml(u, clickable=false){
+  if(!u) return '<div class="chat-avatar">?</div>';
+  const uid=u.id||u.username;
+  const clickAttr=clickable?`onclick="openAvatarPopup('${uid}',${JSON.stringify(u.name||uid).replace(/'/g,"\'")})"  style="cursor:pointer"`:'';
+  if(u.avatar && u.avatar.startsWith('http')){
+    return `<div class="chat-avatar" ${clickAttr}><img src="${u.avatar}" alt="" onerror="this.parentElement.innerHTML=getAvatarCanvas('${uid}')"></div>`;
+  }
+  if(u.avatar && u.avatar.startsWith('data:')){
+    return `<div class="chat-avatar" ${clickAttr}><img src="${u.avatar}" alt=""></div>`;
+  }
+  // 기본 동물 아바타 (canvas → 인라인)
+  return `<div class="chat-avatar" id="av_${uid}" ${clickAttr}></div>`;
+}
+
+// 렌더 후 canvas 아바타 채우기
+function _fillAnimalAvatars(){
+  document.querySelectorAll('.chat-avatar[id^="av_"]').forEach(div=>{
+    if(div.children.length) return;
+    const uid=div.id.slice(3);
+    const c=document.createElement('canvas');
+    c.style.cssText='width:100%;height:100%;border-radius:50%;display:block';
+    drawAnimalAvatar(c,uid,64);
+    div.appendChild(c);
+  });
+}
+
+/* 아바타 팝업 */
+function openAvatarPopup(userId, userName){
+  const users=getUsers();
+  const u=users.find(x=>x.id===userId||x.username===userId);
+  document.getElementById('avPopName').textContent=userName||userId;
+  const img=document.getElementById('avPopImg');
+  const cv=document.getElementById('avPopCanvas');
+  if(u && u.avatar){
+    img.src=u.avatar; img.style.display='block'; cv.style.display='none';
+  } else {
+    img.style.display='none'; cv.style.display='block';
+    drawAnimalAvatar(cv,userId,200);
+  }
+  document.getElementById('avatarPopup').classList.add('open');
+}
+function closeAvatarPopup(){ document.getElementById('avatarPopup').classList.remove('open'); }
 
 function _save(key,val){
   _D[key]=val;
@@ -1782,9 +1899,7 @@ function _renderEvChat(ev){
     const canDel=isMine||isAdmin;
     const ts=new Date(msg.ts);
     const timeStr=ts.getHours().toString().padStart(2,'0')+':'+ts.getMinutes().toString().padStart(2,'0');
-    const avHtml=u&&u.avatar
-      ?`<div class="chat-avatar"><img src="${u.avatar}" alt=""></div>`
-      :`<div class="chat-avatar">${nick.slice(0,1)}</div>`;
+    const avHtml=getAvatarHtml(u, true);
     const rxns=msg.reactions||{};
     // 기존 반응 pills (반응 수 있는 것만)
     const activePills=REACT_EMOJIS.filter(em=>(fbArr(rxns[em])||[]).length>0).map(em=>{
@@ -1810,6 +1925,7 @@ function _renderEvChat(ev){
     </div>`;
   }).join('');
   area.scrollTop=area.scrollHeight;
+  requestAnimationFrame(_fillAnimalAvatars);
 }
 
 function deleteChat(evId,msgId){
@@ -2610,29 +2726,59 @@ function linkify(text){
     '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
 }
 
-/* ── 프로필 사진 처리 ── */
-function handleProfPhoto(input){
+/* ── 프로필 사진 처리 (200×200 리사이즈 + Storage 업로드) ── */
+async function handleProfPhoto(input){
   const file=input.files[0]; if(!file) return;
-  const reader=new FileReader();
-  reader.onload=e=>{
-    const img=new Image();
-    img.onload=()=>{
-      const size=200;
-      const c=document.createElement('canvas');
-      c.width=size; c.height=size;
-      const ctx=c.getContext('2d');
-      const minSide=Math.min(img.width,img.height);
-      const sx=(img.width-minSide)/2, sy=(img.height-minSide)/2;
-      ctx.drawImage(img,sx,sy,minSide,minSide,0,0,size,size);
-      const dataUrl=c.toDataURL('image/jpeg',0.85);
-      const imgEl=document.getElementById('profAvatarImg');
-      imgEl.src=dataUrl; imgEl.style.display='block';
-      document.getElementById('profAvatarIcon').style.display='none';
-      window._profPhotoData=dataUrl;
+  toast('사진 처리 중...');
+  const SIZE=200;
+  // 1. 리사이즈 (정사각형 크롭 → 200×200)
+  const dataUrl=await new Promise(res=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        const c=document.createElement('canvas');
+        c.width=SIZE; c.height=SIZE;
+        const ctx=c.getContext('2d');
+        // 원형 클리핑
+        ctx.beginPath(); ctx.arc(SIZE/2,SIZE/2,SIZE/2,0,Math.PI*2); ctx.clip();
+        const minSide=Math.min(img.width,img.height);
+        const sx=(img.width-minSide)/2, sy=(img.height-minSide)/2;
+        ctx.drawImage(img,sx,sy,minSide,minSide,0,0,SIZE,SIZE);
+        res(c.toDataURL('image/jpeg',0.88));
+      };
+      img.src=e.target.result;
     };
-    img.src=e.target.result;
-  };
-  reader.readAsDataURL(file);
+    reader.readAsDataURL(file);
+  });
+
+  // 2. Storage에 업로드 (가능하면)
+  if(_storage){
+    try{
+      const blob=await(await fetch(dataUrl)).blob();
+      const url=await uploadToStorage(blob,`photos/avatars/${CU.id}.jpg`);
+      if(url){
+        window._profPhotoData=url;
+        const imgEl=document.getElementById('profAvatarImg');
+        imgEl.src=url; imgEl.style.display='block';
+        document.getElementById('profAvatarDelBtn').style.display='inline-block';
+        document.getElementById('profAvatarIcon').style.display='none';
+        const wrap=document.getElementById('profAvatarWrap');
+        const c=wrap.querySelector('canvas'); if(c) c.style.display='none';
+        input.value='';
+        toast('사진이 등록되었습니다 ✓');
+        return;
+      }
+    }catch(e){ console.warn('Storage upload failed, using base64 fallback'); }
+  }
+  // 3. fallback: base64
+  window._profPhotoData=dataUrl;
+  const imgEl=document.getElementById('profAvatarImg');
+  imgEl.src=dataUrl; imgEl.style.display='block';
+  document.getElementById('profAvatarDelBtn').style.display='inline-block';
+  document.getElementById('profAvatarIcon').style.display='none';
+  input.value='';
+  toast('사진이 등록되었습니다 ✓');
 }
 
 function openProfile(){
@@ -2642,10 +2788,43 @@ function openProfile(){
   document.getElementById('profPw').value='';
   document.getElementById('profErr').textContent='';
   window._profPhotoData=null;
+  window._profPhotoDelete=false;
   const imgEl=document.getElementById('profAvatarImg');
-  if(CU.avatar){ imgEl.src=CU.avatar; imgEl.style.display='block'; document.getElementById('profAvatarIcon').style.display='none'; }
-  else { imgEl.style.display='none'; document.getElementById('profAvatarIcon').style.display='block'; }
+  const iconEl=document.getElementById('profAvatarIcon');
+  const delBtn=document.getElementById('profAvatarDelBtn');
+  const wrap=document.getElementById('profAvatarWrap');
+  if(CU.avatar){
+    imgEl.src=CU.avatar; imgEl.style.display='block';
+    iconEl.style.display='none'; delBtn.style.display='inline-block';
+  } else {
+    imgEl.style.display='none'; delBtn.style.display='none';
+    // 기본 동물 아바타 캔버스 표시
+    let c=wrap.querySelector('canvas');
+    if(!c){ c=document.createElement('canvas'); c.style.cssText='position:absolute;inset:0;width:100%;height:100%;border-radius:50%'; wrap.appendChild(c); }
+    drawAnimalAvatar(c, CU.id, 160);
+    iconEl.style.display='none';
+  }
   openM('profM');
+}
+
+function deleteProfilePhoto(){
+  if(!CU) return;
+  // Storage에서 삭제 (로그 없이)
+  if(CU.avatar && CU.avatar.startsWith('http')) deleteFromStorage(CU.avatar);
+  window._profPhotoDelete=true;
+  window._profPhotoData=null;
+  // 새 랜덤 동물 배정
+  newRandomAvatarSeed(CU.id);
+  // UI 갱신
+  const imgEl=document.getElementById('profAvatarImg');
+  const wrap=document.getElementById('profAvatarWrap');
+  imgEl.style.display='none';
+  document.getElementById('profAvatarDelBtn').style.display='none';
+  let c=wrap.querySelector('canvas');
+  if(!c){ c=document.createElement('canvas'); c.style.cssText='position:absolute;inset:0;width:100%;height:100%;border-radius:50%'; wrap.appendChild(c); }
+  drawAnimalAvatar(c, CU.id, 160);
+  document.getElementById('profAvatarIcon').style.display='none';
+  toast('사진이 삭제되었습니다. 새 동물 아바타가 배정되었어요 🐾');
 }
 function saveProfile(){
   const name=document.getElementById('profName').value.trim();
@@ -2658,9 +2837,11 @@ function saveProfile(){
   const updated={...users[i],name};
   if(pw) updated.password=pw;
   if(window._profPhotoData) updated.avatar=window._profPhotoData;
+  if(window._profPhotoDelete) { delete updated.avatar; updated.avatar=null; }
   users[i]=updated;
   setUsers(users);
   CU=updated;
+  window._profPhotoDelete=false;
   document.getElementById('dname').textContent=CU.name;
   closeM('profM');
   toast('프로필이 저장되었습니다 ✓');
