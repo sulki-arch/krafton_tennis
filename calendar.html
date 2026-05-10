@@ -986,27 +986,38 @@ function _loadFromLS(){
 /* ═══════════════════════════════════════
    AVATAR SYSTEM — 동물 아이콘 기반 기본 아바타
 ═══════════════════════════════════════ */
-const _ANIMALS = [
-  ['🐱','#FF6B6B'],['🐘','#7B68EE'],['🐶','#DEB887'],['🦒','#DAA520'],
-  ['🐭','#A0A0A0'],['🐨','#808080'],['🦔','#8B6914'],['🦘','#C4A052'],
-  ['🦭','#6EA8D5'],['🦦','#8B4513'],['🐒','#A0522D'],['🐊','#2E8B57'],
-  ['🐰','#FFC0CB'],['🐆','#D2691E'],['🦛','#A9A9A9'],['🦊','#FF7518'],
-  ['🐪','#C19A6B'],['🐹','#F4A460'],['🐷','#FFB6C1'],['🐑','#F5F5DC'],
-  ['🐯','#FF8C00'],['🐻','#8B4513'],['🦎','#3CB371'],['🐔','#FF4500'],
-  ['🦌','#CD853F'],['🦆','#4682B4'],['🐏','#DCDCDC'],['🦝','#808080'],
-  ['🐢','#228B22'],['🦇','#696969'],['🐸','#32CD32'],['🦍','#2F4F4F'],
-  ['🐴','#8B7355'],['🦁','#DAA520'],['🦬','#4A3728'],['🐼','#F0F0F0'],
-  ['🦩','#FF69B4'],['🦫','#8B6914'],['🐀','#808080'],['🦡','#C0C0C0'],
-  ['🦈','#4682B4'],['🦜','#FF4500'],['🦋','#9370DB'],['🐠','#FF6347'],
-  ['🦚','#228B22'],['🦑','#9B59B6'],['🐬','#1E90FF'],['🦀','#FF4500'],
-  ['🐓','#CD5C5C'],['🦃','#8B4513']
+// 50 동물 아바타 이미지 파일 목록 (avatars/ 폴더)
+const _ANIMAL_FILES = [
+  '01_cat','02_elephant','03_dog','04_giraffe','05_rat',
+  '06_koala','07_mole','08_kangaroo','09_walrus','10_otter',
+  '11_baboon','12_dark_elephant','13_frog','14_mouse','15_rabbit',
+  '16_leopard','17_hippo','18_fox','19_camel','20_hamster',
+  '21_pig','22_goat','23_bat','24_cow','25_guinea_pig',
+  '26_tiger','27_bear','28_squirrel','29_crocodile','30_hedgehog',
+  '31_rooster','32_deer','33_lobster','34_reindeer','35_sheep',
+  '36_raccoon','37_turtle','38_brown_bat','39_toad','40_gorilla',
+  '41_horse','42_monkey','43_lion','44_bull','45_panda',
+  '46_stork','47_dark_mole','48_rat2','49_badger','50_shark'
 ];
+
+function getAnimalAvatarUrl(seed){
+  const idx = Math.abs(parseInt(seed||0)) % _ANIMAL_FILES.length;
+  return (typeof _BASE_URL !== 'undefined' ? _BASE_URL : '/krafton_tennis/') + 'avatars/' + _ANIMAL_FILES[idx] + '.png';
+}
+
+
 
 // 유저 ID 기반 결정론적 아바타 (항상 같은 동물)
 function _hashStr(s){ return s.split('').reduce((a,c)=>((a<<5)-a+c.charCodeAt(0))|0,0); }
 
 function getDefaultAvatarSeed(userId){
-  // localStorage에 저장된 랜덤 씨드 우선 (삭제 후 새 동물 배정용)
+  // 1) Firebase 사용자 객체의 avatarSeed 우선 (assign_avatars.html로 배정된 값)
+  const users = typeof getUsers === 'function' ? getUsers() : [];
+  const uObj = users.find(x => x.id === userId || x.username === userId);
+  if(uObj && uObj.avatarSeed !== undefined && uObj.avatarSeed !== null){
+    return parseInt(uObj.avatarSeed);
+  }
+  // 2) localStorage 랜덤 씨드 (삭제 후 새 동물 배정용)
   const key='av_seed_'+userId;
   let seed=localStorage.getItem(key);
   if(!seed){ seed=Math.abs(_hashStr(userId)).toString(); localStorage.setItem(key,seed); }
@@ -1022,16 +1033,18 @@ function newRandomAvatarSeed(userId){
 
 function drawAnimalAvatar(canvas, userId, size=200){
   const seed=getDefaultAvatarSeed(userId);
-  const [emoji,bg]=_ANIMALS[Math.abs(seed)%_ANIMALS.length];
+  const url=getAnimalAvatarUrl(seed);
   const ctx=canvas.getContext('2d');
   canvas.width=size; canvas.height=size;
-  // 배경 원
-  ctx.beginPath(); ctx.arc(size/2,size/2,size/2,0,Math.PI*2);
-  ctx.fillStyle=bg; ctx.fill();
-  // 동물 이모지
-  ctx.font=`${Math.round(size*0.52)}px serif`;
-  ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillText(emoji, size/2, size/2+size*0.04);
+  const imgEl=new Image();
+  imgEl.crossOrigin='anonymous';
+  imgEl.onload=function(){
+    ctx.save();
+    ctx.beginPath(); ctx.arc(size/2,size/2,size/2,0,Math.PI*2); ctx.clip();
+    ctx.drawImage(imgEl,0,0,size,size);
+    ctx.restore();
+  };
+  imgEl.src=url;
   return canvas;
 }
 
@@ -1040,13 +1053,15 @@ function getAvatarHtml(u, clickable=false){
   const uid=u.id||u.username;
   const clickAttr=clickable?`onclick="openAvatarPopup('${uid}',${JSON.stringify(u.name||uid).replace(/'/g,"\'")})"  style="cursor:pointer"`:'';
   if(u.avatar && u.avatar.startsWith('http')){
-    return `<div class="chat-avatar" ${clickAttr}><img src="${u.avatar}" alt="" onerror="this.parentElement.innerHTML=getAvatarCanvas('${uid}')"></div>`;
+    return `<div class="chat-avatar" ${clickAttr}><img src="${u.avatar}" alt="" onerror="this.src=getAnimalAvatarUrl(${u.avatarSeed||0})"></div>`;
   }
   if(u.avatar && u.avatar.startsWith('data:')){
     return `<div class="chat-avatar" ${clickAttr}><img src="${u.avatar}" alt=""></div>`;
   }
-  // 기본 동물 아바타 (canvas → 인라인)
-  return `<div class="chat-avatar" id="av_${uid}" ${clickAttr}></div>`;
+  // 동물 아바타 이미지 파일 사용
+  const seed = u.avatarSeed !== undefined ? u.avatarSeed : getDefaultAvatarSeed(uid);
+  const avatarUrl = getAnimalAvatarUrl(seed);
+  return `<div class="chat-avatar" ${clickAttr}><img src="${avatarUrl}" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover"></div>`;
 }
 
 // 렌더 후 canvas 아바타 채우기
@@ -1054,10 +1069,13 @@ function _fillAnimalAvatars(){
   document.querySelectorAll('.chat-avatar[id^="av_"]').forEach(div=>{
     if(div.children.length) return;
     const uid=div.id.slice(3);
-    const c=document.createElement('canvas');
-    c.style.cssText='width:100%;height:100%;border-radius:50%;display:block';
-    drawAnimalAvatar(c,uid,64);
-    div.appendChild(c);
+    const users=getUsers();
+    const u=users.find(x=>x.id===uid||x.username===uid);
+    const seed=u&&u.avatarSeed!==undefined?u.avatarSeed:getDefaultAvatarSeed(uid);
+    const img=document.createElement('img');
+    img.src=getAnimalAvatarUrl(seed);
+    img.style.cssText='width:100%;height:100%;border-radius:50%;object-fit:cover;display:block';
+    div.appendChild(img);
   });
 }
 
@@ -1068,11 +1086,13 @@ function openAvatarPopup(userId, userName){
   document.getElementById('avPopName').textContent=userName||userId;
   const img=document.getElementById('avPopImg');
   const cv=document.getElementById('avPopCanvas');
-  if(u && u.avatar){
+  if(u && u.avatar && u.avatar.startsWith('http')){
     img.src=u.avatar; img.style.display='block'; cv.style.display='none';
   } else {
-    img.style.display='none'; cv.style.display='block';
-    drawAnimalAvatar(cv,userId,200);
+    // 동물 아바타 이미지 파일 사용
+    const seed=u&&u.avatarSeed!==undefined?u.avatarSeed:getDefaultAvatarSeed(userId);
+    img.src=getAnimalAvatarUrl(seed);
+    img.style.display='block'; cv.style.display='none';
   }
   document.getElementById('avatarPopup').classList.add('open');
 }
@@ -2793,16 +2813,17 @@ function openProfile(){
   const iconEl=document.getElementById('profAvatarIcon');
   const delBtn=document.getElementById('profAvatarDelBtn');
   const wrap=document.getElementById('profAvatarWrap');
-  if(CU.avatar){
+  if(CU.avatar && CU.avatar.startsWith('http')){
     imgEl.src=CU.avatar; imgEl.style.display='block';
     iconEl.style.display='none'; delBtn.style.display='inline-block';
   } else {
-    imgEl.style.display='none'; delBtn.style.display='none';
-    // 기본 동물 아바타 캔버스 표시
-    let c=wrap.querySelector('canvas');
-    if(!c){ c=document.createElement('canvas'); c.style.cssText='position:absolute;inset:0;width:100%;height:100%;border-radius:50%'; wrap.appendChild(c); }
-    drawAnimalAvatar(c, CU.id, 160);
-    iconEl.style.display='none';
+    // 동물 아바타 이미지 파일 사용
+    const seed=CU.avatarSeed!==undefined?CU.avatarSeed:getDefaultAvatarSeed(CU.id||CU.username);
+    imgEl.src=getAnimalAvatarUrl(seed);
+    imgEl.style.display='block';
+    iconEl.style.display='none'; delBtn.style.display='inline-block';
+    // 기존 canvas 제거
+    wrap.querySelectorAll('canvas').forEach(c=>c.remove());
   }
   openM('profM');
 }
@@ -2815,15 +2836,16 @@ function deleteProfilePhoto(){
   window._profPhotoData=null;
   // 새 랜덤 동물 배정
   newRandomAvatarSeed(CU.id);
-  // UI 갱신
+  // UI 갱신 - 새 랜덤 동물 아바타 이미지 표시
   const imgEl=document.getElementById('profAvatarImg');
   const wrap=document.getElementById('profAvatarWrap');
-  imgEl.style.display='none';
-  document.getElementById('profAvatarDelBtn').style.display='none';
-  let c=wrap.querySelector('canvas');
-  if(!c){ c=document.createElement('canvas'); c.style.cssText='position:absolute;inset:0;width:100%;height:100%;border-radius:50%'; wrap.appendChild(c); }
-  drawAnimalAvatar(c, CU.id, 160);
+  // 새 seed 반영
+  const newSeed=parseInt(localStorage.getItem('av_seed_'+(CU.id||CU.username))||0);
+  imgEl.src=getAnimalAvatarUrl(newSeed);
+  imgEl.style.display='block';
+  document.getElementById('profAvatarDelBtn').style.display='inline-block';
   document.getElementById('profAvatarIcon').style.display='none';
+  wrap.querySelectorAll('canvas').forEach(c=>c.remove());
   toast('사진이 삭제되었습니다. 새 동물 아바타가 배정되었어요 🐾');
 }
 function saveProfile(){
