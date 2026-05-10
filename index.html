@@ -189,8 +189,9 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 
 /* ── COVER PHOTO CELL ── */
 .dc.has-cover,.dc.has-cover-2{position:relative}
-.dc-bg-img{position:absolute;inset:0;background-size:cover;background-position:center;background-repeat:no-repeat;opacity:.5;z-index:0;border-radius:inherit}
+.dc-bg-img{position:absolute;inset:0;background-size:cover;background-position:center;background-repeat:no-repeat;opacity:.5;z-index:0;border-radius:inherit;pointer-events:none}
 .dc.has-cover::before,.dc.has-cover-2::before{content:'';position:absolute;inset:0;background:rgba(255,255,255,.08);pointer-events:none;z-index:1}
+.dc.has-cover .dc-stk-row{position:relative;z-index:2}
 .dc.has-cover .dnum{position:relative;z-index:2;background:rgba(0,0,0,.38)!important;color:#fff!important}
 .dc.has-cover.today .dnum{background:var(--P)!important}
 .dc.has-cover .ep{position:relative;z-index:2;background:rgba(0,0,0,.38)!important;color:#fff!important}
@@ -749,7 +750,7 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 </div>
 
 <!-- ═══ PHOTO CROP MODAL ═══ -->
-<div class="bso" id="cropM" style="z-index:1100">
+<div class="bso" id="cropM" style="z-index:500">
   <div class="bs" style="padding:0;background:#111;border-radius:20px 20px 0 0;overflow:hidden">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px 10px;background:#111">
       <button class="btn btn-s" style="background:rgba(255,255,255,.12);color:#fff;border:none;font-size:14px;padding:6px 16px;border-radius:20px" onclick="cancelCrop()">취소</button>
@@ -1776,7 +1777,8 @@ function renderWeek(){
 
   // ─── 시간 그리드 ───
   const inner=document.getElementById('wcInner');
-  const prevScroll=document.getElementById('wcScroll').scrollTop;
+  const wcScrollEl=document.getElementById('wcScroll');
+  const prevScroll=wcScrollEl?wcScrollEl.scrollTop:0;
   let html='';
   for(let h=WC_START;h<=WC_END;h++){
     html+=`<div class="wc-time-label" style="height:${WC_HOUR_H}px">${h.toString().padStart(2,'0')}:00</div>`;
@@ -2655,13 +2657,14 @@ function getScopeLabel(scope){
 function canEdit(){ return CU && CU.role!=='viewer'; }
 
 function canSeeEvent(ev){
+  if(!CU) return false;
   const scope=ev.scope||'all';
   // Check user access
   if(scope.startsWith('grp_')){
     const gid=scope.slice(4);
     const grp=getGroups().find(g=>g.id===gid);
     if(!grp) return false;
-    if(CU.role!=='admin' && !grp.members.includes(CU.id)) return false;
+    if(CU.role!=='admin' && !(grp.members||[]).includes(CU.id)) return false;
   }
   // Check hidden filter
   return !hiddenScopes.has(scope);
@@ -3045,10 +3048,6 @@ function _renderCrop(){
   const ctx=canvas.getContext('2d');
   const CS=CROP_SIZE;
   const R=CS/2;
-  const iw=_cropImg.width*_cropScale;
-  const ih=_cropImg.height*_cropScale;
-  const ix=_cropX-iw/2*(_cropImg.width>_cropImg.height?(1):(_cropImg.width/_cropImg.height));
-  // simpler: just use center offset
   const drawX=_cropX-(_cropImg.width*_cropScale)/2;
   const drawY=_cropY-(_cropImg.height*_cropScale)/2;
   ctx.clearRect(0,0,CS,CS);
@@ -3197,8 +3196,8 @@ async function confirmCrop(){
 }
 
 function openProfile(){
-  _initCropEvents();
   if(!CU||CU.role==='viewer') return;
+  _initCropEvents();
   document.getElementById('profIdDisp').value=CU.username||CU.id;
   document.getElementById('profName').value=CU.name||'';
   document.getElementById('profTeam').value=CU.team||'';
