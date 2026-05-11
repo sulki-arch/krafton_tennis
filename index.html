@@ -3371,7 +3371,7 @@ function _initCropEvents(){
 
 function cancelCrop(){ closeM('cropM'); _cropImg=null; }
 
-async function confirmCrop(){
+function confirmCrop(){
   if(!_cropImg){ closeM('cropM'); return; }
 
   // 200×200 원형 캔버스 렌더링
@@ -3386,76 +3386,21 @@ async function confirmCrop(){
     (_cropY-(_cropImg.height*_cropScale)/2)*sf,
     _cropImg.width*_cropScale*sf, _cropImg.height*_cropScale*sf);
   _cropImg=null;
-  closeM('cropM');
 
-  // 업로드 중 UI
-  const loadEl=document.getElementById('profAvatarLoading');
-  const saveBtn=document.getElementById('profSaveBtn');
-  if(loadEl){ loadEl.style.display='flex'; }
-  if(saveBtn){ saveBtn.disabled=true; saveBtn.style.opacity='0.5'; }
-  toast('사진 업로드 중...');
-  console.log('[Avatar] 업로드 시작. _storage 사용 가능:', !!_storage, '| uid:', CU&&(CU.id||CU.username));
+  // 앱 상태에 즉시 반영 (업로드 없음)
+  const dataUrl = offscreen.toDataURL('image/jpeg', 0.92);
+  window._profPhotoPreview = dataUrl;
 
-  let avatarUrl = null;
-
-  if(_storage){
-    // Firebase Storage 업로드
-    avatarUrl = await new Promise(function(resolve){
-      offscreen.toBlob(async function(blob){
-        if(!blob){ console.warn('[Avatar] canvas.toBlob 반환값 null'); resolve(null); return; }
-        console.log('[Avatar] Blob 생성 완료 — size:', blob.size, 'bytes');
-        try{
-          const uid = CU.id || CU.username;
-          const path = 'photos/avatars/'+uid+'.jpg';
-          const ref = _storage.ref(path);
-          console.log('[Avatar] Storage 경로:', path);
-          const task = ref.put(blob, {contentType:'image/jpeg'});
-          task.on('state_changed',
-            function(snap){ console.log('[Avatar] 진행:', Math.round(snap.bytesTransferred/snap.totalBytes*100)+'%'); },
-            function(err){ console.error('[Avatar] 업로드 오류:', err.code, err.message); resolve(null); },
-            async function(){
-              try{
-                const url = await task.snapshot.ref.getDownloadURL();
-                console.log('[Avatar] 완료 ✓ URL:', url.slice(0,80));
-                resolve(url);
-              }catch(e2){ console.error('[Avatar] getDownloadURL 실패:', e2); resolve(null); }
-            }
-          );
-        }catch(err2){ console.error('[Avatar] Storage 초기화 오류:', err2); resolve(null); }
-      }, 'image/jpeg', 0.88);
-    });
-  } else {
-    console.warn('[Avatar] _storage가 null — Firebase Storage 미연결');
-  }
-
-  // Storage 실패 시 base64 저장 (DB에 직접)
-  if(!avatarUrl){
-    console.warn('[Avatar] base64 fallback 사용');
-    avatarUrl = offscreen.toDataURL('image/jpeg', 0.88);
-  }
-
-  // window 변수에 임시 저장 (saveProfile에서 최종 DB 저장)
-  window._profPhotoPreview = avatarUrl;
-
-  // 미리보기 업데이트
+  // 미리보기 즉시 업데이트
   const imgEl = document.getElementById('profAvatarImg');
   const iconEl = document.getElementById('profAvatarIcon');
   const delBtn = document.getElementById('profAvatarDelBtn');
-  if(imgEl){ imgEl.src=avatarUrl; imgEl.style.display='block'; }
+  if(imgEl){ imgEl.src=dataUrl; imgEl.style.display='block'; }
   if(iconEl) iconEl.style.display='none';
   if(delBtn) delBtn.style.display='inline-block';
 
-  // 업로드 완료 UI 해제
-  if(loadEl){ loadEl.style.display='none'; }
-  if(saveBtn){ saveBtn.disabled=false; saveBtn.style.opacity=''; }
-
-  // 이전 사진 URL 보관 (변경 전 URL)
-  if(CU && CU.avatar && CU.avatar.startsWith('http') && CU.avatar !== avatarUrl){
-    window._prevAvatarUrl = CU.avatar;
-  }
-
-  console.log('[Avatar] 미리보기 완료. type:', avatarUrl.startsWith('http')?'Storage URL':'base64', '| saveProfile로 최종 저장 예정');
-  toast('사진이 준비됐습니다 — 저장 버튼을 눌러주세요 ✓');
+  closeM('cropM');
+  toast('사진이 선택됐습니다 — 저장 버튼을 눌러주세요 ✓');
 }
 
 
@@ -3478,6 +3423,7 @@ function openProfile(){
   document.getElementById('profPw').value='';
   document.getElementById('profErr').textContent='';
   window._profPhotoPreview=null;
+  window._bgPhotoPreview=null;
   window._profPhotoDelete=false;
   // 이전 사진 버튼 표시
   const prevAvatarBtn=document.getElementById('profAvatarPrevBtn');
@@ -3633,7 +3579,7 @@ function _initBgCropEvents(){
 
 function cancelBgCrop(){ closeM('bgCropM'); _bgCropImg=null; }
 
-async function confirmBgCrop(){
+function confirmBgCrop(){
   if(!_bgCropImg){ closeM('bgCropM'); return; }
 
   const SIZE=600;
@@ -3646,68 +3592,22 @@ async function confirmBgCrop(){
     (_bgCropY-(_bgCropImg.height*_bgCropScale)/2)*sf,
     _bgCropImg.width*_bgCropScale*sf, _bgCropImg.height*_bgCropScale*sf);
   _bgCropImg=null;
-  closeM('bgCropM');
-  toast('배경 사진 업로드 중...');
-  console.log('[BgPhoto] 업로드 시작. _storage:', !!_storage, '| uid:', CU&&(CU.id||CU.username));
 
-  let savedUrl = null;
+  // 앱 상태에 즉시 반영 (업로드 없음)
+  const dataUrl = offscreen.toDataURL('image/jpeg', 0.88);
+  window._bgPhotoPreview = dataUrl;
 
-  if(_storage){
-    savedUrl = await new Promise(function(resolve){
-      offscreen.toBlob(async function(blob){
-        if(!blob){ console.warn('[BgPhoto] toBlob null'); resolve(null); return; }
-        console.log('[BgPhoto] Blob size:', blob.size);
-        try{
-          const uid = CU.id || CU.username;
-          const path = 'photos/bg/'+uid+'.jpg';
-          const ref = _storage.ref(path);
-          const task = ref.put(blob, {contentType:'image/jpeg'});
-          task.on('state_changed',
-            function(snap){ console.log('[BgPhoto] 진행:', Math.round(snap.bytesTransferred/snap.totalBytes*100)+'%'); },
-            function(err){ console.error('[BgPhoto] 업로드 오류:', err.code, err.message); resolve(null); },
-            async function(){
-              try{
-                const url = await task.snapshot.ref.getDownloadURL();
-                console.log('[BgPhoto] 완료 ✓ URL:', url.slice(0,80));
-                resolve(url);
-              }catch(e2){ console.error('[BgPhoto] getDownloadURL 실패:', e2); resolve(null); }
-            }
-          );
-        }catch(err2){ console.error('[BgPhoto] 초기화 오류:', err2); resolve(null); }
-      }, 'image/jpeg', 0.85);
-    });
-  } else {
-    console.warn('[BgPhoto] _storage null — base64 fallback');
-  }
-
-  if(!savedUrl){
-    savedUrl = offscreen.toDataURL('image/jpeg', 0.85);
-  }
-
-  // 즉시 DB 저장 (배경은 saveProfile 의존 없이 독립 저장)
-  if(CU){ CU.drawerBg = savedUrl; }
-  const _bgUsers = getUsers();
-  const _bgIdx = _bgUsers.findIndex(u=>u.id===CU.id||u.username===CU.username);
-  if(_bgIdx !== -1){ _bgUsers[_bgIdx].drawerBg = savedUrl; setUsers(_bgUsers); }
-  console.log('[BgPhoto] DB 저장 완료. type:', savedUrl.startsWith('http')?'URL':'base64');
-
-  // 이전 배경 보관
-  if(CU.drawerBgPrev === undefined && savedUrl !== CU.drawerBg){
-    // noop: already saved
-  }
-
-  // UI 갱신
-  _applyDrawerBg(savedUrl);
+  // 미리보기 즉시 업데이트
+  _applyDrawerBg(dataUrl);
   const bgPrev = document.getElementById('profBgPreviewImg');
   const bgPh = document.getElementById('profBgPreviewPlaceholder');
   const bgDel = document.getElementById('profBgDelBtn');
-  const bgPrevBtn = document.getElementById('profBgPrevBtn');
-  if(bgPrev){ bgPrev.src=savedUrl; bgPrev.style.display='block'; }
+  if(bgPrev){ bgPrev.src=dataUrl; bgPrev.style.display='block'; }
   if(bgPh) bgPh.style.display='none';
   if(bgDel) bgDel.style.display='inline-flex';
-  if(bgPrevBtn) bgPrevBtn.style.display='none'; // 방금 저장했으므로 이전 사진 없음
 
-  toast('배경 사진이 저장됐습니다 ✓');
+  closeM('bgCropM');
+  toast('배경 사진이 선택됐습니다 — 저장 버튼을 눌러주세요 ✓');
 }
 
 
@@ -3778,17 +3678,77 @@ function _applyDrawerBgData(dataUrl){
 }
 
 
-function saveProfile(){
+/* ── _uploadPhoto: dataUrl → Firebase Storage → 다운로드 URL 반환 ── */
+async function _uploadPhoto(dataUrl, storagePath){
+  if(_storage){
+    try{
+      const resp = await fetch(dataUrl);
+      const blob = await resp.blob();
+      const ref  = _storage.ref(storagePath);
+      console.log('[Upload] 업로드 시작:', storagePath, '| size:', blob.size, 'bytes');
+      const snap = await ref.put(blob, {contentType:'image/jpeg'});
+      const url  = await snap.ref.getDownloadURL();
+      console.log('[Upload] 완료 ✓', storagePath, '|', url.slice(0,70));
+      return url;
+    }catch(e){
+      console.error('[Upload] 실패:', storagePath, e.code||'', e.message||e);
+    }
+  } else {
+    console.warn('[Upload] _storage null — base64 그대로 저장');
+  }
+  return dataUrl; // fallback: base64를 DB에 직접 저장
+}
+
+async function saveProfile(){
   const name = document.getElementById('profName').value.trim();
   const pw   = document.getElementById('profPw').value;
   const err  = document.getElementById('profErr');
   if(!name){ err.textContent='닉네임을 입력하세요'; return; }
 
   const users = getUsers();
-  // username 또는 id로 검색 (두 경우 모두 지원)
   const i = users.findIndex(u => u.id===CU.id || u.username===CU.username);
-  if(i===-1){ err.textContent='사용자 정보를 찾을 수 없습니다'; console.error('[SaveProfile] 유저 못찾음 CU:', CU); return; }
+  if(i===-1){ err.textContent='사용자 정보를 찾을 수 없습니다'; return; }
 
+  // 저장 버튼 비활성화 + 로딩 표시
+  const saveBtn = document.getElementById('profSaveBtn');
+  const loadEl  = document.getElementById('profAvatarLoading');
+  if(saveBtn){ saveBtn.disabled=true; saveBtn.style.opacity='0.5'; saveBtn.textContent='저장 중...'; }
+  if(loadEl && window._profPhotoPreview) loadEl.style.display='flex';
+
+  const uid = CU.id || CU.username;
+
+  // ── 1. 프로필 사진 업로드 ──────────────────
+  let avatarUrl = users[i].avatar || null;
+  if(window._profPhotoPreview){
+    console.log('[SaveProfile] 프로필 사진 업로드 시작...');
+    toast('사진 업로드 중...');
+    // 이전 사진 백업
+    if(users[i].avatar && users[i].avatar !== window._profPhotoPreview){
+      avatarUrl = await _uploadPhoto(window._profPhotoPreview, 'photos/avatars/'+uid+'.jpg');
+      // 이전 URL 저장
+      users[i].avatarPrev = users[i].avatar;
+    } else {
+      avatarUrl = await _uploadPhoto(window._profPhotoPreview, 'photos/avatars/'+uid+'.jpg');
+    }
+  }
+  if(window._profPhotoDelete){
+    avatarUrl = null;
+    users[i].avatarPrev = users[i].avatar || null;
+  }
+  if(loadEl) loadEl.style.display='none';
+
+  // ── 2. 배경 사진 업로드 ──────────────────
+  let bgUrl = users[i].drawerBg || null;
+  if(window._bgPhotoPreview){
+    console.log('[SaveProfile] 배경 사진 업로드 시작...');
+    if(!window._profPhotoPreview) toast('사진 업로드 중...');
+    if(users[i].drawerBg && users[i].drawerBg !== window._bgPhotoPreview){
+      users[i].drawerBgPrev = users[i].drawerBg;
+    }
+    bgUrl = await _uploadPhoto(window._bgPhotoPreview, 'photos/bg/'+uid+'.jpg');
+  }
+
+  // ── 3. 사용자 데이터 갱신 ──────────────────
   const updated = {
     ...users[i],
     name,
@@ -3797,31 +3757,22 @@ function saveProfile(){
     region:   document.getElementById('profRegion').value.trim()||null,
     level:    document.getElementById('profLevel').value ? parseInt(document.getElementById('profLevel').value) : null,
     playTime: document.getElementById('profPlayTime').value ? parseInt(document.getElementById('profPlayTime').value) : null,
+    avatar:   avatarUrl,
+    drawerBg: bgUrl,
   };
   if(pw) updated.password = pw;
-
-  // 사진: window._profPhotoPreview에 업로드된 URL/base64 있으면 반영
-  if(window._profPhotoPreview){
-    updated.avatar = window._profPhotoPreview;
-    // 이전 사진 보관
-    if(users[i].avatar && users[i].avatar !== window._profPhotoPreview){
-      updated.avatarPrev = users[i].avatar;
-    }
-    console.log('[SaveProfile] 사진 반영. type:', window._profPhotoPreview.startsWith('http')?'URL':'base64');
-  }
-  if(window._profPhotoDelete){
-    updated.avatar = null;
-    updated.avatarPrev = users[i].avatar || null;
-  }
 
   users[i] = updated;
   setUsers(users);
   CU = updated;
   window._profPhotoPreview = null;
+  window._bgPhotoPreview   = null;
   window._profPhotoDelete  = false;
-  console.log('[SaveProfile] 저장 완료. name:', CU.name, '| avatar type:', CU.avatar ? (CU.avatar.startsWith('http')?'URL':'base64') : 'none');
+  console.log('[SaveProfile] 저장 완료. name:', CU.name,
+    '| avatar:', CU.avatar ? (CU.avatar.startsWith('http')?'URL':'base64') : 'none',
+    '| bg:', CU.drawerBg ? (CU.drawerBg.startsWith('http')?'URL':'base64') : 'none');
 
-  // 드로어 실시간 갱신
+  // ── 4. 드로어 UI 갱신 ──────────────────
   const roleText = {admin:'관리자 계정', user:'승인된 사용자', viewer:'게스트 모드'};
   const dname = document.getElementById('dname');
   const drole = document.getElementById('drole');
@@ -3850,8 +3801,14 @@ function saveProfile(){
     if(davFb)  davFb.style.display='none';
   }
 
+  // 배경 갱신
+  if(CU.drawerBg) _applyDrawerBg(CU.drawerBg);
+
+  // 저장 버튼 복구
+  if(saveBtn){ saveBtn.disabled=false; saveBtn.style.opacity=''; saveBtn.textContent='저장'; }
+
   closeM('profM');
-  toast('프로필이 저장되었습니다 ✓');
+  toast('저장됐습니다 ✓');
 }
 
 /* ═══════════════════════════════════════
