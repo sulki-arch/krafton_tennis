@@ -1803,7 +1803,7 @@ function renderCal(){
       const p=document.createElement('div');
       p.className='ep '+cls+(isGrp?' ep-grp':'')+(isStart?'':' ep-cont');
       p.textContent=ev.title+(attCnt?' 👥'+attCnt:'');
-      p.onclick=e=>{e.stopPropagation();openEvDetail(ev.id);};
+      p.onclick=e=>{e.stopPropagation();e.preventDefault();openEvDetail(ev.id);};
       div.appendChild(p);
     });
 
@@ -1815,7 +1815,7 @@ function renderCal(){
       mr.appendChild(pb); div.appendChild(mr);
     }
 
-    div.onclick=()=>openDd(cell.d,ds);
+    div.onclick=(e)=>{ if(e.target.closest && e.target.closest('.ep')) return; openDd(cell.d,ds); };
     grid.appendChild(div);
   });
 }
@@ -2284,20 +2284,18 @@ function openEvDetail(evId){
     attBtn.className='btn btn-attend'+(attending?' going':'');
   }
 
-  // 참석자 명단
-  _renderAttNames(ev);
-
-  // 음료 선택
-  _renderDrinks(ev);
-
-  // 사진
-  _renderEvPhotos(ev);
-  document.getElementById('evDPhotoAdd').style.display=canEdit()?'block':'none';
-
-  // 채팅
-  _renderEvChat(ev);
-  document.getElementById('evDChatRow').style.display=isViewer?'none':'flex';
-  document.getElementById('evDChatTxt').value='';
+  // 참석자 명단, 음료, 사진, 채팅 — try/catch로 보호 (렌더 오류가 모달 오픈을 막지 않도록)
+  try{ _renderAttNames(ev); }catch(e){ console.warn('[openEvDetail] _renderAttNames error', e); }
+  try{ _renderDrinks(ev); }catch(e){ console.warn('[openEvDetail] _renderDrinks error', e); }
+  try{
+    _renderEvPhotos(ev);
+    document.getElementById('evDPhotoAdd').style.display=canEdit()?'block':'none';
+  }catch(e){ console.warn('[openEvDetail] _renderEvPhotos error', e); }
+  try{
+    _renderEvChat(ev);
+    document.getElementById('evDChatRow').style.display=isViewer?'none':'flex';
+    document.getElementById('evDChatTxt').value='';
+  }catch(e){ console.warn('[openEvDetail] _renderEvChat error', e); }
 
   openM('evDM');
 }
