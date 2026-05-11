@@ -1130,6 +1130,10 @@ async function loadAllData(){
         const d = snap.val()||{};
         // Firebase stores arrays as {0:{...},1:{...}} objects — convert back to arrays
         _D.users  = fbArr(d.users);
+        // 잘못된 Storage URL (alt=media 없는 형식) 자동 정리
+        if(_sanitizeUserPhotos(_D.users)){
+          _db.ref('/cal/users').set(_D.users).catch(()=>{});
+        }
         _D.events = fbArr(d.events);
         _D.cats   = d.cats ? fbArr(d.cats) : null;
         // media: object of date→array
@@ -1361,6 +1365,22 @@ function _save(key,val){
 }
 
 const getUsers  =()=> _D.users;
+
+/* 사용자 로드 후 잘못된 Storage URL 자동 정리 */
+function _sanitizeUserPhotos(users){
+  let changed = false;
+  users.forEach(function(u){
+    if(u.avatar && !_isValidPhotoUrl(u.avatar)){
+      console.warn('[Sanitize] 잘못된 avatar URL 제거:', u.username||u.id, u.avatar.slice(0,80));
+      u.avatar = null; changed = true;
+    }
+    if(u.drawerBg && !_isValidPhotoUrl(u.drawerBg)){
+      console.warn('[Sanitize] 잘못된 drawerBg URL 제거:', u.username||u.id, u.drawerBg.slice(0,80));
+      u.drawerBg = null; changed = true;
+    }
+  });
+  return changed;
+}
 const getEvents =()=> _D.events;
 const getCats   =()=> (_D.cats||DEFAULT_CATS).slice().sort((a,b)=>a.order-b.order);
 const getMedia  =()=> _D.media||{};
@@ -3680,6 +3700,23 @@ function _applyDrawerBgData(dataUrl){
 
 
 /* ── _uploadPhoto: dataUrl → Firebase Storage → 다운로드 URL 반환 ── */
+/* ── 사진 URL 유효성 검사 ──
+   Firebase Storage 다운로드 URL: .../o/path?alt=media&token=...
+   업로드 REST URL(잘못된 형식): .../o?name=path  ← 이건 이미지 표시 불가
+── */
+function _isValidPhotoUrl(url){
+  if(!url) return false;
+  if(url.startsWith('data:')) return true;   // base64 → 항상 유효
+  if(url.startsWith('http')){
+    // Firebase Storage URL이면 alt=media 파라미터 필수
+    if(url.includes('firebasestorage.googleapis.com')){
+      return url.includes('alt=media');
+    }
+    return true; // 다른 외부 URL은 허용
+  }
+  return false;
+}
+
 /* ── 사진 유틸: dataUrl → Blob 변환 (atob 기반, 모든 브라우저 호환) ── */
 function _dataURLtoBlob(dataUrl){
   const parts = dataUrl.split(',');
