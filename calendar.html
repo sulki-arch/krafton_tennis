@@ -3434,16 +3434,17 @@ function openProfile(){
   const iconEl=document.getElementById('profAvatarIcon');
   const delBtn=document.getElementById('profAvatarDelBtn');
   const wrap=document.getElementById('profAvatarWrap');
-  if(CU.avatar && CU.avatar.startsWith('http')){
+  if(CU.avatar){
+    // Storage URL(http) 또는 base64(data:) 모두 표시
     imgEl.src=CU.avatar; imgEl.style.display='block';
     iconEl.style.display='none'; delBtn.style.display='inline-block';
+    wrap.querySelectorAll('canvas').forEach(c=>c.remove());
   } else {
-    // 동물 아바타 이미지 파일 사용
+    // 동물 아바타
     const seed=CU.avatarSeed!==undefined?CU.avatarSeed:getDefaultAvatarSeed(CU.id||CU.username);
     imgEl.src=getAnimalAvatarUrl(seed);
     imgEl.style.display='block';
     iconEl.style.display='none'; delBtn.style.display='inline-block';
-    // 기존 canvas 제거
     wrap.querySelectorAll('canvas').forEach(c=>c.remove());
   }
   openM('profM');
@@ -3679,24 +3680,36 @@ function _applyDrawerBgData(dataUrl){
 
 
 /* ── _uploadPhoto: dataUrl → Firebase Storage → 다운로드 URL 반환 ── */
+/* fetch(data:URL) 은 iOS Safari/WebKit 에서 hang 발생 → atob 기반 변환 사용 */
+function _dataURLtoBlob(dataUrl){
+  const parts = dataUrl.split(',');
+  const mime  = (parts[0].match(/:(.*?);/)||[,'image/jpeg'])[1];
+  const raw   = atob(parts[1]);
+  const arr   = new Uint8Array(raw.length);
+  for(let n=0; n<raw.length; n++) arr[n] = raw.charCodeAt(n);
+  return new Blob([arr], {type: mime});
+}
+
 async function _uploadPhoto(dataUrl, storagePath){
+  if(!dataUrl) return null;
+  // 이미 Storage URL이면 재업로드 불필요
+  if(!dataUrl.startsWith('data:')) return dataUrl;
   if(_storage){
     try{
-      const resp = await fetch(dataUrl);
-      const blob = await resp.blob();
+      const blob = _dataURLtoBlob(dataUrl);
+      console.log('[Upload] 시작:', storagePath, '| size:', blob.size, 'bytes');
       const ref  = _storage.ref(storagePath);
-      console.log('[Upload] 업로드 시작:', storagePath, '| size:', blob.size, 'bytes');
       const snap = await ref.put(blob, {contentType:'image/jpeg'});
       const url  = await snap.ref.getDownloadURL();
-      console.log('[Upload] 완료 ✓', storagePath, '|', url.slice(0,70));
+      console.log('[Upload] 완료 ✓', url.slice(0,80));
       return url;
     }catch(e){
-      console.error('[Upload] 실패:', storagePath, e.code||'', e.message||e);
+      console.error('[Upload] Storage 실패 (base64 fallback):', storagePath, '|', e.code||e.message||e);
     }
   } else {
-    console.warn('[Upload] _storage null — base64 그대로 저장');
+    console.warn('[Upload] _storage null — base64로 DB 저장');
   }
-  return dataUrl; // fallback: base64를 DB에 직접 저장
+  return dataUrl; // fallback: base64 그대로 Firebase DB에 저장
 }
 
 async function saveProfile(){
@@ -3709,106 +3722,108 @@ async function saveProfile(){
   const i = users.findIndex(u => u.id===CU.id || u.username===CU.username);
   if(i===-1){ err.textContent='사용자 정보를 찾을 수 없습니다'; return; }
 
-  // 저장 버튼 비활성화 + 로딩 표시
   const saveBtn = document.getElementById('profSaveBtn');
   const loadEl  = document.getElementById('profAvatarLoading');
   if(saveBtn){ saveBtn.disabled=true; saveBtn.style.opacity='0.5'; saveBtn.textContent='저장 중...'; }
-  if(loadEl && window._profPhotoPreview) loadEl.style.display='flex';
 
-  const uid = CU.id || CU.username;
+  try{
+    const uid = CU.id || CU.username;
+    const hasProfPhoto = !!window._profPhotoPreview;
+    const hasBgPhoto   = !!window._bgPhotoPreview;
 
-  // ── 1. 프로필 사진 업로드 ──────────────────
-  let avatarUrl = users[i].avatar || null;
-  if(window._profPhotoPreview){
-    console.log('[SaveProfile] 프로필 사진 업로드 시작...');
-    toast('사진 업로드 중...');
-    // 이전 사진 백업
-    if(users[i].avatar && users[i].avatar !== window._profPhotoPreview){
+    // ── 1. 프로필 사진 업로드 ──────────────────
+    let avatarUrl = users[i].avatar || null;
+    if(hasProfPhoto){
+      console.log('[SaveProfile] 프로필 사진 업로드 시작... uid:', uid);
+      toast('사진 업로드 중...');
+      if(loadEl) loadEl.style.display='flex';
+      if(users[i].avatar && users[i].avatar !== window._profPhotoPreview){
+        users[i].avatarPrev = users[i].avatar; // 이전 사진 백업
+      }
       avatarUrl = await _uploadPhoto(window._profPhotoPreview, 'photos/avatars/'+uid+'.jpg');
-      // 이전 URL 저장
-      users[i].avatarPrev = users[i].avatar;
+      if(loadEl) loadEl.style.display='none';
+    }
+    if(window._profPhotoDelete){
+      avatarUrl = null;
+      users[i].avatarPrev = users[i].avatar || null;
+    }
+
+    // ── 2. 배경 사진 업로드 ──────────────────
+    let bgUrl = users[i].drawerBg || null;
+    if(hasBgPhoto){
+      console.log('[SaveProfile] 배경 사진 업로드 시작... uid:', uid);
+      if(!hasProfPhoto) toast('사진 업로드 중...');
+      if(users[i].drawerBg && users[i].drawerBg !== window._bgPhotoPreview){
+        users[i].drawerBgPrev = users[i].drawerBg;
+      }
+      bgUrl = await _uploadPhoto(window._bgPhotoPreview, 'photos/bg/'+uid+'.jpg');
+    }
+
+    // ── 3. 사용자 데이터 갱신 및 DB 저장 ──────────────────
+    const updated = {
+      ...users[i],
+      name,
+      team:     document.getElementById('profTeam').value.trim()||null,
+      bio:      document.getElementById('profBio').value.trim()||null,
+      region:   document.getElementById('profRegion').value.trim()||null,
+      level:    document.getElementById('profLevel').value ? parseInt(document.getElementById('profLevel').value) : null,
+      playTime: document.getElementById('profPlayTime').value ? parseInt(document.getElementById('profPlayTime').value) : null,
+      avatar:   avatarUrl,
+      drawerBg: bgUrl,
+    };
+    if(pw) updated.password = pw;
+
+    users[i] = updated;
+    setUsers(users);
+    CU = updated;
+    window._profPhotoPreview = null;
+    window._bgPhotoPreview   = null;
+    window._profPhotoDelete  = false;
+
+    const avType = CU.avatar ? (CU.avatar.startsWith('http') ? 'StorageURL' : 'base64') : 'none';
+    const bgType = CU.drawerBg ? (CU.drawerBg.startsWith('http') ? 'StorageURL' : 'base64') : 'none';
+    console.log('[SaveProfile] 저장 완료. name:', CU.name, '| avatar:', avType, '| bg:', bgType);
+
+    // ── 4. 드로어 UI 갱신 ──────────────────
+    const roleText = {admin:'관리자 계정', user:'승인된 사용자', viewer:'게스트 모드'};
+    const dname = document.getElementById('dname');
+    const drole = document.getElementById('drole');
+    const dsub  = document.getElementById('dsub');
+    const dbio  = document.getElementById('dbio');
+    if(dname) dname.textContent = CU.name;
+    if(drole) drole.textContent = roleText[CU.role]||'승인된 사용자';
+    const subParts=[]; if(CU.username) subParts.push(CU.username); if(CU.team) subParts.push(CU.team);
+    if(dsub) dsub.textContent = subParts.join(' / ');
+    const bioLines=[];
+    if(CU.bio)      bioLines.push(CU.bio);
+    if(CU.region)   bioLines.push('📍 '+CU.region);
+    if(CU.level)    bioLines.push('🎾 구력 약 '+CU.level+'년');
+    if(CU.playTime) bioLines.push('⏱ 플레이타임 약 '+CU.playTime+'시간');
+    if(dbio) dbio.innerHTML = bioLines.map(l=>'<div>'+l+'</div>').join('');
+
+    const davImg = document.getElementById('davImg');
+    const davFb  = document.getElementById('davFallback');
+    if(CU.avatar){
+      if(davImg){ davImg.src=CU.avatar; davImg.style.display='block'; }
+      if(davFb)  davFb.style.display='none';
     } else {
-      avatarUrl = await _uploadPhoto(window._profPhotoPreview, 'photos/avatars/'+uid+'.jpg');
+      const seed = CU.avatarSeed!==undefined ? CU.avatarSeed : getDefaultAvatarSeed(CU.id||CU.username);
+      if(davImg){ davImg.src=getAnimalAvatarUrl(seed); davImg.style.display='block'; }
+      if(davFb)  davFb.style.display='none';
     }
+    if(CU.drawerBg) _applyDrawerBg(CU.drawerBg);
+
+    closeM('profM');
+    toast('저장됐습니다 ✓');
+
+  }catch(e){
+    console.error('[SaveProfile] 오류 발생:', e);
+    err.textContent = '저장 중 오류가 발생했습니다. 다시 시도해주세요.';
+  }finally{
+    // 어떤 상황에서도 버튼 항상 복구
+    if(saveBtn){ saveBtn.disabled=false; saveBtn.style.opacity=''; saveBtn.textContent='저장'; }
+    if(loadEl)  loadEl.style.display='none';
   }
-  if(window._profPhotoDelete){
-    avatarUrl = null;
-    users[i].avatarPrev = users[i].avatar || null;
-  }
-  if(loadEl) loadEl.style.display='none';
-
-  // ── 2. 배경 사진 업로드 ──────────────────
-  let bgUrl = users[i].drawerBg || null;
-  if(window._bgPhotoPreview){
-    console.log('[SaveProfile] 배경 사진 업로드 시작...');
-    if(!window._profPhotoPreview) toast('사진 업로드 중...');
-    if(users[i].drawerBg && users[i].drawerBg !== window._bgPhotoPreview){
-      users[i].drawerBgPrev = users[i].drawerBg;
-    }
-    bgUrl = await _uploadPhoto(window._bgPhotoPreview, 'photos/bg/'+uid+'.jpg');
-  }
-
-  // ── 3. 사용자 데이터 갱신 ──────────────────
-  const updated = {
-    ...users[i],
-    name,
-    team:     document.getElementById('profTeam').value.trim()||null,
-    bio:      document.getElementById('profBio').value.trim()||null,
-    region:   document.getElementById('profRegion').value.trim()||null,
-    level:    document.getElementById('profLevel').value ? parseInt(document.getElementById('profLevel').value) : null,
-    playTime: document.getElementById('profPlayTime').value ? parseInt(document.getElementById('profPlayTime').value) : null,
-    avatar:   avatarUrl,
-    drawerBg: bgUrl,
-  };
-  if(pw) updated.password = pw;
-
-  users[i] = updated;
-  setUsers(users);
-  CU = updated;
-  window._profPhotoPreview = null;
-  window._bgPhotoPreview   = null;
-  window._profPhotoDelete  = false;
-  console.log('[SaveProfile] 저장 완료. name:', CU.name,
-    '| avatar:', CU.avatar ? (CU.avatar.startsWith('http')?'URL':'base64') : 'none',
-    '| bg:', CU.drawerBg ? (CU.drawerBg.startsWith('http')?'URL':'base64') : 'none');
-
-  // ── 4. 드로어 UI 갱신 ──────────────────
-  const roleText = {admin:'관리자 계정', user:'승인된 사용자', viewer:'게스트 모드'};
-  const dname = document.getElementById('dname');
-  const drole = document.getElementById('drole');
-  const dsub  = document.getElementById('dsub');
-  const dbio  = document.getElementById('dbio');
-  if(dname) dname.textContent = CU.name;
-  if(drole) drole.textContent = roleText[CU.role]||'승인된 사용자';
-  const subParts = []; if(CU.username) subParts.push(CU.username); if(CU.team) subParts.push(CU.team);
-  if(dsub) dsub.textContent = subParts.join(' / ');
-  const bioLines = [];
-  if(CU.bio)      bioLines.push(CU.bio);
-  if(CU.region)   bioLines.push('📍 '+CU.region);
-  if(CU.level)    bioLines.push('🎾 구력 약 '+CU.level+'년');
-  if(CU.playTime) bioLines.push('⏱ 플레이타임 약 '+CU.playTime+'시간');
-  if(dbio) dbio.innerHTML = bioLines.map(l=>'<div>'+l+'</div>').join('');
-
-  // 드로어 아바타
-  const davImg = document.getElementById('davImg');
-  const davFb  = document.getElementById('davFallback');
-  if(CU.avatar){
-    if(davImg){ davImg.src=CU.avatar; davImg.style.display='block'; }
-    if(davFb)  davFb.style.display='none';
-  } else {
-    const seed = CU.avatarSeed!==undefined ? CU.avatarSeed : getDefaultAvatarSeed(CU.id||CU.username);
-    if(davImg){ davImg.src=getAnimalAvatarUrl(seed); davImg.style.display='block'; }
-    if(davFb)  davFb.style.display='none';
-  }
-
-  // 배경 갱신
-  if(CU.drawerBg) _applyDrawerBg(CU.drawerBg);
-
-  // 저장 버튼 복구
-  if(saveBtn){ saveBtn.disabled=false; saveBtn.style.opacity=''; saveBtn.textContent='저장'; }
-
-  closeM('profM');
-  toast('저장됐습니다 ✓');
 }
 
 /* ═══════════════════════════════════════
