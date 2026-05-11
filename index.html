@@ -849,7 +849,7 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
     <div id="evProfileCard">
       <div class="ev-prof-inner">
         <button class="ev-prof-close" onclick="closeEvProfileCard()">×</button>
-        <img id="evProfPhoto" class="ev-prof-photo" src="" alt="">
+        <img id="evProfPhoto" class="ev-prof-photo" src="" alt="" style="cursor:pointer" onclick="openPhotoViewer(this.src,document.getElementById('evProfName').textContent)">
         <div class="ev-prof-info">
           <div class="ev-prof-name" id="evProfName"></div>
           <div class="ev-prof-row" id="evProfSub" style="display:none"></div>
@@ -1162,13 +1162,18 @@ async function loadAllData(){
         }
         // 캘린더 화면 갱신
         if(CU){
-          const u=_D.users.find(x=>x.id===CU.id);
+          // id 또는 username 둘 다 체크 (username-only 계정 지원)
+          const u=_D.users.find(x=>x.id===CU.id||(CU.username&&x.username===CU.username));
           if(!u){ doLogout(); return; }
           CU=u;
+          // ── 드로어 아바타 / 배경 실시간 갱신 ──
+          _refreshDrawerAvatar();
           renderCatBar(); renderGroupBar();
           if(viewMode==='week') renderWeek(); else renderCal();
           if(document.getElementById('ddM').classList.contains('open')) refreshDd();
           if(document.getElementById('evDM').classList.contains('open')&&detailEvId) openEvDetail(detailEvId);
+          // ── 전체 멤버 목록 열려있으면 재렌더링 ──
+          if(document.getElementById('memberListM').classList.contains('bso')) _renderMemberListBody();
         }
       });
     }).catch(()=>{
@@ -1254,21 +1259,21 @@ function drawAnimalAvatar(canvas, userId, size=200){
   return canvas;
 }
 
+/* ── 아바타 URL 헬퍼: http(Storage) / data:(base64) / 동물아바타 모두 처리 ── */
+function _getAvatarSrc(u, userId){
+  if(u && u.avatar) return u.avatar; // Storage URL 또는 base64 모두 사용
+  const seed = (u && u.avatarSeed !== undefined) ? u.avatarSeed : getDefaultAvatarSeed(userId || (u && (u.id||u.username)) || '');
+  return getAnimalAvatarUrl(seed);
+}
+
 function getAvatarHtml(u, clickable=false){
   if(!u) return '<div class="chat-avatar">?</div>';
-  const uid=u.id||u.username;
-  // clickAttr replaced by data-* approach below
-  if(u.avatar && u.avatar.startsWith('http')){
-    const dAttr=clickable?`data-uid="${uid}" data-name="${(u.name||uid).replace(/"/g,'&quot;')}" onclick="openAvatarPopup(this.dataset.uid,this.dataset.name)" style="cursor:pointer"`:'';
-    return `<div class="chat-avatar" ${dAttr}><img src="${u.avatar}" alt="" onerror="this.src=getAnimalAvatarUrl(${u.avatarSeed||0})"></div>`;
-  }
-  if(u.avatar && u.avatar.startsWith('data:')){
-    return `<div class="chat-avatar" ${clickAttr}><img src="${u.avatar}" alt=""></div>`;
-  }
-  // 동물 아바타 이미지 파일 사용
-  const seed = u.avatarSeed !== undefined ? u.avatarSeed : getDefaultAvatarSeed(uid);
-  const avatarUrl = getAnimalAvatarUrl(seed);
-  return `<div class="chat-avatar" data-uid="${uid}" data-name="${(u.name||uid).replace(/"/g,'&quot;')}" ${clickable?'onclick="openAvatarPopup(this.dataset.uid,this.dataset.name)" style="cursor:pointer"':''} ><img src="${avatarUrl}" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover"></div>`;
+  const uid = u.id || u.username;
+  const clickAttr = clickable
+    ? `data-uid="${uid}" data-name="${(u.name||uid).replace(/"/g,'&quot;')}" onclick="openAvatarPopup(this.dataset.uid,this.dataset.name)" style="cursor:pointer"`
+    : '';
+  const src = _getAvatarSrc(u, uid);
+  return `<div class="chat-avatar" ${clickAttr}><img src="${src}" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover" onerror="this.style.display='none'"></div>`;
 }
 
 // 렌더 후 canvas 아바타 채우기
@@ -1296,38 +1301,69 @@ function openAvatarPopup(userId, userName){
     openEvProfileCard(u, userId, userName);
     return;
   }
-  // 그 외: 기존 fullscreen 오버레이
-  document.getElementById('avPopName').textContent=userName||userId;
+  // 그 외: 인라인 프로필 카드 (fullscreen 대신 통합 카드)
+  // memberListM이 열려 있으면 mlProfileCard 사용
+  const mlM=document.getElementById('memberListM');
+  if(mlM && mlM.classList.contains('bso')){
+    openMlProfileCard(userId, userName);
+    return;
+  }
+  // fallback: fullscreen 오버레이
   const img=document.getElementById('avPopImg');
   const cv=document.getElementById('avPopCanvas');
-  if(u && u.avatar && u.avatar.startsWith('http')){
-    img.src=u.avatar; img.style.display='block'; cv.style.display='none';
-  } else {
-    const seed=u&&u.avatarSeed!==undefined?u.avatarSeed:getDefaultAvatarSeed(userId);
-    img.src=getAnimalAvatarUrl(seed);
-    img.style.display='block'; cv.style.display='none';
-  }
+  document.getElementById('avPopName').textContent=userName||userId;
+  img.src = _getAvatarSrc(u, userId);
+  img.style.display='block'; cv.style.display='none';
   document.getElementById('avatarPopup').classList.add('open');
 }
 function closeAvatarPopup(){ document.getElementById('avatarPopup').classList.remove('open'); }
 
+/* ── 통합 프로필 카드 채우기: prefix로 evProf / mlProf 구분 ──
+   prefix='evProf' → evProfPhoto, evProfName, evProfSub, ...
+   prefix='mlProf' → mlProfPhoto, mlProfName, mlProfSub, ...
+── */
+function _fillUserCard(prefix, u, userId, userName){
+  const name = u ? (u.name || userName || userId) : (userName || userId);
+  const src  = _getAvatarSrc(u, userId);
+
+  const photoEl = document.getElementById(prefix+'Photo');
+  if(photoEl){
+    photoEl.src = src;
+    photoEl.style.cursor = 'pointer';
+    photoEl.onclick = function(){ openPhotoViewer(this.src, name); };
+  }
+
+  const nameEl = document.getElementById(prefix+'Name');
+  if(nameEl) nameEl.textContent = name;
+
+  const sub = [];
+  if(u && u.username) sub.push('@'+u.username);
+  if(u && u.team)     sub.push(u.team);
+  const subEl = document.getElementById(prefix+'Sub');
+  if(subEl){ subEl.textContent = sub.join('  ·  '); subEl.style.display = sub.length?'block':'none'; }
+
+  const bioEl = document.getElementById(prefix+'Bio');
+  if(bioEl){ bioEl.textContent = (u&&u.bio)||''; bioEl.style.display = (u&&u.bio)?'block':'none'; }
+
+  const loc = [];
+  if(u && u.region) loc.push(u.region);
+  if(u && u.level)  loc.push(u.level+'년차');
+  if(u && u.playTime) loc.push('플레이타임 '+u.playTime+'h');
+  const locEl = document.getElementById(prefix+'Loc');
+  if(locEl){ locEl.textContent = loc.join(' · '); locEl.style.display = loc.length?'block':'none'; }
+
+  const roleMap = {admin:'관리자', user:'멤버', viewer:'게스트'};
+  const roleEl = document.getElementById(prefix+'Role');
+  if(roleEl){
+    roleEl.textContent = roleMap[u&&u.role] || '멤버';
+    roleEl.style.background = (u&&u.role==='admin') ? 'rgba(198,40,40,.12)' : 'rgba(26,115,232,.15)';
+    roleEl.style.color      = (u&&u.role==='admin') ? '#c62828'             : '#1a73e8';
+  }
+}
+
+/* 하위 호환: evProfileCard 채우기 */
 function _fillEvProfileCard(u, userId, userName){
-  const photo=document.getElementById('evProfPhoto');
-  const seed=u&&u.avatarSeed!==undefined?u.avatarSeed:getDefaultAvatarSeed(userId);
-  photo.src=(u&&u.avatar&&u.avatar.startsWith('http'))?u.avatar:getAnimalAvatarUrl(seed);
-  document.getElementById('evProfName').textContent=u?u.name||userName:userName||userId;
-  const sub=[]; if(u&&u.username) sub.push('@'+u.username); if(u&&u.team) sub.push(u.team);
-  const subEl=document.getElementById('evProfSub');
-  subEl.textContent=sub.join('  ·  '); subEl.style.display=sub.length?'block':'none';
-  const bioEl=document.getElementById('evProfBio');
-  bioEl.textContent=(u&&u.bio)||''; bioEl.style.display=(u&&u.bio)?'block':'none';
-  const loc=[]; if(u&&u.region) loc.push(u.region); if(u&&u.level) loc.push(u.level+'년차');
-  const locEl=document.getElementById('evProfLoc');
-  locEl.textContent=loc.join(' · '); locEl.style.display=loc.length?'block':'none';
-  // 역할 배지
-  const roleMap={admin:'관리자',user:'멤버',viewer:'게스트'};
-  const roleEl=document.getElementById('evProfRole');
-  if(roleEl){ roleEl.textContent=roleMap[u&&u.role]||'멤버'; }
+  _fillUserCard('evProf', u, userId, userName);
 }
 
 function openEvProfileCard(u, userId, userName){
@@ -1335,8 +1371,7 @@ function openEvProfileCard(u, userId, userName){
   if(!card){ // fallback: fullscreen
     document.getElementById('avPopName').textContent=userName||userId;
     const img=document.getElementById('avPopImg');
-    const seed=u&&u.avatarSeed!==undefined?u.avatarSeed:getDefaultAvatarSeed(userId);
-    img.src=(u&&u.avatar&&u.avatar.startsWith('http'))?u.avatar:getAnimalAvatarUrl(seed);
+    img.src=_getAvatarSrc(u, userId);
     img.style.display='block'; document.getElementById('avPopCanvas').style.display='none';
     openM('avatarPopup'); return;
   }
@@ -1657,11 +1692,9 @@ function showApp(){
   // 아바타
   const davImg=document.getElementById('davImg');
   const davFb=document.getElementById('davFallback');
-  if(!isV && CU.avatar && CU.avatar.startsWith('http')){
-    davImg.src=CU.avatar; davImg.style.display='block'; davFb.style.display='none';
-  } else if(!isV){
-    const seed=CU.avatarSeed!==undefined?CU.avatarSeed:getDefaultAvatarSeed(CU.id||CU.username);
-    davImg.src=getAnimalAvatarUrl(seed); davImg.style.display='block'; davFb.style.display='none';
+  if(!isV){
+    davImg.src=_getAvatarSrc(CU, CU.id||CU.username);
+    davImg.style.display='block'; davFb.style.display='none';
   } else {
     davImg.style.display='none'; davFb.style.display='inline'; davFb.textContent='👤';
   }
@@ -2017,18 +2050,18 @@ function toggleAllCats(){ hiddenCats.clear(); renderCatBar(); renderCal(); }
 /* ═══════════════════════════════════════
    전체 멤버 리스트
 ═══════════════════════════════════════ */
-function openMemberList(){
+function _renderMemberListBody(){
   const roleLabel={admin:'관리자',user:'멤버',viewer:'게스트'};
-  // 가나다 순 정렬 (admin 먼저, 그 다음 user, viewer)
   const users=[...getUsers()].filter(u=>u.role!=='viewer').sort((a,b)=>{
     const rOrder={admin:0,user:1,viewer:2};
     if((rOrder[a.role]||1)!==(rOrder[b.role]||1)) return (rOrder[a.role]||1)-(rOrder[b.role]||1);
     return (a.name||a.username||'').localeCompare(b.name||b.username||'','ko');
   });
   const body=document.getElementById('memberListBody');
+  if(!body) return;
   body.innerHTML=users.map(u=>{
     const seed=u.avatarSeed!==undefined?u.avatarSeed:getDefaultAvatarSeed(u.id||u.username);
-    const photoSrc=(u.avatar&&u.avatar.startsWith('http'))?u.avatar:getAnimalAvatarUrl(seed);
+    const photoSrc=_getAvatarSrc(u, u.id||u.username);
     const sub=[];
     if(u.username) sub.push('@'+u.username);
     if(u.team) sub.push(u.team);
@@ -2036,7 +2069,6 @@ function openMemberList(){
     if(u.level) sub.push(u.level+'년차');
     const roleClass=u.role==='admin'?'admin':u.role==='viewer'?'viewer':'user';
     const uid=u.id||u.username;
-    const uname=JSON.stringify(u.name||uid).replace(/'/g,"\'");
     const safeUid=(uid).replace(/"/g,'&quot;');
     const safeName=(u.name||uid).replace(/"/g,'&quot;');
     return `<div class="ml-item" data-uid="${safeUid}" data-name="${safeName}" onclick="openMlProfileCard(this.dataset.uid,this.dataset.name)">
@@ -2049,6 +2081,10 @@ function openMemberList(){
       <span class="ml-role ${roleClass}">${roleLabel[u.role]||'멤버'}</span>
     </div>`;
   }).join('');
+}
+
+function openMemberList(){
+  _renderMemberListBody();
   openM('memberListM');
 }
 
@@ -2056,34 +2092,7 @@ function openMlProfileCard(userId, userName){
   const users=getUsers();
   const u=users.find(x=>x.id===userId||x.username===userId);
   const card=document.getElementById('mlProfileCard');
-  
-  const seed=u&&u.avatarSeed!==undefined?u.avatarSeed:getDefaultAvatarSeed(userId);
-  const avatarSrc=(u&&u.avatar&&u.avatar.startsWith('http'))?u.avatar:getAnimalAvatarUrl(seed);
-  
-  document.getElementById('mlProfPhoto').src=avatarSrc;
-  document.getElementById('mlProfName').textContent=u?u.name||userName:userName||userId;
-  
-  const sub=[]; if(u&&u.username) sub.push('@'+u.username); if(u&&u.team) sub.push(u.team);
-  const subEl=document.getElementById('mlProfSub');
-  subEl.textContent=sub.join('  ·  '); subEl.style.display=sub.length?'block':'none';
-  
-  const bioEl=document.getElementById('mlProfBio');
-  bioEl.textContent=(u&&u.bio)||''; bioEl.style.display=(u&&u.bio)?'block':'none';
-  
-  const loc=[]; if(u&&u.region) loc.push(u.region); if(u&&u.level) loc.push(u.level+'년차');
-  const locEl=document.getElementById('mlProfLoc');
-  locEl.textContent=loc.join(' · '); locEl.style.display=loc.length?'block':'none';
-  
-  const roleMap={admin:'관리자',user:'멤버',viewer:'게스트'};
-  const roleEl=document.getElementById('mlProfRole');
-  if(roleEl){ 
-    roleEl.textContent=roleMap[u&&u.role]||'멤버';
-    if(u&&u.role==='admin'){
-      roleEl.style.background='rgba(198,40,40,.12)'; roleEl.style.color='#c62828';
-    } else {
-      roleEl.style.background='rgba(26,115,232,.15)'; roleEl.style.color='#1a73e8';
-    }
-  }
+  _fillUserCard('mlProf', u, userId, userName);
   
   if(!card.classList.contains('open')){
     const bs=card.closest('.bs');
@@ -2303,7 +2312,7 @@ function _renderAttNames(ev){
   const chips=attUsers.map(u=>{
     try{
       const seed=u.avatarSeed!==undefined?u.avatarSeed:getDefaultAvatarSeed(u.id||u.username);
-      const src=(u.avatar&&u.avatar.startsWith('http'))?u.avatar:getAnimalAvatarUrl(seed);
+      const src=_getAvatarSrc(u, u.id||u.username);
       const auid=u.id||u.username||'';
       // data-uid 속성으로 저장하고 onclick은 dataset에서 읽어옴 (HTML 인코딩 문제 방지)
       return `<span class="att-chip" data-uid="${auid.replace(/"/g,'&quot;')}" data-name="${(u.name||auid).replace(/"/g,'&quot;')}" onclick="openAvatarPopup(this.dataset.uid,this.dataset.name)" style="cursor:pointer">
@@ -3681,6 +3690,27 @@ function deleteDrawerBg(){
   }
   toast('배경 사진이 삭제됐습니다');
 }
+/* 드로어 아바타 + 배경사진 실시간 갱신 헬퍼 */
+function _refreshDrawerAvatar(){
+  if(!CU) return;
+  const davImg = document.getElementById('davImg');
+  const davFb  = document.getElementById('davFallback');
+  if(!davImg) return;
+  if(CU.role !== 'viewer'){
+    davImg.src = _getAvatarSrc(CU, CU.id||CU.username);
+    davImg.style.display = 'block';
+    if(davFb) davFb.style.display = 'none';
+  }
+  // 배경사진 갱신
+  const dbgImg = document.getElementById('drawerBgImg');
+  if(CU.drawerBg){
+    if(dbgImg){ dbgImg.src=CU.drawerBg; dbgImg.style.display='block'; }
+    _applyDrawerBg(CU.drawerBg);
+  } else {
+    if(dbgImg) dbgImg.style.display='none';
+  }
+}
+
 function _applyDrawerBg(url){
   const dbgImg=document.getElementById('drawerBgImg');
   if(dbgImg){ dbgImg.src=url; dbgImg.style.display='block'; }
@@ -3857,17 +3887,7 @@ function saveProfile(){
     if(CU.playTime) bioLines.push('⏱ 플레이타임 약 '+CU.playTime+'시간');
     if(dbio) dbio.innerHTML = bioLines.map(l=>'<div>'+l+'</div>').join('');
 
-    const davImg = document.getElementById('davImg');
-    const davFb  = document.getElementById('davFallback');
-    if(CU.avatar){
-      if(davImg){ davImg.src=CU.avatar; davImg.style.display='block'; }
-      if(davFb)  davFb.style.display='none';
-    } else {
-      const seed = CU.avatarSeed!==undefined ? CU.avatarSeed : getDefaultAvatarSeed(CU.id||CU.username);
-      if(davImg){ davImg.src=getAnimalAvatarUrl(seed); davImg.style.display='block'; }
-      if(davFb)  davFb.style.display='none';
-    }
-    if(CU.drawerBg) _applyDrawerBg(CU.drawerBg);
+    _refreshDrawerAvatar();
 
     closeM('profM');
     toast('저장됐습니다 ✓');

@@ -1162,13 +1162,18 @@ async function loadAllData(){
         }
         // 캘린더 화면 갱신
         if(CU){
-          const u=_D.users.find(x=>x.id===CU.id);
+          // id 또는 username 둘 다 체크 (username-only 계정 지원)
+          const u=_D.users.find(x=>x.id===CU.id||(CU.username&&x.username===CU.username));
           if(!u){ doLogout(); return; }
           CU=u;
+          // ── 드로어 아바타 / 배경 실시간 갱신 ──
+          _refreshDrawerAvatar();
           renderCatBar(); renderGroupBar();
           if(viewMode==='week') renderWeek(); else renderCal();
           if(document.getElementById('ddM').classList.contains('open')) refreshDd();
           if(document.getElementById('evDM').classList.contains('open')&&detailEvId) openEvDetail(detailEvId);
+          // ── 전체 멤버 목록 열려있으면 재렌더링 ──
+          if(document.getElementById('memberListM').classList.contains('bso')) _renderMemberListBody();
         }
       });
     }).catch(()=>{
@@ -2045,15 +2050,15 @@ function toggleAllCats(){ hiddenCats.clear(); renderCatBar(); renderCal(); }
 /* ═══════════════════════════════════════
    전체 멤버 리스트
 ═══════════════════════════════════════ */
-function openMemberList(){
+function _renderMemberListBody(){
   const roleLabel={admin:'관리자',user:'멤버',viewer:'게스트'};
-  // 가나다 순 정렬 (admin 먼저, 그 다음 user, viewer)
   const users=[...getUsers()].filter(u=>u.role!=='viewer').sort((a,b)=>{
     const rOrder={admin:0,user:1,viewer:2};
     if((rOrder[a.role]||1)!==(rOrder[b.role]||1)) return (rOrder[a.role]||1)-(rOrder[b.role]||1);
     return (a.name||a.username||'').localeCompare(b.name||b.username||'','ko');
   });
   const body=document.getElementById('memberListBody');
+  if(!body) return;
   body.innerHTML=users.map(u=>{
     const seed=u.avatarSeed!==undefined?u.avatarSeed:getDefaultAvatarSeed(u.id||u.username);
     const photoSrc=_getAvatarSrc(u, u.id||u.username);
@@ -2064,7 +2069,6 @@ function openMemberList(){
     if(u.level) sub.push(u.level+'년차');
     const roleClass=u.role==='admin'?'admin':u.role==='viewer'?'viewer':'user';
     const uid=u.id||u.username;
-    const uname=JSON.stringify(u.name||uid).replace(/'/g,"\'");
     const safeUid=(uid).replace(/"/g,'&quot;');
     const safeName=(u.name||uid).replace(/"/g,'&quot;');
     return `<div class="ml-item" data-uid="${safeUid}" data-name="${safeName}" onclick="openMlProfileCard(this.dataset.uid,this.dataset.name)">
@@ -2077,6 +2081,10 @@ function openMemberList(){
       <span class="ml-role ${roleClass}">${roleLabel[u.role]||'멤버'}</span>
     </div>`;
   }).join('');
+}
+
+function openMemberList(){
+  _renderMemberListBody();
   openM('memberListM');
 }
 
@@ -3682,6 +3690,27 @@ function deleteDrawerBg(){
   }
   toast('배경 사진이 삭제됐습니다');
 }
+/* 드로어 아바타 + 배경사진 실시간 갱신 헬퍼 */
+function _refreshDrawerAvatar(){
+  if(!CU) return;
+  const davImg = document.getElementById('davImg');
+  const davFb  = document.getElementById('davFallback');
+  if(!davImg) return;
+  if(CU.role !== 'viewer'){
+    davImg.src = _getAvatarSrc(CU, CU.id||CU.username);
+    davImg.style.display = 'block';
+    if(davFb) davFb.style.display = 'none';
+  }
+  // 배경사진 갱신
+  const dbgImg = document.getElementById('drawerBgImg');
+  if(CU.drawerBg){
+    if(dbgImg){ dbgImg.src=CU.drawerBg; dbgImg.style.display='block'; }
+    _applyDrawerBg(CU.drawerBg);
+  } else {
+    if(dbgImg) dbgImg.style.display='none';
+  }
+}
+
 function _applyDrawerBg(url){
   const dbgImg=document.getElementById('drawerBgImg');
   if(dbgImg){ dbgImg.src=url; dbgImg.style.display='block'; }
@@ -3858,17 +3887,7 @@ function saveProfile(){
     if(CU.playTime) bioLines.push('⏱ 플레이타임 약 '+CU.playTime+'시간');
     if(dbio) dbio.innerHTML = bioLines.map(l=>'<div>'+l+'</div>').join('');
 
-    const davImg = document.getElementById('davImg');
-    const davFb  = document.getElementById('davFallback');
-    if(CU.avatar){
-      if(davImg){ davImg.src=CU.avatar; davImg.style.display='block'; }
-      if(davFb)  davFb.style.display='none';
-    } else {
-      const seed = CU.avatarSeed!==undefined ? CU.avatarSeed : getDefaultAvatarSeed(CU.id||CU.username);
-      if(davImg){ davImg.src=getAnimalAvatarUrl(seed); davImg.style.display='block'; }
-      if(davFb)  davFb.style.display='none';
-    }
-    if(CU.drawerBg) _applyDrawerBg(CU.drawerBg);
+    _refreshDrawerAvatar();
 
     closeM('profM');
     toast('저장됐습니다 ✓');
