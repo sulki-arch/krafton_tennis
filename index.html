@@ -3680,7 +3680,7 @@ function _applyDrawerBgData(dataUrl){
 
 
 /* ── _uploadPhoto: dataUrl → Firebase Storage → 다운로드 URL 반환 ── */
-/* fetch(data:URL) 은 iOS Safari/WebKit 에서 hang 발생 → atob 기반 변환 사용 */
+/* ── 사진 유틸: dataUrl → Blob 변환 (atob 기반, 모든 브라우저 호환) ── */
 function _dataURLtoBlob(dataUrl){
   const parts = dataUrl.split(',');
   const mime  = (parts[0].match(/:(.*?);/)||[,'image/jpeg'])[1];
@@ -3690,36 +3690,61 @@ function _dataURLtoBlob(dataUrl){
   return new Blob([arr], {type: mime});
 }
 
-async function _uploadPhoto(dataUrl, storagePath){
-  if(!dataUrl) return null;
-  // 이미 Storage URL이면 재업로드 불필요
-  if(!dataUrl.startsWith('data:')) return dataUrl;
-  if(_storage){
-    try{
-      const blob = _dataURLtoBlob(dataUrl);
-      console.log('[Upload] 시작:', storagePath, '| size:', blob.size, 'bytes');
-      const ref  = _storage.ref(storagePath);
-      const snap = await ref.put(blob, {contentType:'image/jpeg'});
-      const url  = await snap.ref.getDownloadURL();
-      console.log('[Upload] 완료 ✓', url.slice(0,80));
-      return url;
-    }catch(e){
-      console.error('[Upload] Storage 실패 (base64 fallback):', storagePath, '|', e.code||e.message||e);
-    }
-  } else {
-    console.warn('[Upload] _storage null — base64로 DB 저장');
-  }
-  return dataUrl; // fallback: base64 그대로 Firebase DB에 저장
+/* ── 백그라운드 Storage 업로드 (10초 타임아웃, hang 방지) ──
+   성공하면 Firebase DB의 해당 필드를 Storage URL로 업데이트  ── */
+function _uploadPhotoBackground(dataUrl, storagePath, field, uid){
+  if(!dataUrl || !dataUrl.startsWith('data:') || !_storage) return;
+  const blob = _dataURLtoBlob(dataUrl);
+  console.log('[BgUpload] 시작:', storagePath, '| size:', blob.size, 'bytes');
+  const ref  = _storage.ref(storagePath);
+  const task = ref.put(blob);
+  let done = false;
+  // 10초 타임아웃
+  const timer = setTimeout(function(){
+    if(done) return;
+    done = true;
+    try{ task.cancel(); }catch(e){}
+    console.warn('[BgUpload] 타임아웃 (base64 유지):', storagePath);
+  }, 10000);
+  task.then(function(){
+    if(done) return;
+    done = true;
+    clearTimeout(timer);
+    ref.getDownloadURL().then(function(url){
+      console.log('[BgUpload] 완료 ✓', storagePath, '|', url.slice(0,70));
+      // DB를 Storage URL로 조용히 업데이트
+      const users = getUsers();
+      const idx = users.findIndex(function(u){ return u.id===uid || u.username===uid; });
+      if(idx !== -1 && users[idx][field] !== url){
+        users[idx][field] = url;
+        setUsers(users);
+        if(CU && (CU.id===uid || CU.username===uid)){
+          CU[field] = url;
+          // 드로어 아바타 즉시 갱신
+          if(field==='avatar'){
+            const davImg = document.getElementById('davImg');
+            if(davImg && url) davImg.src = url;
+          }
+        }
+        console.log('[BgUpload] DB URL 업데이트 완료:', field);
+      }
+    }).catch(function(e){ console.warn('[BgUpload] getDownloadURL 실패:', e); });
+  }).catch(function(e){
+    if(done) return;
+    done = true;
+    clearTimeout(timer);
+    console.warn('[BgUpload] put 실패 (base64 유지):', storagePath, '|', e.code||e.message||e);
+  });
 }
 
-async function saveProfile(){
+function saveProfile(){
   const name = document.getElementById('profName').value.trim();
   const pw   = document.getElementById('profPw').value;
   const err  = document.getElementById('profErr');
   if(!name){ err.textContent='닉네임을 입력하세요'; return; }
 
   const users = getUsers();
-  const i = users.findIndex(u => u.id===CU.id || u.username===CU.username);
+  const i = users.findIndex(function(u){ return u.id===CU.id || u.username===CU.username; });
   if(i===-1){ err.textContent='사용자 정보를 찾을 수 없습니다'; return; }
 
   const saveBtn = document.getElementById('profSaveBtn');
@@ -3728,38 +3753,32 @@ async function saveProfile(){
 
   try{
     const uid = CU.id || CU.username;
-    const hasProfPhoto = !!window._profPhotoPreview;
-    const hasBgPhoto   = !!window._bgPhotoPreview;
 
-    // ── 1. 프로필 사진 업로드 ──────────────────
+    // ── 1. 프로필 사진: base64를 즉시 반영 (업로드 없음) ──────────
     let avatarUrl = users[i].avatar || null;
-    if(hasProfPhoto){
-      console.log('[SaveProfile] 프로필 사진 업로드 시작... uid:', uid);
-      toast('사진 업로드 중...');
-      if(loadEl) loadEl.style.display='flex';
-      if(users[i].avatar && users[i].avatar !== window._profPhotoPreview){
+    const profDataUrl = window._profPhotoPreview || null;
+    if(profDataUrl){
+      if(users[i].avatar && users[i].avatar !== profDataUrl){
         users[i].avatarPrev = users[i].avatar; // 이전 사진 백업
       }
-      avatarUrl = await _uploadPhoto(window._profPhotoPreview, 'photos/avatars/'+uid+'.jpg');
-      if(loadEl) loadEl.style.display='none';
+      avatarUrl = profDataUrl; // base64 즉시 사용
     }
     if(window._profPhotoDelete){
       avatarUrl = null;
       users[i].avatarPrev = users[i].avatar || null;
     }
 
-    // ── 2. 배경 사진 업로드 ──────────────────
+    // ── 2. 배경 사진: base64를 즉시 반영 (업로드 없음) ──────────
     let bgUrl = users[i].drawerBg || null;
-    if(hasBgPhoto){
-      console.log('[SaveProfile] 배경 사진 업로드 시작... uid:', uid);
-      if(!hasProfPhoto) toast('사진 업로드 중...');
-      if(users[i].drawerBg && users[i].drawerBg !== window._bgPhotoPreview){
+    const bgDataUrl = window._bgPhotoPreview || null;
+    if(bgDataUrl){
+      if(users[i].drawerBg && users[i].drawerBg !== bgDataUrl){
         users[i].drawerBgPrev = users[i].drawerBg;
       }
-      bgUrl = await _uploadPhoto(window._bgPhotoPreview, 'photos/bg/'+uid+'.jpg');
+      bgUrl = bgDataUrl; // base64 즉시 사용
     }
 
-    // ── 3. 사용자 데이터 갱신 및 DB 저장 ──────────────────
+    // ── 3. Firebase DB 즉시 저장 ──────────────────
     const updated = {
       ...users[i],
       name,
@@ -3774,17 +3793,17 @@ async function saveProfile(){
     if(pw) updated.password = pw;
 
     users[i] = updated;
-    setUsers(users);
+    setUsers(users); // Firebase DB에 즉시 저장
     CU = updated;
     window._profPhotoPreview = null;
     window._bgPhotoPreview   = null;
     window._profPhotoDelete  = false;
 
-    const avType = CU.avatar ? (CU.avatar.startsWith('http') ? 'StorageURL' : 'base64') : 'none';
-    const bgType = CU.drawerBg ? (CU.drawerBg.startsWith('http') ? 'StorageURL' : 'base64') : 'none';
-    console.log('[SaveProfile] 저장 완료. name:', CU.name, '| avatar:', avType, '| bg:', bgType);
+    const avType = CU.avatar ? (CU.avatar.startsWith('http')?'StorageURL':(CU.avatar.startsWith('data:')?'base64':'기타')) : 'none';
+    const bgType = CU.drawerBg ? (CU.drawerBg.startsWith('http')?'StorageURL':(CU.drawerBg.startsWith('data:')?'base64':'기타')) : 'none';
+    console.log('[SaveProfile] DB 저장 완료. name:', CU.name, '| avatar:', avType, '| bg:', bgType);
 
-    // ── 4. 드로어 UI 갱신 ──────────────────
+    // ── 4. 드로어 UI 즉시 갱신 ──────────────────
     const roleText = {admin:'관리자 계정', user:'승인된 사용자', viewer:'게스트 모드'};
     const dname = document.getElementById('dname');
     const drole = document.getElementById('drole');
@@ -3816,11 +3835,19 @@ async function saveProfile(){
     closeM('profM');
     toast('저장됐습니다 ✓');
 
+    // ── 5. Storage 업로드: 백그라운드에서 조용히 실행 ──────────
+    //    성공 시 DB URL을 Storage URL로 자동 교체 (한 번만)
+    if(profDataUrl && profDataUrl.startsWith('data:')){
+      _uploadPhotoBackground(profDataUrl, 'photos/avatars/'+uid+'.jpg', 'avatar', uid);
+    }
+    if(bgDataUrl && bgDataUrl.startsWith('data:')){
+      _uploadPhotoBackground(bgDataUrl, 'photos/bg/'+uid+'.jpg', 'drawerBg', uid);
+    }
+
   }catch(e){
     console.error('[SaveProfile] 오류 발생:', e);
     err.textContent = '저장 중 오류가 발생했습니다. 다시 시도해주세요.';
   }finally{
-    // 어떤 상황에서도 버튼 항상 복구
     if(saveBtn){ saveBtn.disabled=false; saveBtn.style.opacity=''; saveBtn.textContent='저장'; }
     if(loadEl)  loadEl.style.display='none';
   }
