@@ -491,6 +491,16 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 #mlListWin{background:#fff;border-radius:16px;box-shadow:0 2px 12px rgba(0,0,0,.10);overflow:hidden;flex:1;min-height:0;display:flex;flex-direction:column}
 #evDetailWin{background:#fff;border-radius:16px;box-shadow:0 2px 12px rgba(0,0,0,.10);overflow-y:auto;flex:1;min-height:0;padding:16px 18px 20px}
 #memberListBody{padding:0 4px}
+/* ── 참석 인원 제한 ── */
+.btn-attend.full{background:#ff9800;color:#fff;border-color:#ff9800}
+.btn-attend.waiting{background:#607d8b;color:#fff;border-color:#607d8b}
+.max-att-row{display:flex;gap:24px;margin-bottom:8px;padding:2px 0}
+.max-att-row label{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:14px;color:#333}
+#evDWaitlistSec{margin-top:12px}
+.wait-chip{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:13px;color:#444;border-bottom:1px solid #f5f5f5}
+.wait-chip:last-child{border-bottom:none}
+.wait-rank{font-size:11px;font-weight:700;color:#888;width:18px;text-align:center;flex-shrink:0}
+.ev-capacity{font-size:12px;color:#888;margin-top:6px;margin-bottom:2px}
 </style>
 </head>
 <body>
@@ -651,6 +661,8 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
   <div class="bs">
     <div class="bs-h"></div>
     <div class="bs-t" id="evMT">일정 추가</div>
+    <label class="fl">카테고리</label>
+    <select id="evCat"></select>
     <label class="fl">제목</label>
     <input id="evTxt" type="text" placeholder="일정 제목">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
@@ -663,10 +675,16 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
     </div>
     <label class="fl">메모 <span style="font-weight:400;color:#bbb">(선택)</span></label>
     <textarea id="evMemo" placeholder="일정 메모..." style="height:68px;resize:none;line-height:1.6"></textarea>
-    <label class="fl">카테고리</label>
-    <select id="evCat"></select>
     <label class="fl">공개 범위</label>
     <select id="evScope"></select>
+    <label class="fl">참석 인원</label>
+    <div class="max-att-row">
+      <label><input type="radio" name="evMaxType" id="evMaxUnlim" value="unlim" checked onchange="toggleMaxAtt()"> 무제한</label>
+      <label><input type="radio" name="evMaxType" id="evMaxLim" value="lim" onchange="toggleMaxAtt()"> 제한</label>
+    </div>
+    <div id="evMaxAttWrap" style="display:none;margin-bottom:14px">
+      <input id="evMaxAttNum" type="number" min="1" max="500" placeholder="최대 참석 인원 수 입력">
+    </div>
     <div class="bs-acts">
       <button class="btn btn-s" onclick="closeM('evM')">취소</button>
       <button class="btn btn-d" id="evDel" style="display:none" onclick="delEvent()">삭제</button>
@@ -922,6 +940,11 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
     <div class="dd-sec">참석</div>
     <button id="evDAttBtn" class="btn btn-attend" style="width:100%;margin-bottom:8px;display:none" onclick="handleAttendBtn()"></button>
     <div class="attend-names" id="evDAttNames">참석자 없음</div>
+    <div class="ev-capacity" id="evDCapacity" style="display:none"></div>
+    <div id="evDWaitlistSec" style="display:none;margin-top:10px">
+      <div class="dd-sec" style="margin-top:0;margin-bottom:6px">대기 명단 <span id="evDWaitCount" style="font-size:12px;color:#999;font-weight:400"></span></div>
+      <div id="evDWaitNames"></div>
+    </div>
 
     <!-- 음료 선택 -->
     <div class="dd-sec" id="evDDrinkSec" style="display:none;margin-top:16px">음료 선택</div>
@@ -1774,6 +1797,7 @@ function showApp(){
   renderGroupBar();
   renderCal();
   if(!isV) posFab();
+  setTimeout(checkMyNotifs,1200);
 }
 function posFab(){
   const r=document.getElementById('root').getBoundingClientRect();
@@ -2428,10 +2452,7 @@ function openEvDetail(evId){
     attBtn.className='btn btn-attend';
   } else {
     // 일반 사용자: 본인 참석 토글만 표시
-    attBtn.style.display='block';
-    const attending=(ev.attendees||[]).includes(CU.id);
-    attBtn.textContent=attending?'✅ 참석 취소':'🙋 참석하기';
-    attBtn.className='btn btn-attend'+(attending?' going':'');
+    _updateAttBtn(ev);
   }
 
   // 참석자 명단, 음료, 사진, 채팅 — try/catch로 보호 (렌더 오류가 모달 오픈을 막지 않도록)
@@ -2456,7 +2477,30 @@ function _renderAttNames(ev){
   const attUsers=(ev.attendees||[]).map(aid=>users.find(x=>x.id===aid)||{id:aid,name:aid})
     .sort((a,b)=>(a.name||a.id||'').localeCompare(b.name||b.id||'','ko'));
   const wrap=document.getElementById('evDAttNames');
-  if(!attUsers.length){ wrap.innerHTML='<span style="color:#bbb">아직 참석자가 없습니다</span>'; return; }
+  const _maxA0=ev.maxAttendees||null;
+  const _wl0=ev.waitlist||[];
+  const capEl0=document.getElementById('evDCapacity');
+  if(capEl0){ capEl0.textContent=_maxA0?`참석 0/${_maxA0}명`:`참석 0명`; capEl0.style.display='block'; }
+  if(!attUsers.length){
+    wrap.innerHTML='<span style="color:#bbb">아직 참석자가 없습니다</span>';
+    // 대기 명단은 표시
+    const waitSec0=document.getElementById('evDWaitlistSec');
+    const waitNames0=document.getElementById('evDWaitNames');
+    const waitCount0=document.getElementById('evDWaitCount');
+    if(waitSec0&&waitNames0){
+      if(_wl0.length>0){
+        waitSec0.style.display='block';
+        if(waitCount0) waitCount0.textContent=`(${_wl0.length}명)`;
+        const _u0=getUsers();
+        waitNames0.innerHTML=_wl0.map((w,idx)=>{
+          const u=_u0.find(x=>x.id===w.userId)||{name:w.userName||w.userId};
+          const isMine=CU&&w.userId===CU.id;
+          return `<div class="wait-chip"><span class="wait-rank">${idx+1}</span><span style="flex:1;${isMine?'font-weight:700;color:var(--P)':''}">${u.name||w.userName}</span>${isMine?'<span style="font-size:11px;color:#999">내 대기</span>':''}</div>`;
+        }).join('');
+      } else { waitSec0.style.display='none'; }
+    }
+    return;
+  }
   const chips=attUsers.map(u=>{
     try{
       const seed=u.avatarSeed!==undefined?u.avatarSeed:getDefaultAvatarSeed(u.id||u.username);
@@ -2469,7 +2513,33 @@ function _renderAttNames(ev){
       </span>`;
     }catch(e){ return `<span class="att-chip">${u.name||u.id}</span>`; }
   }).join('');
-  wrap.innerHTML=`<div style="margin-bottom:4px;font-size:12px;color:#888">참석 ${attUsers.length}명</div><div style="display:flex;flex-wrap:wrap;gap:6px">${chips}</div>`;
+  wrap.innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:6px">${chips}</div>`;
+  // 정원 표시
+  const _maxA=ev.maxAttendees||null;
+  const _wl=ev.waitlist||[];
+  const capEl=document.getElementById('evDCapacity');
+  if(capEl){
+    if(_maxA){ capEl.textContent=`참석 ${attUsers.length}/${_maxA}명`+(_wl.length?` · 대기 ${_wl.length}명`:''); capEl.style.display='block'; }
+    else { capEl.textContent=`참석 ${attUsers.length}명`; capEl.style.display='block'; }
+  }
+  // 대기 명단
+  const waitSec=document.getElementById('evDWaitlistSec');
+  const waitNames=document.getElementById('evDWaitNames');
+  const waitCount=document.getElementById('evDWaitCount');
+  if(waitSec&&waitNames){
+    if(_wl.length>0){
+      waitSec.style.display='block';
+      if(waitCount) waitCount.textContent=`(${_wl.length}명)`;
+      const _users=getUsers();
+      waitNames.innerHTML=_wl.map((w,idx)=>{
+        const u=_users.find(x=>x.id===w.userId)||{name:w.userName||w.userId};
+        const isMine=CU&&w.userId===CU.id;
+        return `<div class="wait-chip"><span class="wait-rank">${idx+1}</span><span style="flex:1;${isMine?'font-weight:700;color:var(--P)':''}">` + (u.name||w.userName) + `</span>${isMine?'<span style="font-size:11px;color:#999">내 대기</span>':''}</div>`;
+      }).join('');
+    } else {
+      waitSec.style.display='none';
+    }
+  }
 }
 
 /* ─── 음료 선택 ──────────────────────────────────────────────── */
@@ -2713,19 +2783,43 @@ function toggleOwnAttend(){
   const i=evs.findIndex(e=>e.id===detailEvId); if(i===-1) return;
   const ev=evs[i];
   const atts=[...(ev.attendees||[])];
-  const idx=atts.indexOf(CU.id);
-  if(idx===-1) atts.push(CU.id); else atts.splice(idx,1);
-  evs[i]={...ev,attendees:atts};
+  const waitlist=[...(ev.waitlist||[])];
+  const maxAtt=ev.maxAttendees||null;
+  const isAttending=atts.includes(CU.id);
+  const waitIdx=waitlist.findIndex(w=>w.userId===CU.id);
+
+  if(isAttending){
+    // 참석 취소 → 대기자 1순위 자동 승격
+    const newAtts=atts.filter(id=>id!==CU.id);
+    let newWaitlist=[...waitlist];
+    if(newWaitlist.length>0){
+      const promoted=newWaitlist.shift();
+      newAtts.push(promoted.userId);
+      _addNotif(promoted.userId,`'${ev.title}' 일정에 자리가 생겨 참석 확정되었습니다! 🎉`,ev.id);
+    }
+    evs[i]={...ev,attendees:newAtts,waitlist:newWaitlist};
+    toast('참석이 취소되었습니다');
+  } else if(waitIdx!==-1){
+    // 대기 취소
+    waitlist.splice(waitIdx,1);
+    evs[i]={...ev,waitlist};
+    toast('대기 등록이 취소되었습니다');
+  } else if(maxAtt&&atts.length>=maxAtt){
+    // 인원 초과 → 대기 등록
+    waitlist.push({userId:CU.id,userName:CU.name||CU.username||CU.id,joinedAt:Date.now()});
+    evs[i]={...ev,waitlist};
+    toast(`참석 대기로 등록되었습니다 (${waitlist.length}번째)`);
+  } else {
+    // 일반 참석
+    atts.push(CU.id);
+    evs[i]={...ev,attendees:atts};
+    toast('참석으로 등록되었습니다 ✅');
+  }
   setEvents(evs);
-  _renderDrinks(evs[i]);
-  // 버튼 즉시 갱신
-  const attending=atts.includes(CU.id);
-  const attBtn=document.getElementById('evDAttBtn');
-  attBtn.textContent=attending?'✅ 참석 취소':'🙋 참석하기';
-  attBtn.className='btn btn-attend'+(attending?' going':'');
+  try{ _renderDrinks(evs[i]); }catch(e){}
+  _updateAttBtn(evs[i]);
   _renderAttNames(evs[i]);
   renderCal();
-  toast(attending?'참석으로 등록되었습니다 ✅':'참석이 취소되었습니다');
 }
 
 function toggleAttend(){} // (legacy)
@@ -2974,6 +3068,9 @@ function openEvModal(evId,dateStr){
     document.getElementById('evMemo').value=ev.memo||'';
     document.getElementById('evCat').value=ev.categoryId||cats[0]?.id||'';
     document.getElementById('evScope').value=ev.scope||'all';
+    const _ma=ev.maxAttendees||null;
+    if(_ma){ document.getElementById('evMaxLim').checked=true; document.getElementById('evMaxUnlim').checked=false; document.getElementById('evMaxAttNum').value=_ma; document.getElementById('evMaxAttWrap').style.display='block'; }
+    else { document.getElementById('evMaxUnlim').checked=true; document.getElementById('evMaxLim').checked=false; document.getElementById('evMaxAttNum').value=''; document.getElementById('evMaxAttWrap').style.display='none'; }
     document.getElementById('evDel').style.display='inline-block';
     closeM('ddM'); closeM('evDM');
   } else {
@@ -2988,9 +3085,70 @@ function openEvModal(evId,dateStr){
     document.getElementById('evCat').value=cats[0]?.id||'';
     document.getElementById('evScope').value='all';
     document.getElementById('evDel').style.display='none';
+    document.getElementById('evMaxUnlim').checked=true; document.getElementById('evMaxLim').checked=false; document.getElementById('evMaxAttNum').value=''; document.getElementById('evMaxAttWrap').style.display='none';
   }
   openM('evM');
   setTimeout(()=>document.getElementById('evTxt').focus(),260);
+}
+
+/* ── 참석 인원 제한 토글 ── */
+function toggleMaxAtt(){
+  const lim=document.getElementById('evMaxLim').checked;
+  document.getElementById('evMaxAttWrap').style.display=lim?'block':'none';
+}
+
+/* ── 참석 버튼 상태 갱신 ── */
+function _updateAttBtn(ev){
+  const attBtn=document.getElementById('evDAttBtn');
+  if(!attBtn||!CU) return;
+  const atts=ev.attendees||[];
+  const waitlist=ev.waitlist||[];
+  const maxAtt=ev.maxAttendees||null;
+  const isAttending=atts.includes(CU.id);
+  const onWait=waitlist.findIndex(w=>w.userId===CU.id)!==-1;
+  attBtn.style.display='block';
+  if(isAttending){
+    attBtn.textContent='✅ 참석 취소';
+    attBtn.className='btn btn-attend going';
+  } else if(onWait){
+    attBtn.textContent='⏳ 대기 취소';
+    attBtn.className='btn btn-attend waiting';
+  } else if(maxAtt&&atts.length>=maxAtt){
+    attBtn.textContent='🕐 참석 대기';
+    attBtn.className='btn btn-attend full';
+  } else {
+    attBtn.textContent='🙋 참석하기';
+    attBtn.className='btn btn-attend';
+  }
+}
+
+/* ── 인앱 알림 저장 ── */
+function _addNotif(userId,message,evId){
+  try{
+    const users=getUsers();
+    const idx=users.findIndex(u=>u.id===userId); if(idx===-1) return;
+    const notif={id:Date.now().toString(36),message,evId:evId||'',ts:Date.now(),read:false};
+    users[idx]={...users[idx],notifications:[...(users[idx].notifications||[]),notif]};
+    setUsers(users);
+  }catch(e){console.warn('_addNotif error',e);}
+}
+
+/* ── 앱 진입 시 미읽은 알림 표시 ── */
+function checkMyNotifs(){
+  try{
+    if(!CU) return;
+    const users=getUsers();
+    const me=users.find(u=>u.id===CU.id); if(!me) return;
+    const unread=(me.notifications||[]).filter(n=>!n.read);
+    if(!unread.length) return;
+    let delay=600;
+    unread.forEach(n=>{ setTimeout(()=>toast('🔔 '+n.message,4000),delay); delay+=4200; });
+    const idx=users.findIndex(u=>u.id===CU.id);
+    if(idx!==-1){
+      users[idx]={...users[idx],notifications:(users[idx].notifications||[]).map(n=>({...n,read:true}))};
+      setUsers(users);
+    }
+  }catch(e){}
 }
 
 function saveEvent(){
@@ -3002,6 +3160,8 @@ function saveEvent(){
   const memo=document.getElementById('evMemo').value.trim();
   const categoryId=document.getElementById('evCat').value;
   const scope=document.getElementById('evScope').value||'all';
+  const _maxLim=document.getElementById('evMaxLim')&&document.getElementById('evMaxLim').checked;
+  const maxAttendees=_maxLim?(parseInt(document.getElementById('evMaxAttNum').value)||null):null;
   if(!title){ toast('제목을 입력하세요'); return; }
   if(!startDate){ toast('시작 날짜를 선택하세요'); return; }
   const ed=endDate||startDate;
@@ -3009,12 +3169,12 @@ function saveEvent(){
   const evs=getEvents();
   if(editEvId){
     const i=evs.findIndex(e=>e.id===editEvId);
-    if(i!==-1) evs[i]={...evs[i],title,startDate,startTime,endDate:ed,endTime,memo,categoryId,scope};
+    if(i!==-1) evs[i]={...evs[i],title,startDate,startTime,endDate:ed,endTime,memo,categoryId,scope,maxAttendees};
     toast('일정이 수정되었습니다');
   } else {
     evs.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),
-      title,startDate,startTime,endDate:ed,endTime,memo,categoryId,scope,
-      createdBy:CU.id,attendees:[],chat:[],photos:[],coverPhotoId:null});
+      title,startDate,startTime,endDate:ed,endTime,memo,categoryId,scope,maxAttendees,
+      createdBy:CU.id,attendees:[],waitlist:[],chat:[],photos:[],coverPhotoId:null});
     toast('일정이 추가되었습니다');
   }
   setEvents(evs); closeM('evM'); renderCal();
