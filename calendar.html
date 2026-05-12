@@ -20,7 +20,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{--P:#1a73e8;--PD:#1557b0;--SUN:#e53935;--SAT:#1a73e8;--BD:#f0f0f0;--SH:0 2px 14px rgba(0,0,0,.13)}
+:root{--P:#2DB400;--PD:#1e8000;--SUN:#e53935;--SAT:#1565C0;--BD:#f0f0f0;--SH:0 2px 14px rgba(0,0,0,.13)}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
 body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif;background:#f4f6fb;display:flex;justify-content:center}
@@ -38,15 +38,15 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,'Apple SD Gothi
 .hbtn:active{background:#f0f0f0}
 .h-center{display:flex;flex-direction:column;align-items:center}
 .mnav{display:flex;align-items:center;gap:0}
-.mnav button{background:none;border:none;cursor:pointer;font-size:22px;color:#444;padding:2px 8px;border-radius:8px;line-height:1;transition:background .15s}
+.mnav button{background:none;border:none;cursor:pointer;font-size:22px;color:#333;padding:2px 8px;border-radius:8px;line-height:1;transition:background .15s;font-weight:700}
 .mnav button:active{background:#f0f0f0}
-.hmonth{font-size:18px;font-weight:700;color:#1a1a1a;min-width:126px;text-align:center}
+.hmonth{font-size:19px;font-weight:800;color:#111;min-width:126px;text-align:center;letter-spacing:-.3px}
 .h-sub{font-size:11px;color:#bbb;margin-top:2px}
 
 /* ── CATEGORY FILTER BAR ── */
 .cat-bar{display:flex;align-items:center;gap:7px;padding:8px 12px;overflow-x:auto;border-bottom:1px solid var(--BD);background:#fff;scrollbar-width:none}
 .cat-bar::-webkit-scrollbar{display:none}
-.c-chip{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;border:1.5px solid #e0e0e0;color:#aaa;background:#f5f5f5;transition:all .15s;flex-shrink:0}
+.c-chip{display:flex;align-items:center;gap:5px;padding:5px 13px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;border:1.5px solid #e8e8e8;color:#aaa;background:#f5f5f5;transition:all .15s;flex-shrink:0}
 .c-chip.active{color:#333}
 .c-chip-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 
@@ -65,19 +65,24 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,'Apple SD Gothi
 .dhdr{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--BD)}
 .dh{text-align:center;padding:7px 0;font-size:12px;font-weight:600;color:#888}
 .dh:last-child{color:var(--SUN)}.dh:nth-child(6){color:var(--SAT)}
-.cgrid{display:grid;grid-template-columns:repeat(7,1fr)}
+.cgrid{display:block}
+.cweek{position:relative}
+.cweek-days{display:grid;grid-template-columns:repeat(7,1fr)}
+.cweek-bars{position:absolute;left:0;right:0;z-index:10;pointer-events:none}
+.ev-bar{position:absolute;height:16px;font-size:10px;line-height:16px;padding:0 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;pointer-events:auto;font-weight:700;box-sizing:border-box;color:#fff}
+.ev-bar:active{opacity:.8}
 
-.dc{min-height:82px;border-right:1px solid #f2f2f2;border-bottom:1px solid #f2f2f2;padding:3px 2px 2px;cursor:pointer;overflow:hidden;min-width:0;transition:background .1s}
+.dc{min-height:86px;border-right:1px solid #f0f0f0;border-bottom:1px solid #f0f0f0;padding:3px 2px 2px;cursor:pointer;overflow:hidden;min-width:0;transition:background .1s}
 .dc:hover{background:#f8faff}
 .dc:nth-child(7n){border-right:none}
-.dnum{font-size:13px;font-weight:500;width:26px;height:26px;display:flex;align-items:center;justify-content:center;margin:0 auto 2px;border-radius:50%}
+.dnum{font-size:13px;font-weight:700;width:27px;height:27px;display:flex;align-items:center;justify-content:center;margin:0 auto 2px;border-radius:50%}
 .dc.today .dnum{background:var(--P);color:#fff;font-weight:700}
 .dc.sun .dnum{color:var(--SUN)}.dc.sat .dnum{color:var(--SAT)}
 .dc.today.sun .dnum,.dc.today.sat .dnum{color:#fff}
 .dc.other .dnum{color:#ccc}.dc.other{background:#fafafa}
 
 /* ── EVENT PILLS ── */
-.ep{display:block;width:100%;font-size:10px;padding:1px 4px;border-radius:3px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;line-height:17px;font-weight:500}
+.ep{display:block;width:100%;font-size:10px;padding:1px 5px;border-radius:8px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;line-height:17px;font-weight:600}
 .ep:active{opacity:.75}
 .ep-more{font-size:10px;color:#aaa;padding-left:3px;cursor:pointer}
 .ep.ep-grp{border-left:3px solid rgba(255,167,38,.8)}
@@ -105,15 +110,15 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,'Apple SD Gothi
 .cm-photo{font-size:10px;color:#888;display:flex;align-items:center;gap:2px;font-weight:600}
 
 /* ── COLOR CLASSES ── */
-.c-red   {background:#ffcdd2;color:#b71c1c}
-.c-blue  {background:#bbdefb;color:#0d47a1}
-.c-green {background:#c8e6c9;color:#1b5e20}
-.c-yellow{background:#fff9c4;color:#827717}
-.c-purple{background:#e1bee7;color:#4a148c}
-.c-orange{background:#ffe0b2;color:#bf360c}
-.c-teal  {background:#b2dfdb;color:#004d40}
-.c-pink  {background:#f8bbd0;color:#880e4f}
-.c-gray  {background:#eeeeee;color:#424242}
+.c-red   {background:#fee2e2;color:#991b1b}
+.c-blue  {background:#dbeafe;color:#1d4ed8}
+.c-green {background:#dcfce7;color:#166534}
+.c-yellow{background:#fef9c3;color:#854d0e}
+.c-purple{background:#f3e8ff;color:#6b21a8}
+.c-orange{background:#ffedd5;color:#9a3412}
+.c-teal  {background:#ccfbf1;color:#115e59}
+.c-pink  {background:#fce7f3;color:#9d174d}
+.c-gray  {background:#f1f5f9;color:#475569}
 
 /* ── FAB ── */
 .fab{position:fixed;bottom:24px;width:54px;height:54px;background:var(--P);color:#fff;border:none;border-radius:50%;font-size:26px;cursor:pointer;box-shadow:0 4px 16px rgba(26,115,232,.45);display:flex;align-items:center;justify-content:center;z-index:50;transition:background .2s,transform .15s}
@@ -152,7 +157,7 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 .bs-acts{display:flex;gap:10px;margin-top:18px}
 .btn{padding:13px 14px;border-radius:12px;font-size:15px;font-weight:700;border:none;cursor:pointer;flex:1;font-family:inherit;transition:opacity .15s}
 .btn:active{opacity:.8}
-.btn-p{background:var(--P);color:#fff}
+.btn-p{background:var(--P);color:#fff;font-weight:700}
 .btn-d{background:#ffebee;color:#c62828}
 .btn-s{background:#f5f5f5;color:#555}
 .ferr{color:#e53935;font-size:12px;margin-top:6px;min-height:16px}
@@ -164,7 +169,7 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 
 /* ── DAY DETAIL ── */
 .dd-sec{font-size:11px;font-weight:700;color:#aaa;letter-spacing:.5px;text-transform:uppercase;margin:14px 0 8px}
-.dd-ev{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--BD);cursor:pointer}
+.dd-ev{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--BD);cursor:pointer;transition:background .1s}
 .dd-ev:active{background:#f9f9f9}
 .dd-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
 .dd-info{flex:1}
@@ -230,8 +235,8 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 .mem-name{font-size:14px;color:#333;font-weight:500}
 .mem-id{font-size:11px;color:#aaa;margin-top:1px}
 /* scope tag in day detail */
-.scope-tag{font-size:10px;padding:2px 7px;border-radius:8px;font-weight:600;white-space:nowrap;flex-shrink:0}
-.scope-tag.s-all{background:#e8f5e9;color:#2e7d32}
+.scope-tag{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;white-space:nowrap;flex-shrink:0}
+.scope-tag.s-all{background:#dcfce7;color:#166534}
 .scope-tag.s-grp{background:#fff3e0;color:#e65100}
 
 /* ── USER MGMT ── */
@@ -339,6 +344,17 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 .ev-prof-name{font-size:15px;font-weight:700;color:#1a237e;margin-bottom:2px;padding-right:24px}
 .ev-prof-row{font-size:12px;color:#3c4566;line-height:1.7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ev-prof-row span{color:#888}
+/* ── UNIFIED PROFILE CARD (evProfileCard, mlProfileCard) ── */
+.prof-card{width:100%;background:#fff;border-radius:14px;overflow:hidden}
+.prof-card-bg{width:100%;aspect-ratio:5/2;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);position:relative;overflow:hidden}
+.prof-card-bgimg{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;display:block}
+.prof-card-av-wrap{display:flex;justify-content:center;margin-top:-34px;position:relative;z-index:2}
+.prof-card-av{width:68px;height:68px;border-radius:50%;object-fit:cover;border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.18);display:block;cursor:pointer}
+.prof-card-body{padding:8px 16px 14px;text-align:center}
+.prof-card-name{font-size:16px;font-weight:800;color:#111;margin-bottom:5px}
+.prof-card-role{display:inline-block;font-size:11px;font-weight:600;padding:2px 9px;border-radius:10px;background:rgba(45,180,0,.12);color:#1e8000;margin-bottom:6px}
+.prof-card-role.admin{background:rgba(198,40,40,.1);color:#c62828}
+.prof-card-sub,.prof-card-bio,.prof-card-loc{font-size:12px;color:#666;line-height:1.6;margin-bottom:1px}
 .att-chip{display:inline-flex;align-items:center;background:#f5f5f5;border-radius:20px;padding:4px 10px 4px 4px;font-size:13px;font-weight:500;color:#333;border:1px solid #eee;transition:background .15s}
 .att-chip:hover{background:#e8f0fe}
 /* 전체 멤버 리스트 모달 */
@@ -847,15 +863,21 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
     <div class="bs-h"></div>
     <!-- 인라인 프로필 카드 (참석자 아바타 클릭 시 상단 팝인) -->
     <div id="evProfileCard">
-      <div class="ev-prof-inner">
-        <button class="ev-prof-close" onclick="closeEvProfileCard()">×</button>
-        <img id="evProfPhoto" class="ev-prof-photo" src="" alt="" style="cursor:pointer" onclick="openPhotoViewer(this.src,document.getElementById('evProfName').textContent)">
-        <div class="ev-prof-info">
-          <div class="ev-prof-name" id="evProfName"></div>
-          <div class="ev-prof-row" id="evProfSub" style="display:none"></div>
-          <div class="ev-prof-row" id="evProfBio" style="display:none"></div>
-          <div class="ev-prof-row" id="evProfLoc" style="display:none"></div>
-          <span class="d-role" id="evProfRole" style="font-size:11px;margin-top:5px;display:inline-block;background:rgba(26,115,232,.15);color:#1a73e8">멤버</span>
+      <div class="prof-card" style="margin-bottom:12px;border:1px solid #f0f0f0;box-shadow:0 2px 12px rgba(0,0,0,.08)">
+        <button class="ev-prof-close" onclick="closeEvProfileCard()" style="position:absolute;top:8px;right:8px;z-index:5">×</button>
+        <div class="prof-card-bg" id="evProfBgWrap">
+          <img class="prof-card-bgimg" id="evProfBgImg" src="" alt="" style="display:none">
+        </div>
+        <div class="prof-card-av-wrap">
+          <img class="prof-card-av" id="evProfPhoto" src="" alt=""
+            onclick="openPhotoViewer(this.src,document.getElementById('evProfName').textContent)">
+        </div>
+        <div class="prof-card-body">
+          <div class="prof-card-name" id="evProfName"></div>
+          <span class="prof-card-role" id="evProfRole">멤버</span>
+          <div class="prof-card-sub" id="evProfSub" style="display:none"></div>
+          <div class="prof-card-bio" id="evProfBio" style="display:none"></div>
+          <div class="prof-card-loc" id="evProfLoc" style="display:none"></div>
         </div>
       </div>
     </div>
@@ -1017,15 +1039,21 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
     </div>
     <!-- 인라인 프로필 카드 (멤버 행 클릭 시 슬라이드인) -->
     <div id="mlProfileCard">
-      <div class="ev-prof-inner" style="background:linear-gradient(135deg,#e8f0fe 0%,#f0f4ff 100%)">
-        <button class="ev-prof-close" onclick="closeMlProfileCard()">×</button>
-        <img id="mlProfPhoto" class="ev-prof-photo" src="" alt="" onclick="openPhotoViewer(this.src,document.getElementById('mlProfName').textContent)" style="cursor:pointer">
-        <div class="ev-prof-info">
-          <div class="ev-prof-name" id="mlProfName"></div>
-          <div class="ev-prof-row" id="mlProfSub" style="display:none"></div>
-          <div class="ev-prof-row" id="mlProfBio" style="display:none"></div>
-          <div class="ev-prof-row" id="mlProfLoc" style="display:none"></div>
-          <span class="d-role" id="mlProfRole" style="font-size:11px;margin-top:5px;display:inline-block;background:rgba(26,115,232,.15);color:#1a73e8">멤버</span>
+      <div class="prof-card" style="border-radius:0;border-bottom:1px solid #f0f0f0">
+        <button class="ev-prof-close" onclick="closeMlProfileCard()" style="position:absolute;top:8px;right:8px;z-index:5">×</button>
+        <div class="prof-card-bg" id="mlProfBgWrap">
+          <img class="prof-card-bgimg" id="mlProfBgImg" src="" alt="" style="display:none">
+        </div>
+        <div class="prof-card-av-wrap">
+          <img class="prof-card-av" id="mlProfPhoto" src="" alt=""
+            onclick="openPhotoViewer(this.src,document.getElementById('mlProfName').textContent)">
+        </div>
+        <div class="prof-card-body">
+          <div class="prof-card-name" id="mlProfName"></div>
+          <span class="prof-card-role" id="mlProfRole">멤버</span>
+          <div class="prof-card-sub" id="mlProfSub" style="display:none"></div>
+          <div class="prof-card-bio" id="mlProfBio" style="display:none"></div>
+          <div class="prof-card-loc" id="mlProfLoc" style="display:none"></div>
         </div>
       </div>
     </div>
@@ -1050,16 +1078,17 @@ const STICKERS=['🌸','🌺','🌻','🌹','🌷','🍀','🌿','🍁','🌈','
   '🎮','💪','📚','📸','🔥','💫','✨','💎','🌟','🎯','🚀'];
 
 const COLORS=[
-  {cls:'c-blue',  bg:'#90caf9',label:'파랑'},
-  {cls:'c-red',   bg:'#ef9a9a',label:'빨강'},
-  {cls:'c-green', bg:'#a5d6a7',label:'초록'},
-  {cls:'c-yellow',bg:'#fff176',label:'노랑'},
-  {cls:'c-purple',bg:'#ce93d8',label:'보라'},
-  {cls:'c-orange',bg:'#ffcc80',label:'주황'},
-  {cls:'c-teal',  bg:'#80cbc4',label:'청록'},
-  {cls:'c-pink',  bg:'#f48fb1',label:'분홍'},
-  {cls:'c-gray',  bg:'#e0e0e0',label:'회색'},
+  {cls:'c-blue',  bg:'#3b82f6',label:'파랑'},
+  {cls:'c-red',   bg:'#ef4444',label:'빨강'},
+  {cls:'c-green', bg:'#22c55e',label:'초록'},
+  {cls:'c-yellow',bg:'#eab308',label:'노랑'},
+  {cls:'c-purple',bg:'#a855f7',label:'보라'},
+  {cls:'c-orange',bg:'#f97316',label:'주황'},
+  {cls:'c-teal',  bg:'#14b8a6',label:'청록'},
+  {cls:'c-pink',  bg:'#ec4899',label:'분홍'},
+  {cls:'c-gray',  bg:'#94a3b8',label:'회색'},
 ];
+const BAR_BG={'c-blue':'#3b82f6','c-red':'#ef4444','c-green':'#22c55e','c-yellow':'#ca8a04','c-purple':'#a855f7','c-orange':'#f97316','c-teal':'#14b8a6','c-pink':'#ec4899','c-gray':'#64748b'};
 const CBG = Object.fromEntries(COLORS.map(c=>[c.cls,c.bg]));
 
 const DEFAULT_CATS=[
@@ -1326,6 +1355,17 @@ function _fillUserCard(prefix, u, userId, userName){
   const name = u ? (u.name || userName || userId) : (userName || userId);
   const src  = _getAvatarSrc(u, userId);
 
+  // Background image
+  const bgEl = document.getElementById(prefix+'BgImg');
+  if(bgEl){
+    if(u && u.drawerBg){
+      bgEl.src = u.drawerBg;
+      bgEl.style.display = 'block';
+    } else {
+      bgEl.style.display = 'none';
+    }
+  }
+
   const photoEl = document.getElementById(prefix+'Photo');
   if(photoEl){
     photoEl.src = src;
@@ -1356,8 +1396,9 @@ function _fillUserCard(prefix, u, userId, userName){
   const roleEl = document.getElementById(prefix+'Role');
   if(roleEl){
     roleEl.textContent = roleMap[u&&u.role] || '멤버';
-    roleEl.style.background = (u&&u.role==='admin') ? 'rgba(198,40,40,.12)' : 'rgba(26,115,232,.15)';
-    roleEl.style.color      = (u&&u.role==='admin') ? '#c62828'             : '#1a73e8';
+    roleEl.className = 'prof-card-role' + ((u&&u.role==='admin')?' admin':'');
+    roleEl.style.background = '';
+    roleEl.style.color = '';
   }
 }
 
@@ -1736,90 +1777,171 @@ function renderCal(){
   const media=getMedia();
   const cats=getCats();
 
+  // Build flat cell array
   const cells=[];
-  const startOffset=(first.getDay()+6)%7; // Monday=0, Sun=6
+  const startOffset=(first.getDay()+6)%7;
   for(let i=0;i<startOffset;i++) cells.push({d:new Date(VY,VM,1-(startOffset-i)),other:true});
   for(let d=1;d<=last;d++) cells.push({d:new Date(VY,VM,d),other:false});
   while(cells.length%7!==0){ const l=cells[cells.length-1].d; cells.push({d:new Date(l.getTime()+86400000),other:true}); }
 
-  cells.forEach(cell=>{
-    const ds=fd(cell.d);
-    const dow=cell.d.getDay();
-    // Filter & sort — 멀티데이 지원 (startDate <= day <= endDate)
-    let evs=events.filter(e=>{
-      const sd=e.startDate||e.date; const ed=e.endDate||e.date;
-      return sd<=ds && ds<=ed && !hiddenCats.has(e.categoryId) && canSeeEvent(e);
-    });
-    evs=sortEvs(evs,cats);
-    const m=media[ds]||[];
-    const stks=m.filter(x=>x.type==='sticker');
-
-    // 이벤트 커버포토 (해당 날에 시작하는 이벤트의 커버, 최대 2개)
-    const coverPhotos=[];
-    for(const ev of evs){
-      const sd=ev.startDate||ev.date;
-      if(sd===ds && ev.coverPhotoId && (ev.photos||[]).length){
-        const cp=ev.photos.find(p=>p.id===ev.coverPhotoId);
-        if(cp){ coverPhotos.push(cp); if(coverPhotos.length>=2) break; }
-      }
-    }
-
-    const div=document.createElement('div');
-    const hasCover=coverPhotos.length>0;
-    const hasCover2=coverPhotos.length>=2;
-    div.className='dc'+(cell.other?' other':'')+(dow===0?' sun':'')+(dow===6?' sat':'')+(ds===today?' today':'')
-      +(hasCover2?' has-cover-2':hasCover?' has-cover':'');
-    if(hasCover2){
-      const bg=document.createElement('div');
-      bg.className='dc-bg-img';
-      bg.style.backgroundImage=`url(${coverPhotos[0].url||coverPhotos[0].data}),url(${coverPhotos[1].url||coverPhotos[1].data})`;
-      bg.style.backgroundSize='cover,cover';
-      bg.style.backgroundPosition='25% center,75% center';
-      bg.style.backgroundRepeat='no-repeat,no-repeat';
-      div.appendChild(bg);
-    } else if(hasCover){
-      const bg=document.createElement('div');
-      bg.className='dc-bg-img';
-      bg.style.backgroundImage=`url(${coverPhotos[0].url||coverPhotos[0].data})`;
-      div.appendChild(bg);
-    }
-
-    // 날짜 숫자 + 스티커 좌/우
-    const dnRow=document.createElement('div');
-    dnRow.className='dc-stk-row';
-    if(stks[0]){ const sl=document.createElement('span'); sl.className='dc-stk'; sl.textContent=stks[0].data; dnRow.appendChild(sl); }
-    const dn=document.createElement('div'); dn.className='dnum'; dn.textContent=cell.d.getDate();
-    dnRow.appendChild(dn);
-    if(stks[1]){ const sr=document.createElement('span'); sr.className='dc-stk'; sr.textContent=stks[1].data; dnRow.appendChild(sr); }
-    div.appendChild(dnRow);
-
-    // Events — 전체 표시, 이름만, 시간 없음
-    evs.forEach(ev=>{
-      const cat=cats.find(c=>c.id===ev.categoryId);
-      const cls=cat?cat.color:(ev.color||'c-blue');
-      const isGrp=(ev.scope||'all')!=='all';
-      const isStart=(ev.startDate||ev.date)===ds;
-      const attCnt=(ev.attendees||[]).length;
-      const p=document.createElement('div');
-      p.className='ep '+cls+(isGrp?' ep-grp':'')+(isStart?'':' ep-cont');
-      p.textContent=ev.title+(attCnt?' 👥'+attCnt:'');
-      p.onclick=e=>{e.stopPropagation();e.preventDefault();openEvDetail(ev.id);};
-      div.appendChild(p);
-    });
-
-    // 사진 수 (이벤트 전체)
-    const photoCnt=evs.reduce((acc,ev)=>acc+(ev.photos||[]).length,0);
-    if(photoCnt){
-      const mr=document.createElement('div'); mr.className='cmedia';
-      const pb=document.createElement('span'); pb.className='cm-photo'; pb.textContent=`📷${photoCnt}`;
-      mr.appendChild(pb); div.appendChild(mr);
-    }
-
-    div.onclick=(e)=>{ if(e.target.closest && e.target.closest('.ep')) return; openDd(cell.d,ds); };
-    grid.appendChild(div);
+  // Separate multi-day vs single-day events
+  const multiEvs=events.filter(e=>{
+    const sd=e.startDate||e.date, ed=e.endDate||e.date;
+    return sd!==ed && !hiddenCats.has(e.categoryId) && canSeeEvent(e);
   });
-}
+  const singleEvs=events.filter(e=>{
+    const sd=e.startDate||e.date, ed=e.endDate||e.date;
+    return sd===ed && !hiddenCats.has(e.categoryId) && canSeeEvent(e);
+  });
 
+  // Render week rows
+  for(let w=0;w<cells.length;w+=7){
+    const wk=cells.slice(w,w+7);
+    const wkS=fd(wk[0].d), wkE=fd(wk[6].d);
+
+    // Multi-day bars overlapping this week
+    const wBars=multiEvs.filter(e=>{
+      const sd=e.startDate||e.date, ed=e.endDate||e.date;
+      return sd<=wkE && ed>=wkS;
+    }).sort((a,b)=>{
+      const as=a.startDate||a.date, bs=b.startDate||b.date;
+      return as<bs?-1:as>bs?1:0;
+    });
+
+    // Greedy track assignment
+    const tracks=[];
+    const barInfos=wBars.map(ev=>{
+      const sd=ev.startDate||ev.date, ed=ev.endDate||ev.date;
+      const cs=sd<wkS?wkS:sd, ce=ed>wkE?wkE:ed;
+      const si=wk.findIndex(c=>fd(c.d)===cs);
+      const ei=wk.findIndex(c=>fd(c.d)===ce);
+      let tr=0;
+      while(tr<tracks.length && tracks[tr]>=cs) tr++;
+      tracks[tr]=ce;
+      return {ev,si,span:ei-si+1,tr,sd,ed};
+    });
+    const maxTr=barInfos.length?Math.max(...barInfos.map(b=>b.tr)):-1;
+    const barRows=maxTr+1;
+    const BAR_TOP=28, BAR_H=18;
+    const spacerH=barRows>0?barRows*BAR_H:0;
+
+    // Create week element
+    const weekEl=document.createElement('div');
+    weekEl.className='cweek';
+
+    // Day cells
+    const daysEl=document.createElement('div');
+    daysEl.className='cweek-days';
+
+    wk.forEach((cell,di)=>{
+      const ds=fd(cell.d);
+      const dow=cell.d.getDay();
+      const m=media[ds]||[];
+      const stks=m.filter(x=>x.type==='sticker');
+
+      // Single-day events for this cell
+      let evs=singleEvs.filter(e=>{
+        const sd=e.startDate||e.date, ed=e.endDate||e.date;
+        return sd<=ds && ds<=ed;
+      });
+      evs=sortEvs(evs,cats);
+
+      // Cover photos from single-day events
+      const coverPhotos=[];
+      for(const ev of evs){
+        const sd=ev.startDate||ev.date;
+        if(sd===ds && ev.coverPhotoId && (ev.photos||[]).length){
+          const cp=ev.photos.find(p=>p.id===ev.coverPhotoId);
+          if(cp){ coverPhotos.push(cp); if(coverPhotos.length>=2) break; }
+        }
+      }
+      const hasCover=coverPhotos.length>0, hasCover2=coverPhotos.length>=2;
+
+      const div=document.createElement('div');
+      div.className='dc'+(cell.other?' other':'')+(dow===0?' sun':'')+(dow===6?' sat':'')
+        +(ds===today?' today':'')+(hasCover2?' has-cover-2':hasCover?' has-cover':'');
+
+      if(hasCover2){
+        const bg=document.createElement('div'); bg.className='dc-bg-img';
+        bg.style.backgroundImage=`url(${coverPhotos[0].url||coverPhotos[0].data}),url(${coverPhotos[1].url||coverPhotos[1].data})`;
+        bg.style.backgroundSize='cover,cover';
+        bg.style.backgroundPosition='25% center,75% center';
+        bg.style.backgroundRepeat='no-repeat,no-repeat';
+        div.appendChild(bg);
+      } else if(hasCover){
+        const bg=document.createElement('div'); bg.className='dc-bg-img';
+        bg.style.backgroundImage=`url(${coverPhotos[0].url||coverPhotos[0].data})`;
+        div.appendChild(bg);
+      }
+
+      // Date number row
+      const dnRow=document.createElement('div'); dnRow.className='dc-stk-row';
+      if(stks[0]){ const sl=document.createElement('span'); sl.className='dc-stk'; sl.textContent=stks[0].data; dnRow.appendChild(sl); }
+      const dn=document.createElement('div'); dn.className='dnum'; dn.textContent=cell.d.getDate();
+      dnRow.appendChild(dn);
+      if(stks[1]){ const sr=document.createElement('span'); sr.className='dc-stk'; sr.textContent=stks[1].data; dnRow.appendChild(sr); }
+      div.appendChild(dnRow);
+
+      // Spacer to make room for multi-day bars
+      if(spacerH>0){
+        const sp=document.createElement('div'); sp.style.height=spacerH+'px'; div.appendChild(sp);
+      }
+
+      // Single-day event pills
+      evs.forEach(ev=>{
+        const cat=cats.find(c=>c.id===ev.categoryId);
+        const cls=cat?cat.color:(ev.color||'c-blue');
+        const attCnt=(ev.attendees||[]).length;
+        const p=document.createElement('div');
+        p.className='ep '+cls;
+        p.textContent=ev.title+(attCnt?' 👥'+attCnt:'');
+        p.onclick=e=>{e.stopPropagation();e.preventDefault();openEvDetail(ev.id);};
+        div.appendChild(p);
+      });
+
+      // Photo count
+      const photoCnt=evs.reduce((acc,ev)=>acc+(ev.photos||[]).length,0);
+      if(photoCnt){
+        const mr=document.createElement('div'); mr.className='cmedia';
+        const pb=document.createElement('span'); pb.className='cm-photo'; pb.textContent=`📷${photoCnt}`;
+        mr.appendChild(pb); div.appendChild(mr);
+      }
+
+      div.onclick=(e)=>{ if(e.target.closest && e.target.closest('.ep')) return; openDd(cell.d,ds); };
+      daysEl.appendChild(div);
+    });
+    weekEl.appendChild(daysEl);
+
+    // Multi-day bar layer
+    if(barInfos.length){
+      const barsEl=document.createElement('div');
+      barsEl.className='cweek-bars';
+      barsEl.style.top=BAR_TOP+'px';
+
+      barInfos.forEach(({ev,si,span,tr,sd,ed})=>{
+        const cat=cats.find(c=>c.id===ev.categoryId);
+        const cls=cat?cat.color:(ev.color||'c-blue');
+        const bg=(typeof BAR_BG!=='undefined'?BAR_BG:{})[cls]||'#3b82f6';
+        const sHere=sd>=wkS, eHere=ed<=wkE;
+        const lp=(si/7)*100, wp=(span/7)*100;
+        const bar=document.createElement('div');
+        bar.className='ev-bar';
+        bar.style.left=`calc(${lp}% + ${sHere?2:0}px)`;
+        bar.style.width=`calc(${wp}% - ${(sHere?2:0)+(eHere?2:0)}px)`;
+        bar.style.top=(tr*BAR_H)+'px';
+        bar.style.background=bg;
+        bar.style.borderRadius=`${sHere?8:0}px ${eHere?8:0}px ${eHere?8:0}px ${sHere?8:0}px`;
+        bar.textContent=ev.title;
+        bar.title=ev.title;
+        bar.onclick=e=>{e.stopPropagation();e.preventDefault();openEvDetail(ev.id);};
+        barsEl.appendChild(bar);
+      });
+      weekEl.appendChild(barsEl);
+    }
+
+    grid.appendChild(weekEl);
+  }
+}
 function fd(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 
 function sortEvs(evs,cats){
