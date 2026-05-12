@@ -944,10 +944,6 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
         </div>
       </div>
     </div>
-    <!-- 사진 -->
-    <div class="dd-sec">사진</div>
-    <div class="photo-grid" id="evDPhotos" style="margin-bottom:6px"></div>
-    <button id="evDPhotoAdd" class="media-add-btn" style="width:100%;display:none;margin-bottom:14px" onclick="triggerEvPhoto()">📷 사진 추가</button>
     <!-- 채팅 -->
     <div class="dd-sec">채팅</div>
     <div class="chat-area" id="evDChatArea"></div>
@@ -955,6 +951,10 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
       <input id="evDChatTxt" type="text" placeholder="메시지 입력..." onkeydown="if(event.key==='Enter')sendChat()">
       <button class="chat-send-btn" onclick="sendChat()">전송</button>
     </div>
+    <!-- 사진 -->
+    <div class="dd-sec">사진</div>
+    <div class="photo-grid" id="evDPhotos" style="margin-bottom:6px"></div>
+    <button id="evDPhotoAdd" class="media-add-btn" style="width:100%;display:none;margin-bottom:14px" onclick="triggerEvPhoto()">📷 사진 추가</button>
     <button class="btn btn-s" style="margin-top:14px;width:100%" onclick="closeM('evDM')">닫기</button>
     </div>
   </div>
@@ -2006,7 +2006,10 @@ function switchView(mode){
   if(mode==='week'){
     calEl.style.display='none';
     wcEl.style.display='flex';
-    if(!wcCenterDate) wcCenterDate=new Date();
+    // 주간 전환 시 항상 이번 주 토요일 기준 (금-토-일 표시)
+    const _td=new Date(), _dow=_td.getDay();
+    const _dts=_dow===0?-1:(6-_dow);
+    wcCenterDate=new Date(_td); wcCenterDate.setDate(wcCenterDate.getDate()+_dts);
     renderWeek();
   } else {
     calEl.style.display='';
