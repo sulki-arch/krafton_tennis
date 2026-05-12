@@ -69,11 +69,13 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,'Apple SD Gothi
 .cweek{position:relative}
 .cweek-days{display:grid;grid-template-columns:repeat(7,1fr)}
 .cweek-bars{position:absolute;left:0;right:0;z-index:10;pointer-events:none}
-.ev-bar{position:absolute;height:16px;font-size:10px;line-height:16px;padding:0 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;pointer-events:auto;font-weight:700;box-sizing:border-box;color:#fff}
-.ev-bar:active{opacity:.8}
+.ev-bar{position:absolute;height:16px;font-size:10px;line-height:16px;padding:0 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;pointer-events:auto;font-weight:700;box-sizing:border-box;color:#fff;opacity:.55}
+.ev-bar:hover{opacity:.8}.ev-bar:active{opacity:.95}
 
 .dc{min-height:86px;border-right:1px solid #f0f0f0;border-bottom:1px solid #f0f0f0;padding:3px 2px 2px;cursor:pointer;overflow:hidden;min-width:0;transition:background .1s}
 .dc:hover{background:#f8faff}
+.dc.this-week{background:rgba(45,180,0,.05)}
+.dc.this-week:hover{background:rgba(45,180,0,.09)}
 .dc:nth-child(7n){border-right:none}
 .dnum{font-size:13px;font-weight:700;width:27px;height:27px;display:flex;align-items:center;justify-content:center;margin:0 auto 2px;border-radius:50%}
 .dc.today .dnum{background:var(--P);color:#fff;font-weight:700}
@@ -128,17 +130,30 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,'Apple SD Gothi
 .ovl{display:none;position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:200}
 .drawer{position:fixed;top:0;left:-295px;width:295px;height:100%;background:#fff;z-index:201;transition:left .28s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;box-shadow:var(--SH)}
 .drawer.open{left:0}
-.d-head{padding:0;background:var(--P);position:relative;overflow:hidden;transition:background .3s;aspect-ratio:1/1;display:flex;flex-direction:column;justify-content:flex-end}
-.d-head-bg{position:absolute;inset:0;object-fit:cover;width:100%;height:100%;opacity:.55;pointer-events:none}
-.d-head-edit-btn{position:absolute;bottom:10px;right:12px;background:rgba(255,255,255,.22);border:none;border-radius:20px;color:#fff;font-size:11px;padding:4px 10px;cursor:pointer;backdrop-filter:blur(4px)}
-.d-head-row{display:flex;align-items:flex-end;gap:14px;padding:20px 18px 18px;position:relative;z-index:1;background:linear-gradient(to top,rgba(0,0,0,.55) 0%,transparent 100%)}
-.d-av{width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.22);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:28px}
+.d-head{padding:0;background:var(--P);position:relative;overflow:hidden;aspect-ratio:1/1;cursor:pointer}
+.d-head-bg{position:absolute;inset:0;object-fit:cover;width:100%;height:100%;pointer-events:none}
+.d-head-edit-btn{position:absolute;bottom:14px;right:14px;background:rgba(255,255,255,.22);border:none;border-radius:20px;color:#fff;font-size:11px;padding:5px 12px;cursor:pointer;backdrop-filter:blur(4px);z-index:3;font-weight:600}
+.d-head-overlay{position:absolute;inset:0;background:linear-gradient(160deg,rgba(0,0,0,.04) 0%,rgba(0,0,0,.62) 100%);z-index:1}
+.d-head-content{position:absolute;bottom:90px;left:18px;right:18px;z-index:2}
+.d-av{position:absolute;bottom:16px;left:16px;width:70px;height:70px;border-radius:50%;background:rgba(255,255,255,.22);overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:30px;border:2.5px solid rgba(255,255,255,.82);box-shadow:0 2px 10px rgba(0,0,0,.28);z-index:3}
 .d-av img{width:100%;height:100%;object-fit:cover;border-radius:50%}
-.d-info{flex:1;min-width:0}
-.d-name{font-size:17px;font-weight:700;color:#fff;line-height:1.3;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.d-sub{font-size:12px;color:rgba(255,255,255,.75);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.d-bio{font-size:11px;color:rgba(255,255,255,.72);margin-top:5px;line-height:1.7}
-.d-role{display:inline-block;font-size:11px;color:rgba(255,255,255,.9);background:rgba(255,255,255,.18);border-radius:20px;padding:2px 9px;margin-top:6px}
+
+.d-name{font-size:20px;font-weight:800;color:#fff;line-height:1.2;margin-bottom:3px;text-shadow:0 1px 5px rgba(0,0,0,.35)}
+.d-sub{font-size:12px;color:rgba(255,255,255,.85);margin-bottom:2px}
+.d-bio{font-size:12px;color:rgba(255,255,255,.80);line-height:1.75}
+.d-role{display:inline-block;font-size:11px;color:#fff;background:rgba(255,255,255,.22);border-radius:20px;padding:3px 11px;margin-top:6px;backdrop-filter:blur(3px);font-weight:600}
+/* ── PCF: 팝업용 통합 프로필 카드 ── */
+.pcf-wrap{width:100%;aspect-ratio:1/1;position:relative;overflow:hidden;background:var(--P)}
+.pcf-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.pcf-overlay{position:absolute;inset:0;background:linear-gradient(160deg,rgba(0,0,0,.04) 0%,rgba(0,0,0,.62) 100%);z-index:1}
+.pcf-content{position:absolute;bottom:90px;left:18px;right:18px;z-index:2}
+.pcf-name{font-size:20px;font-weight:800;color:#fff;line-height:1.2;margin-bottom:3px;text-shadow:0 1px 5px rgba(0,0,0,.35)}
+.pcf-sub{font-size:12px;color:rgba(255,255,255,.85);margin-bottom:2px}
+.pcf-bio{font-size:12px;color:rgba(255,255,255,.82);line-height:1.75}
+.pcf-stat{font-size:12px;color:rgba(255,255,255,.82);line-height:1.75;margin-top:2px}
+.pcf-role{display:inline-block;font-size:11px;color:#fff;background:rgba(255,255,255,.22);border-radius:20px;padding:3px 11px;margin-top:6px;backdrop-filter:blur(3px);font-weight:600}
+.pcf-av{position:absolute;bottom:16px;left:16px;width:70px;height:70px;border-radius:50%;object-fit:cover;border:2.5px solid rgba(255,255,255,.82);box-shadow:0 2px 10px rgba(0,0,0,.28);z-index:3;cursor:pointer;display:block}
+.pcf-close{position:absolute;top:10px;right:10px;z-index:4;background:rgba(0,0,0,.35);border:none;color:#fff;font-size:18px;width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1}
 .d-menu{padding:6px 0;flex:1;overflow-y:auto}
 .d-item{display:flex;align-items:center;gap:14px;padding:14px 20px;cursor:pointer;font-size:15px;color:#333;border:none;background:none;width:100%;text-align:left;transition:background .15s}
 .d-item:hover{background:#f5f8ff}
@@ -572,18 +587,16 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 
 <!-- ═══ DRAWER ═══ -->
 <div class="drawer" id="drawer">
-  <div class="d-head" id="drawerHead">
+  <div class="d-head" id="drawerHead" onclick="if(CU&&CU.role!=='viewer'){openProfile();closeDrawer();}">
     <img class="d-head-bg" id="drawerBgImg" src="" alt="" style="display:none">
-    <div class="d-head-row">
-      <div class="d-av" id="dav" onclick="if(CU&&CU.role!=='viewer'){openProfile();closeDrawer();}" style="cursor:pointer"><img id="davImg" src="" alt="" style="display:none"><span id="davFallback">👤</span></div>
-      <div class="d-info">
-        <div class="d-name" id="dname">게스트</div>
-        <div class="d-sub" id="dsub"></div>
-        <div class="d-bio" id="dbio"></div>
-        <div class="d-role" id="drole"></div>
-      </div>
+    <div class="d-head-overlay"></div>
+    <div class="d-head-content">
+      <div class="d-name" id="dname">게스트</div>
+      <div class="d-sub" id="dsub"></div>
+      <div class="d-bio" id="dbio"></div>
+      <div class="d-role" id="drole" style="display:none"></div>
     </div>
-
+    <div class="d-av" id="dav"><img id="davImg" src="" alt="" style="display:none"><span id="davFallback">👤</span></div>
   </div>
   <div class="d-menu">
     <button class="d-item" id="d-splash" style="display:none" onclick="openSplashEdit();closeDrawer()">
@@ -863,22 +876,19 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
     <div class="bs-h"></div>
     <!-- 인라인 프로필 카드 (참석자 아바타 클릭 시 상단 팝인) -->
     <div id="evProfileCard">
-      <div class="prof-card" style="margin-bottom:12px;border:1px solid #f0f0f0;box-shadow:0 2px 12px rgba(0,0,0,.08)">
-        <button class="ev-prof-close" onclick="closeEvProfileCard()" style="position:absolute;top:8px;right:8px;z-index:5">×</button>
-        <div class="prof-card-bg" id="evProfBgWrap">
-          <img class="prof-card-bgimg" id="evProfBgImg" src="" alt="" style="display:none">
+      <div class="pcf-wrap" style="margin-bottom:12px">
+        <img class="pcf-bg" id="evProfBgImg" src="" alt="">
+        <div class="pcf-overlay"></div>
+        <button class="pcf-close" onclick="closeEvProfileCard()">×</button>
+        <div class="pcf-content">
+          <div class="pcf-name" id="evProfName"></div>
+          <div class="pcf-sub" id="evProfSub"></div>
+          <div class="pcf-bio" id="evProfBio"></div>
+          <div class="pcf-stat" id="evProfStat"></div>
+          <span class="pcf-role" id="evProfRole">멤버</span>
         </div>
-        <div class="prof-card-av-wrap">
-          <img class="prof-card-av" id="evProfPhoto" src="" alt=""
-            onclick="openPhotoViewer(this.src,document.getElementById('evProfName').textContent)">
-        </div>
-        <div class="prof-card-body">
-          <div class="prof-card-name" id="evProfName"></div>
-          <span class="prof-card-role" id="evProfRole">멤버</span>
-          <div class="prof-card-sub" id="evProfSub" style="display:none"></div>
-          <div class="prof-card-bio" id="evProfBio" style="display:none"></div>
-          <div class="prof-card-loc" id="evProfLoc" style="display:none"></div>
-        </div>
+        <img class="pcf-av" id="evProfPhoto" src="" alt=""
+          onclick="openPhotoViewer(this.src,document.getElementById('evProfName').textContent)">
       </div>
     </div>
     <!-- 제목 + 수정 버튼 -->
@@ -1039,22 +1049,19 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
     </div>
     <!-- 인라인 프로필 카드 (멤버 행 클릭 시 슬라이드인) -->
     <div id="mlProfileCard">
-      <div class="prof-card" style="border-radius:0;border-bottom:1px solid #f0f0f0">
-        <button class="ev-prof-close" onclick="closeMlProfileCard()" style="position:absolute;top:8px;right:8px;z-index:5">×</button>
-        <div class="prof-card-bg" id="mlProfBgWrap">
-          <img class="prof-card-bgimg" id="mlProfBgImg" src="" alt="" style="display:none">
+      <div class="pcf-wrap" style="border-radius:0">
+        <img class="pcf-bg" id="mlProfBgImg" src="" alt="">
+        <div class="pcf-overlay"></div>
+        <button class="pcf-close" onclick="closeMlProfileCard()">×</button>
+        <div class="pcf-content">
+          <div class="pcf-name" id="mlProfName"></div>
+          <div class="pcf-sub" id="mlProfSub"></div>
+          <div class="pcf-bio" id="mlProfBio"></div>
+          <div class="pcf-stat" id="mlProfStat"></div>
+          <span class="pcf-role" id="mlProfRole">멤버</span>
         </div>
-        <div class="prof-card-av-wrap">
-          <img class="prof-card-av" id="mlProfPhoto" src="" alt=""
-            onclick="openPhotoViewer(this.src,document.getElementById('mlProfName').textContent)">
-        </div>
-        <div class="prof-card-body">
-          <div class="prof-card-name" id="mlProfName"></div>
-          <span class="prof-card-role" id="mlProfRole">멤버</span>
-          <div class="prof-card-sub" id="mlProfSub" style="display:none"></div>
-          <div class="prof-card-bio" id="mlProfBio" style="display:none"></div>
-          <div class="prof-card-loc" id="mlProfLoc" style="display:none"></div>
-        </div>
+        <img class="pcf-av" id="mlProfPhoto" src="" alt=""
+          onclick="openPhotoViewer(this.src,document.getElementById('mlProfName').textContent)">
       </div>
     </div>
     <div id="memberListBody" style="overflow-y:auto;flex:1"></div>
@@ -1355,50 +1362,46 @@ function _fillUserCard(prefix, u, userId, userName){
   const name = u ? (u.name || userName || userId) : (userName || userId);
   const src  = _getAvatarSrc(u, userId);
 
-  // Background image
+  // 배경사진
   const bgEl = document.getElementById(prefix+'BgImg');
   if(bgEl){
-    if(u && u.drawerBg){
-      bgEl.src = u.drawerBg;
-      bgEl.style.display = 'block';
-    } else {
-      bgEl.style.display = 'none';
-    }
+    if(u && u.drawerBg){ bgEl.src=u.drawerBg; bgEl.style.display='block'; }
+    else { bgEl.style.display='none'; }
   }
 
+  // 원형 아바타
   const photoEl = document.getElementById(prefix+'Photo');
-  if(photoEl){
-    photoEl.src = src;
-    photoEl.style.cursor = 'pointer';
-    photoEl.onclick = function(){ openPhotoViewer(this.src, name); };
-  }
+  if(photoEl){ photoEl.src=src; }
 
+  // 이름
   const nameEl = document.getElementById(prefix+'Name');
   if(nameEl) nameEl.textContent = name;
 
+  // sub (아이디 / 소속)
   const sub = [];
-  if(u && u.username) sub.push('@'+u.username);
+  if(u && u.username) sub.push(u.username);
   if(u && u.team)     sub.push(u.team);
   const subEl = document.getElementById(prefix+'Sub');
-  if(subEl){ subEl.textContent = sub.join('  ·  '); subEl.style.display = sub.length?'block':'none'; }
+  if(subEl) subEl.textContent = sub.join(' / ');
 
+  // bio
   const bioEl = document.getElementById(prefix+'Bio');
-  if(bioEl){ bioEl.textContent = (u&&u.bio)||''; bioEl.style.display = (u&&u.bio)?'block':'none'; }
+  if(bioEl) bioEl.textContent = (u&&u.bio)||'';
 
-  const loc = [];
-  if(u && u.region) loc.push(u.region);
-  if(u && u.level)  loc.push(u.level+'년차');
-  if(u && u.playTime) loc.push('플레이타임 '+u.playTime+'h');
-  const locEl = document.getElementById(prefix+'Loc');
-  if(locEl){ locEl.textContent = loc.join(' · '); locEl.style.display = loc.length?'block':'none'; }
+  // stat: 지역 · 구력 · 플레이타임 (emoji 포함, 줄바꿈)
+  const statLines = [];
+  if(u && u.region)   statLines.push('📍 '+u.region);
+  if(u && u.level)    statLines.push('🎾 구력 약 '+u.level+'년');
+  if(u && u.playTime) statLines.push('⏱ 플레이타임 약 '+u.playTime+'시간');
+  const statEl = document.getElementById(prefix+'Stat');
+  if(statEl) statEl.innerHTML = statLines.map(l=>`<div>${l}</div>`).join('');
 
-  const roleMap = {admin:'관리자', user:'멤버', viewer:'게스트'};
+  // 역할 배지
+  const roleMap = {admin:'관리자', user:'승인된 사용자', viewer:'게스트'};
   const roleEl = document.getElementById(prefix+'Role');
   if(roleEl){
-    roleEl.textContent = roleMap[u&&u.role] || '멤버';
-    roleEl.className = 'prof-card-role' + ((u&&u.role==='admin')?' admin':'');
-    roleEl.style.background = '';
-    roleEl.style.color = '';
+    roleEl.textContent = roleMap[u&&u.role] || '승인된 사용자';
+    roleEl.className = 'pcf-role';
   }
 }
 
@@ -1712,13 +1715,14 @@ function showApp(){
   const roleText={admin:'관리자 계정',user:'승인된 사용자',viewer:'게스트 모드'};
   // 드로어 프로필 카드 업데이트
   document.getElementById('dname').textContent=isV?'게스트':(CU.name||CU.username||'');
-  document.getElementById('drole').textContent=roleText[CU.role]||'승인된 사용자';
+  const droleEl=document.getElementById('drole');
+  if(droleEl){ droleEl.textContent=roleText[CU.role]||'승인된 사용자'; droleEl.style.display='inline-block'; }
   // 부가 정보 (ID / 소속)
   const subParts=[];
   if(!isV && CU.username) subParts.push(CU.username);
   if(CU.team) subParts.push(CU.team);
   document.getElementById('dsub').textContent=subParts.join(' / ');
-  // 자기소개·지역·구력·플레이타임 줄바꿈 표시
+  // 자기소개 + 지역·구력·플레이타임 줄바꿈
   const bioLines=[];
   if(CU.bio) bioLines.push(CU.bio);
   if(CU.region) bioLines.push('📍 '+CU.region);
@@ -1771,6 +1775,10 @@ function renderCal(){
   const grid=document.getElementById('cgrid');
   grid.innerHTML='';
   const today=fd(new Date());
+  // 금주 범위 계산 (월요일 기준)
+  const _tn=new Date(); const _dow=(_tn.getDay()+6)%7;
+  const _wkS=fd(new Date(_tn.getTime()-_dow*86400000));
+  const _wkE=fd(new Date(_tn.getTime()+(6-_dow)*86400000));
   const first=new Date(VY,VM,1);
   const last=new Date(VY,VM+1,0).getDate();
   const events=getEvents();
@@ -1858,8 +1866,9 @@ function renderCal(){
       const hasCover=coverPhotos.length>0, hasCover2=coverPhotos.length>=2;
 
       const div=document.createElement('div');
+      const isThisWeek=!cell.other&&ds>=_wkS&&ds<=_wkE;
       div.className='dc'+(cell.other?' other':'')+(dow===0?' sun':'')+(dow===6?' sat':'')
-        +(ds===today?' today':'')+(hasCover2?' has-cover-2':hasCover?' has-cover':'');
+        +(ds===today?' today':'')+(hasCover2?' has-cover-2':hasCover?' has-cover':'')+(isThisWeek?' this-week':'');
 
       if(hasCover2){
         const bg=document.createElement('div'); bg.className='dc-bg-img';
