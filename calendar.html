@@ -1174,9 +1174,15 @@ let _db = null, _storage = null, _messaging = null;
 (function(){
   try{
     if(FIREBASE_DB_URL.includes('YOUR-PROJECT')) return;
-    firebase.initializeApp({databaseURL:FIREBASE_DB_URL, storageBucket:FIREBASE_STORAGE_BUCKET,
-      messagingSenderId:'501340131138', projectId:'krafton-tennis',
-      appId:'1:501340131138:web:dd282e38553b6a2678c2db'});
+    firebase.initializeApp({
+      apiKey:'AIzaSyAO5xhTn3KqUbwe774DyM5G3ADZUgGoYiw',
+      authDomain:'krafton-tennis.firebaseapp.com',
+      databaseURL:FIREBASE_DB_URL,
+      storageBucket:FIREBASE_STORAGE_BUCKET,
+      messagingSenderId:'501340131138',
+      projectId:'krafton-tennis',
+      appId:'1:501340131138:web:dd282e38553b6a2678c2db'
+    });
     _db = firebase.database();
     _storage = firebase.storage();
     try{ _messaging = firebase.messaging(); }catch(e){ console.warn('Messaging init failed:',e); }
