@@ -16,6 +16,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js"></script>
 <!-- Noto Sans KR -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -1167,14 +1168,18 @@ let splashPhoto=null; // temp storage during splash edit
    ─────────────────────────────────────  */
 const FIREBASE_DB_URL = 'https://krafton-tennis-default-rtdb.asia-southeast1.firebasedatabase.app';
 const FIREBASE_STORAGE_BUCKET = 'krafton-tennis.appspot.com';
+const VAPID_KEY = 'BEkmiPVVrCAO6JhiSxHUuN5pbzqmZ3GQyfoUogxXGnDdBVNxDRNQXwSxa6YjtSuWzdkynzraqDxq114TyXPzxNo';
 
-let _db = null, _storage = null;
+let _db = null, _storage = null, _messaging = null;
 (function(){
   try{
     if(FIREBASE_DB_URL.includes('YOUR-PROJECT')) return;
-    firebase.initializeApp({databaseURL:FIREBASE_DB_URL, storageBucket:FIREBASE_STORAGE_BUCKET});
+    firebase.initializeApp({databaseURL:FIREBASE_DB_URL, storageBucket:FIREBASE_STORAGE_BUCKET,
+      messagingSenderId:'501340131138', projectId:'krafton-tennis',
+      appId:'1:501340131138:web:dd282e38553b6a2678c2db'});
     _db = firebase.database();
     _storage = firebase.storage();
+    try{ _messaging = firebase.messaging(); }catch(e){ console.warn('Messaging init failed:',e); }
     console.log('Firebase _db ready');
   }catch(e){ console.warn('Firebase init failed:',e); _db=null; _storage=null; }
 })();
@@ -1798,6 +1803,7 @@ function showApp(){
   renderCal();
   if(!isV) posFab();
   setTimeout(checkMyNotifs,1200);
+  setTimeout(requestFCMPermission,2000);
 }
 function posFab(){
   const r=document.getElementById('root').getBoundingClientRect();
@@ -3125,12 +3131,34 @@ function _updateAttBtn(ev){
 /* ── 인앱 알림 저장 ── */
 function _addNotif(userId,message,evId){
   try{
+    // 인앱 알림 (users 배열)
     const users=getUsers();
-    const idx=users.findIndex(u=>u.id===userId); if(idx===-1) return;
-    const notif={id:Date.now().toString(36),message,evId:evId||'',ts:Date.now(),read:false};
-    users[idx]={...users[idx],notifications:[...(users[idx].notifications||[]),notif]};
-    setUsers(users);
+    const idx=users.findIndex(u=>u.id===userId); if(idx!==-1){
+      const notif={id:Date.now().toString(36),message,evId:evId||'',ts:Date.now(),read:false};
+      users[idx]={...users[idx],notifications:[...(users[idx].notifications||[]),notif]};
+      setUsers(users);
+    }
+    // FCM 트리거: Firebase _notifs 경로에 저장 (Cloud Function이 감지해서 푸시 발송)
+    if(_db){
+      const nid=Date.now().toString(36)+Math.random().toString(36).slice(2,4);
+      _db.ref('_notifs/'+userId+'/'+nid).set({message,evId:evId||'',ts:Date.now(),read:false});
+    }
   }catch(e){console.warn('_addNotif error',e);}
+}
+
+/* ── FCM 알림 권한 요청 ── */
+async function requestFCMPermission(){
+  try{
+    if(!_messaging||!CU||CU.role==='viewer') return;
+    if(Notification.permission==='denied') return;
+    const perm=await Notification.requestPermission();
+    if(perm!=='granted') return;
+    const token=await _messaging.getToken({vapidKey:VAPID_KEY});
+    if(token&&_db){
+      _db.ref('_fcmTokens/'+CU.id).set(token);
+      console.log('FCM token saved');
+    }
+  }catch(e){ console.warn('FCM permission error',e); }
 }
 
 /* ── 앱 진입 시 미읽은 알림 표시 ── */
@@ -4351,7 +4379,7 @@ initSwipeGestures();
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
     navigator.serviceWorker.register('/krafton_tennis/sw.js')
-      .then(r=>console.log('SW registered'))
+      .then(r=>{ console.log('SW registered'); if(_messaging) try{_messaging.useServiceWorker(r);}catch(e){} })
       .catch(e=>console.warn('SW failed:',e));
   });
 }
