@@ -1,17 +1,15 @@
 {
   "rules": {
-    ".read": "auth != null",
-    ".write": "auth != null",
+    ".read": true,
+    ".write": true,
     "_fcmTokens": {
       "$uid": {
-        ".read": "$uid === auth.uid",
-        ".write": "$uid === auth.uid"
+        ".write": true
       }
     },
     "_notifs": {
       "$uid": {
-        ".read": "$uid === auth.uid",
-        ".write": "auth != null"
+        ".write": true
       }
     }
   }
