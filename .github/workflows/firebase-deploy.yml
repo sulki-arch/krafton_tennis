@@ -30,7 +30,7 @@ jobs:
       - name: 서비스 계정 키 파일 생성
         run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > /tmp/sa-key.json
 
-      - name: Firebase 배포 (Hosting + Functions + DB Rules)
-        run: firebase deploy --non-interactive --project krafton-tennis
+      - name: Firebase 배포 (Hosting + DB Rules)
+        run: firebase deploy --non-interactive --project krafton-tennis --only hosting,database
         env:
           GOOGLE_APPLICATION_CREDENTIALS: /tmp/sa-key.json
