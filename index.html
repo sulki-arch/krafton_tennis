@@ -4565,9 +4565,15 @@ function initSwipeGestures(){
     }
     if(_busy||wDir!==1){ _resetWc(); return; }
     const dx=e.changedTouches[0].clientX-wsx;
-    if(Math.abs(dx)>55){
+    const absDx=Math.abs(dx);
+    if(absDx>55){
       const dir=dx<0?1:-1;
-      slideAnim(wcS,dir,'X',()=>changeMonth(dir));
+      // 짧은 스와이프(<130px) → 1일, 긴 스와이프(≥130px) → 3일
+      const days=absDx<130?1:3;
+      slideAnim(wcS,dir,'X',()=>{
+        wcCenterDate.setDate(wcCenterDate.getDate()+dir*days);
+        renderWeek();
+      });
     } else { _resetWc(); }
     wDir=0;
   },{passive:true});
