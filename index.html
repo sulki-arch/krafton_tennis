@@ -2887,6 +2887,23 @@ function sendChat(){
   setEvents(evs);
   input.value='';
   _renderEvChat(evs[i]);
+  _notifyChat(evs[i], text); // 댓글 알림 전송
+}
+
+/* ── 댓글 알림 전송 (참석자 전원, 본인 제외) ── */
+function _notifyChat(ev, text){
+  try{
+    const senderName=CU.name||CU.id;
+    // 댓글 미리보기 (20자 초과 시 자름)
+    const preview=text.length>20?text.slice(0,20)+'…':text;
+    const msg=`💬 ${ev.title}
+${senderName}: ${preview}`;
+    const attendees=ev.attendees||[];
+    // 참석자 + 일정 생성자 (본인 제외, 중복 제거)
+    const targets=[...new Set([...attendees, ev.createdBy])]
+      .filter(uid=>uid&&uid!==CU.id);
+    targets.forEach(uid=>_addNotif(uid, msg, ev.id));
+  }catch(e){console.warn('_notifyChat error',e);}
 }
 
 function triggerEvPhoto(){ document.getElementById('evPhotoIn').click(); }
