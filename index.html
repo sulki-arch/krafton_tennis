@@ -3256,12 +3256,39 @@ function saveEvent(){
     if(i!==-1) evs[i]={...evs[i],title,startDate,startTime,endDate:ed,endTime,memo,categoryId,scope,maxAttendees};
     toast('일정이 수정되었습니다');
   } else {
-    evs.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),
+    const newEv={id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),
       title,startDate,startTime,endDate:ed,endTime,memo,categoryId,scope,maxAttendees,
-      createdBy:CU.id,attendees:[],waitlist:[],chat:[],photos:[],coverPhotoId:null});
+      createdBy:CU.id,attendees:[],waitlist:[],chat:[],photos:[],coverPhotoId:null};
+    evs.push(newEv);
     toast('일정이 추가되었습니다');
+    _notifyNewEvent(newEv); // 새 일정 알림 전송
   }
   setEvents(evs); closeM('evM'); renderCal();
+}
+
+/* ── 새 일정 등록 알림 전송 (오늘 이후 일정만) ── */
+function _notifyNewEvent(ev){
+  try{
+    const today=new Date().toISOString().slice(0,10);
+    if(ev.startDate<today) return; // 과거 일정은 알림 없음
+    const cat=getCats().find(c=>c.id===ev.categoryId);
+    const catName=cat?cat.name:'일정';
+    // YY.MM.DD 형식
+    const d=ev.startDate.split('-');
+    const dateStr=d[1]+'.'+d[2]+'('+['일','월','화','수','목','금','토'][new Date(ev.startDate).getDay()]+')';
+    const msg=`📅 새 일정 등록: [${catName}] ${ev.title} — ${dateStr}`;
+    const users=getUsers();
+    const scope=ev.scope||'all';
+    let targets=[];
+    if(scope==='all'){
+      targets=users.filter(u=>u.role!=='viewer');
+    } else if(scope.startsWith('grp_')){
+      const gid=scope.slice(4);
+      const grp=getGroups().find(g=>g.id===gid);
+      if(grp) targets=users.filter(u=>grp.members.includes(u.id));
+    }
+    targets.forEach(u=>_addNotif(u.id,msg,ev.id));
+  }catch(e){console.warn('_notifyNewEvent error',e);}
 }
 function delEvent(){
   if(!editEvId||!confirm('이 일정을 삭제할까요?')) return;
