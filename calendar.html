@@ -44,6 +44,27 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,'Apple SD Gothi
 .hmonth{font-size:19px;font-weight:800;color:#111;min-width:126px;text-align:center;letter-spacing:-.3px}
 .h-sub{font-size:11px;color:#bbb;margin-top:2px}
 
+
+/* ── NOTIFICATION CENTER ── */
+.notif-btn{position:relative}
+.notif-badge{position:absolute;top:4px;right:4px;min-width:16px;height:16px;background:#e53935;color:#fff;border-radius:8px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px;pointer-events:none;line-height:1}
+#notifM .bs{display:flex;flex-direction:column;height:85vh;padding:0!important}
+.notif-header{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 12px;border-bottom:1px solid var(--BD);flex-shrink:0}
+.notif-header-title{font-size:17px;font-weight:800;color:#111}
+.notif-read-all{font-size:13px;color:var(--P);font-weight:600;background:none;border:none;cursor:pointer;padding:4px 8px}
+.notif-list{overflow-y:auto;flex:1}
+.notif-item{display:flex;align-items:flex-start;gap:12px;padding:14px 18px;border-bottom:1px solid #f5f5f5;cursor:pointer;transition:background .15s;position:relative}
+.notif-item:active{background:#f9f9f9}
+.notif-item.unread{background:#f0f7f0}
+.notif-dot{width:8px;height:8px;border-radius:50%;background:var(--P);flex-shrink:0;margin-top:5px}
+.notif-dot.read{background:transparent}
+.notif-body{flex:1;min-width:0}
+.notif-msg{font-size:14px;color:#222;line-height:1.45;word-break:keep-all}
+.notif-time{font-size:11px;color:#bbb;margin-top:4px}
+.notif-arrow{color:#ccc;font-size:16px;flex-shrink:0;margin-top:2px}
+.notif-empty{text-align:center;color:#bbb;font-size:14px;padding:60px 20px}
+.notif-del{background:none;border:none;color:#ccc;font-size:18px;padding:4px;cursor:pointer;flex-shrink:0}
+
 /* ── CATEGORY FILTER BAR ── */
 .cat-bar{display:flex;align-items:center;gap:7px;padding:8px 12px;overflow-x:auto;border-bottom:1px solid var(--BD);background:#fff;scrollbar-width:none}
 .cat-bar::-webkit-scrollbar{display:none}
@@ -562,6 +583,10 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
       </div>
     </div>
     <button class="hbtn" id="todayBtn" onclick="goToday()" style="display:none;font-size:13px;font-weight:700;color:var(--P);letter-spacing:-.3px;padding:0 6px;min-width:36px">오늘</button>
+    <button class="hbtn notif-btn" id="notifBtn" onclick="openNotifCenter()" style="display:none">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <span class="notif-badge" id="notifBadge" style="display:none"></span>
+    </button>
     <button class="hbtn" onclick="toggleSearch()">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
     </button>
@@ -900,6 +925,18 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 </div>
 
 <!-- ═══ EVENT DETAIL MODAL ═══ -->
+  <!-- ── 알림 센터 모달 ── -->
+  <div class="bso" id="notifM">
+    <div class="bs">
+      <div class="bs-h"></div>
+      <div class="notif-header">
+        <span class="notif-header-title">🔔 알림</span>
+        <button class="notif-read-all" onclick="markAllNotifsRead()">모두 읽음</button>
+      </div>
+      <div class="notif-list" id="notifList"></div>
+    </div>
+  </div>
+
 <div class="bso" id="evDM">
   <div class="bs" style="display:flex;flex-direction:column;height:90vh">
     <div class="bs-h"></div>
@@ -3184,13 +3221,100 @@ async function requestFCMPermission(){
 /* ── 앱 아이콘 뱃지 업데이트 ── */
 function _updateBadge(){
   try{
-    if(!CU||!('setAppBadge' in navigator)) return;
+    if(!CU) return;
     const users=getUsers();
     const me=users.find(u=>u.id===CU.id);
     const count=(me?.notifications||[]).filter(n=>!n.read).length;
-    if(count>0) navigator.setAppBadge(count);
-    else navigator.clearAppBadge();
+    // 앱 아이콘 뱃지
+    if('setAppBadge' in navigator){
+      if(count>0) navigator.setAppBadge(count); else navigator.clearAppBadge();
+    }
+    // 헤더 벨 아이콘 뱃지
+    const badge=document.getElementById('notifBadge');
+    if(badge){ badge.textContent=count>0?count:''; badge.style.display=count>0?'flex':'none'; }
   }catch(e){}
+}
+
+/* ── 알림 센터 열기 ── */
+function openNotifCenter(){
+  renderNotifList();
+  openM('notifM');
+}
+
+/* ── 알림 목록 렌더링 ── */
+function renderNotifList(){
+  if(!CU) return;
+  const users=getUsers();
+  const me=users.find(u=>u.id===CU.id);
+  const notifs=[...(me?.notifications||[])].reverse(); // 최신순
+  const el=document.getElementById('notifList');
+  if(!el) return;
+  if(!notifs.length){
+    el.innerHTML='<div class="notif-empty">알림이 없습니다</div>';
+    return;
+  }
+  el.innerHTML=notifs.map(n=>{
+    const isUnread=!n.read;
+    const ago=_timeAgo(n.ts);
+    const hasEv=n.evId&&getEvents().find(e=>e.id===n.evId);
+    return `<div class="notif-item${isUnread?' unread':''}" onclick="tapNotif('${n.id}','${n.evId||''}')">
+      <div class="notif-dot${isUnread?'':' read'}"></div>
+      <div class="notif-body">
+        <div class="notif-msg">${n.message}</div>
+        <div class="notif-time">${ago}</div>
+      </div>
+      ${hasEv?'<div class="notif-arrow">›</div>':''}
+    </div>`;
+  }).join('');
+}
+
+/* ── 알림 탭 → 읽음 처리 + 일정 이동 ── */
+function tapNotif(notifId, evId){
+  // 읽음 처리
+  const users=getUsers();
+  const idx=users.findIndex(u=>u.id===CU.id);
+  if(idx!==-1){
+    users[idx]={...users[idx],notifications:(users[idx].notifications||[]).map(n=>
+      n.id===notifId?{...n,read:true}:n
+    )};
+    setUsers(users);
+    _updateBadge();
+    renderNotifList();
+  }
+  // 해당 일정으로 이동
+  if(evId){
+    const ev=getEvents().find(e=>e.id===evId);
+    if(ev){
+      closeM('notifM');
+      setTimeout(()=>openEvDetail(evId),300);
+    }
+  }
+}
+
+/* ── 모두 읽음 ── */
+function markAllNotifsRead(){
+  const users=getUsers();
+  const idx=users.findIndex(u=>u.id===CU.id);
+  if(idx!==-1){
+    users[idx]={...users[idx],notifications:(users[idx].notifications||[]).map(n=>({...n,read:true}))};
+    setUsers(users);
+    _updateBadge();
+    renderNotifList();
+  }
+}
+
+/* ── 시간 표시 (몇 분 전) ── */
+function _timeAgo(ts){
+  if(!ts) return '';
+  const diff=Date.now()-ts;
+  const m=Math.floor(diff/60000);
+  if(m<1) return '방금 전';
+  if(m<60) return m+'분 전';
+  const h=Math.floor(m/60);
+  if(h<24) return h+'시간 전';
+  const d=Math.floor(h/24);
+  if(d<7) return d+'일 전';
+  return new Date(ts).toLocaleDateString('ko-KR',{month:'short',day:'numeric'});
 }
 
 /* ── Firebase 실시간 알림 수신 리스너 ── */
