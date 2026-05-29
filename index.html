@@ -1,48 +1,4 @@
-<!
-function toggleHeart(postId) {
-  if (!CU || !_db) return;
-  const ref = _db.ref('_posts/'+postId+'/reactions/heart/'+CU.id);
-  ref.once('value', snap => {
-    if (snap.exists()) ref.remove();
-    else ref.set(true);
-    setTimeout(() => {
-      _db.ref('_posts/'+postId+'/reactions/heart').once('value', hsnap => {
-        const hearts = hsnap.val() || {};
-        const cnt = Object.keys(hearts).length;
-        const liked = !!hearts[CU.id];
-        const btn = document.getElementById('hbtn-'+postId);
-        if (!btn) return;
-        btn.className = 'fboard-heart-btn' + (liked?' liked':'');
-        btn.innerHTML = `<svg viewBox="0 0 24 24" fill="${liked?'#e53935':'none'}" stroke="${liked?'#e53935':'#aaa'}" stroke-width="2.2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>${cnt>0?`<span class="hcnt">${cnt}</span>`:''}`;
-      });
-    }, 200);
-  });
-}
-
-function toggleHeartDetail(postId) {
-  if (!CU || !_db) return;
-  const ref = _db.ref('_posts/'+postId+'/reactions/heart/'+CU.id);
-  ref.once('value', snap => {
-    if (snap.exists()) ref.remove();
-    else ref.set(true);
-    setTimeout(() => {
-      _db.ref('_posts/'+postId+'/reactions/heart').once('value', hsnap => {
-        const hearts = hsnap.val() || {};
-        const cnt = Object.keys(hearts).length;
-        const liked = !!hearts[CU.id];
-        const btn = document.getElementById('hbtn-detail-'+postId);
-        if (!btn) return;
-        btn.className = 'fboard-heart-btn' + (liked?' liked':'');
-        btn.style.cssText = 'position:static;box-shadow:0 1px 6px rgba(0,0,0,.1)';
-        btn.innerHTML = `<svg viewBox="0 0 24 24" fill="${liked?'#e53935':'none'}" stroke="${liked?'#e53935':'#aaa'}" stroke-width="2.2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>${cnt>0?`<span class="hcnt">${cnt}</span>`:''}`;
-        // 목록 카드 하트도 동기화
-        const listBtn = document.getElementById('hbtn-'+postId);
-        if (listBtn) { listBtn.className = btn.className; listBtn.innerHTML = btn.innerHTML; }
-      });
-    }, 200);
-  });
-}
-DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -4973,6 +4929,54 @@ function _showFreeBoardDot(show) {
 }
 function _markFreeBoardRead() { _showFreeBoardDot(false); }
 function _escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+
+function toggleHeart(postId) {
+  if (!CU || !_db) return;
+  const ref = _db.ref('_posts/'+postId+'/reactions/heart/'+CU.id);
+  ref.once('value', snap => {
+    if (snap.exists()) ref.remove();
+    else ref.set(true);
+    setTimeout(() => {
+      _db.ref('_posts/'+postId+'/reactions/heart').once('value', hsnap => {
+        const hearts = hsnap.val() || {};
+        const cnt = Object.keys(hearts).length;
+        const liked = !!hearts[CU.id];
+        const btn = document.getElementById('hbtn-'+postId);
+        if (!btn) return;
+        btn.className = 'fboard-heart-btn' + (liked?' liked':'');
+        const svgFill = liked ? '#e53935' : 'none';
+        const svgStroke = liked ? '#e53935' : '#aaa';
+        const cntHtml = cnt > 0 ? '<span class="hcnt">'+cnt+'</span>' : '';
+        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="'+svgFill+'" stroke="'+svgStroke+'" stroke-width="2.2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>'+cntHtml;
+      });
+    }, 200);
+  });
+}
+
+function toggleHeartDetail(postId) {
+  if (!CU || !_db) return;
+  const ref = _db.ref('_posts/'+postId+'/reactions/heart/'+CU.id);
+  ref.once('value', snap => {
+    if (snap.exists()) ref.remove();
+    else ref.set(true);
+    setTimeout(() => {
+      _db.ref('_posts/'+postId+'/reactions/heart').once('value', hsnap => {
+        const hearts = hsnap.val() || {};
+        const cnt = Object.keys(hearts).length;
+        const liked = !!hearts[CU.id];
+        const svgFill = liked ? '#e53935' : 'none';
+        const svgStroke = liked ? '#e53935' : '#aaa';
+        const cntHtml = cnt > 0 ? '<span class="hcnt">'+cnt+'</span>' : '';
+        const svgHtml = '<svg viewBox="0 0 24 24" fill="'+svgFill+'" stroke="'+svgStroke+'" stroke-width="2.2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>'+cntHtml;
+        const btn = document.getElementById('hbtn-detail-'+postId);
+        if (btn) { btn.className = 'fboard-heart-btn' + (liked?' liked':''); btn.style.cssText = 'position:static;box-shadow:0 1px 6px rgba(0,0,0,.1)'; btn.innerHTML = svgHtml; }
+        const listBtn = document.getElementById('hbtn-'+postId);
+        if (listBtn) { listBtn.className = 'fboard-heart-btn' + (liked?' liked':''); listBtn.innerHTML = svgHtml; }
+      });
+    }, 200);
+  });
+}
 
 init();
 initSwipeGestures();
