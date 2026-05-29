@@ -21,10 +21,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{--P:#2DB400;--PD:#1e8000;--SUN:#e53935;--SAT:#1565C0;--BD:#f0f0f0;--SH:0 2px 14px rgba(0,0,0,.13)}
+:root{--P:#185FA5;--PD:#0d4a87;--SUN:#e53935;--SAT:#185FA5;--BD:#f0f2f5;--SH:0 4px 20px rgba(0,0,0,.08)}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
-body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif;background:#f4f6fb;display:flex;justify-content:center;padding-bottom:calc(56px + env(safe-area-inset-bottom))}
+body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif;background:#f7f8fc;display:flex;justify-content:center;padding-bottom:calc(56px + env(safe-area-inset-bottom))}
 #root{width:100%;max-width:480px;min-height:100vh;background:#fff;position:relative;display:flex;flex-direction:column}
 
 /* ── LOGIN (legacy, unused) ── */
@@ -34,15 +34,15 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,'Apple SD Gothi
 #app{display:none;flex-direction:column;flex:1}
 
 /* ── HEADER ── */
-.hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--BD);background:#fff;position:sticky;top:0;z-index:100}
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:none;background:#fff;box-shadow:0 1px 0 #f0f2f5;position:sticky;top:0;z-index:100}
 .hbtn{background:none;border:none;cursor:pointer;padding:8px;border-radius:50%;color:#555;display:flex;align-items:center;transition:background .15s}
 .hbtn:active{background:#f0f0f0}
 .h-center{display:flex;flex-direction:column;align-items:center}
 .mnav{display:flex;align-items:center;gap:0}
 .mnav button{background:none;border:none;cursor:pointer;font-size:22px;color:#333;padding:2px 8px;border-radius:8px;line-height:1;transition:background .15s;font-weight:700}
 .mnav button:active{background:#f0f0f0}
-.hmonth{font-size:19px;font-weight:800;color:#111;min-width:126px;text-align:center;letter-spacing:-.3px}
-.h-sub{font-size:11px;color:#bbb;margin-top:2px}
+.hmonth{font-size:18px;font-weight:700;color:#111;min-width:126px;text-align:center;letter-spacing:-.3px}
+.h-sub{font-size:11px;color:#c0c4d0;margin-top:2px}
 
 
 /* ── NOTIFICATION CENTER ── */
@@ -65,15 +65,13 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,'Apple SD Gothi
 .notif-empty{text-align:center;color:#bbb;font-size:14px;padding:60px 20px}
 .notif-del{background:none;border:none;color:#ccc;font-size:18px;padding:4px;cursor:pointer;flex-shrink:0}
 
-/* ── CATEGORY FILTER BAR ── */
-.cat-bar{display:flex;align-items:center;gap:7px;padding:8px 12px;overflow-x:auto;border-bottom:1px solid var(--BD);background:#fff;scrollbar-width:none}
-.cat-bar::-webkit-scrollbar{display:none}
+/* ── CATEGORY FILTER BAR (removed) ── */
 .c-chip{display:flex;align-items:center;gap:5px;padding:5px 13px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;border:1.5px solid #e8e8e8;color:#aaa;background:#f5f5f5;transition:all .15s;flex-shrink:0}
 .c-chip.active{color:#333}
 .c-chip-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 
 /* ── SEARCH BAR ── */
-.sbar{padding:10px 14px;border-bottom:1px solid var(--BD);display:none;background:#fff}
+.sbar{padding:10px 14px;border-bottom:0.5px solid #f0f2f5;display:none;background:#fff}
 .sbar.open{display:block}
 .sbar input{width:100%;padding:10px 14px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:14px;outline:none;font-family:inherit}
 .sbar input:focus{border-color:var(--P)}
@@ -84,7 +82,7 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,'Apple SD Gothi
 
 /* ── CALENDAR ── */
 .cal{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
-.dhdr{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--BD)}
+.dhdr{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:0.5px solid #eef0f5}
 .dh{text-align:center;padding:7px 0;font-size:12px;font-weight:600;color:#888}
 .dh:last-child{color:var(--SUN)}.dh:nth-child(6){color:var(--SAT)}
 .cgrid{display:block}
@@ -94,10 +92,10 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,'Apple SD Gothi
 .ev-bar{position:absolute;height:16px;font-size:10px;line-height:16px;padding:0 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;pointer-events:auto;font-weight:700;box-sizing:border-box;color:#fff;opacity:.55}
 .ev-bar:hover{opacity:.8}.ev-bar:active{opacity:.95}
 
-.dc{min-height:86px;border-right:1px solid #f0f0f0;border-bottom:1px solid #f0f0f0;padding:3px 2px 2px;cursor:pointer;overflow:hidden;min-width:0;transition:background .1s}
+.dc{min-height:86px;border-right:0.5px solid #f0f2f5;border-bottom:0.5px solid #f0f2f5;padding:3px 2px 2px;cursor:pointer;overflow:hidden;min-width:0;transition:background .1s}
 .dc:hover{background:#f8faff}
-.dc.this-week{background:rgba(45,180,0,.05)}
-.dc.this-week:hover{background:rgba(45,180,0,.09)}
+.dc.this-week{background:rgba(24,95,165,.04)}
+.dc.this-week:hover{background:rgba(24,95,165,.08)}
 .dc:nth-child(7n){border-right:none}
 .dnum{font-size:13px;font-weight:700;width:27px;height:27px;display:flex;align-items:center;justify-content:center;margin:0 auto 2px;border-radius:50%}
 .dc.today .dnum{background:var(--P);color:#fff;font-weight:700}
@@ -113,7 +111,7 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,'Apple SD Gothi
 
 /* ── SCOPE FILTER BAR ── */
 /* ── 그룹 버튼 바 (72×72px 정사각형) ── */
-.grp-bar{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;overflow-x:auto;border-bottom:1px solid var(--BD);background:#fff;scrollbar-width:none;flex-shrink:0}
+.grp-bar{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;overflow-x:auto;border-bottom:0.5px solid #f0f2f5;background:#fff;scrollbar-width:none;flex-shrink:0}
 .grp-bar::-webkit-scrollbar{display:none}
 .grp-btn{width:72px;height:72px;border-radius:14px;flex-shrink:0;position:relative;cursor:pointer;background:linear-gradient(135deg,#e3f2fd,#bbdefb);background-size:cover;background-position:center;display:flex;align-items:flex-end;overflow:hidden;border:2.5px solid transparent;transition:border-color .15s,box-shadow .15s}
 .grp-btn.grp-all{background:linear-gradient(135deg,#e8f5e9,#c8e6c9)}
@@ -124,9 +122,7 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,'Apple SD Gothi
 .grp-btn:hover .grp-btn-edit{opacity:1}
 .grp-btn-wrap{display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0}
 .grp-btn-name{font-size:10px;color:#888;font-weight:500;max-width:72px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-/* ── 카테고리 바 (하단 고정) ── */
-.cat-bar{display:flex;align-items:center;gap:7px;padding:8px 12px 12px;overflow-x:auto;border-top:1px solid var(--BD);background:#fff;scrollbar-width:none;flex-shrink:0}
-.cat-bar::-webkit-scrollbar{display:none}
+/* ── 카테고리 바 (removed) ── */
 
 /* ── CELL MEDIA ROW ── */
 .cmedia{display:flex;align-items:center;gap:2px;padding:0 3px;min-height:16px;flex-wrap:nowrap;overflow:hidden}
@@ -184,15 +180,15 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,'Apple SD Gothi
 /* ── BOTTOM SHEET ── */
 .bso{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;align-items:flex-end;justify-content:center}
 .bso.open{display:flex}
-.bs{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:14px 20px 32px;max-height:90vh;overflow-y:auto;animation:su .22s cubic-bezier(.4,0,.2,1)}
+.bs{background:#fff;border-radius:24px 24px 0 0;width:100%;max-width:480px;padding:14px 20px 32px;max-height:90vh;overflow-y:auto;animation:su .22s cubic-bezier(.4,0,.2,1)}
 @keyframes su{from{transform:translateY(100%)}to{transform:translateY(0)}}
 .bs-h{width:38px;height:4px;background:#e0e0e0;border-radius:2px;margin:0 auto 16px}
 .bs-t{font-size:18px;font-weight:700;color:#1a1a1a;margin-bottom:16px}
 label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5px}
-.bs input,.bs select,.bs textarea{width:100%;padding:12px 14px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:15px;outline:none;color:#222;font-family:inherit;background:#fff;transition:border-color .2s}
+.bs input,.bs select,.bs textarea{width:100%;padding:12px 14px;border:1.5px solid #e8eaf0;border-radius:12px;font-size:15px;outline:none;color:#222;font-family:inherit;background:#fff;transition:border-color .2s}
 .bs input:focus,.bs select:focus,.bs textarea:focus{border-color:var(--P)}
 .bs-acts{display:flex;gap:10px;margin-top:18px}
-.btn{padding:13px 14px;border-radius:12px;font-size:15px;font-weight:700;border:none;cursor:pointer;flex:1;font-family:inherit;transition:opacity .15s}
+.btn{padding:13px 14px;border-radius:14px;font-size:15px;font-weight:700;border:none;cursor:pointer;flex:1;font-family:inherit;transition:opacity .15s}
 .btn:active{opacity:.8}
 .btn-p{background:var(--P);color:#fff;font-weight:700}
 .btn-d{background:#ffebee;color:#c62828}
@@ -525,9 +521,9 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 .ev-capacity{font-size:12px;color:#888;margin-top:6px;margin-bottom:2px}
 
 /* ── BOTTOM NAV ── */
-.bot-nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:#fff;border-top:0.5px solid #e0e0e0;z-index:100;padding-bottom:env(safe-area-inset-bottom);max-width:480px;left:50%;transform:translateX(-50%)}
-.bot-nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px 6px;gap:3px;font-size:10px;color:#999;cursor:pointer;border:none;background:none;position:relative}
-.bot-nav-item.on{color:#185FA5}
+.bot-nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:#fff;border-top:none;box-shadow:0 -4px 20px rgba(0,0,0,0.08);z-index:100;padding-bottom:env(safe-area-inset-bottom);max-width:480px;left:50%;transform:translateX(-50%)}
+.bot-nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px 6px;gap:3px;font-size:11px;font-weight:500;color:#aaa;cursor:pointer;border:none;background:none;position:relative}
+.bot-nav-item.on{color:var(--P);font-weight:700;}
 .bot-nav-icon{font-size:22px}
 .bot-nav-dot{width:5px;height:5px;background:#e24b4a;border-radius:50%;position:absolute;top:6px;right:calc(50% - 14px)}
 </style>
@@ -627,7 +623,7 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
   </div>
 
   <!-- Category filter bar (하단) -->
-  <div class="cat-bar" id="catBar"></div>
+  
 
   <!-- FAB -->
   <button class="fab" id="fab" onclick="openEvModal(null,null)">
@@ -1299,7 +1295,7 @@ async function loadAllData(){
           CU=u;
           // ── 드로어 아바타 / 배경 실시간 갱신 ──
           _refreshDrawerAvatar();
-          renderCatBar(); renderGroupBar();
+          renderGroupBar();
           if(viewMode==='week') renderWeek(); else renderCal();
           if(document.getElementById('ddM').classList.contains('open')) refreshDd();
           if(document.getElementById('evDM').classList.contains('open')&&detailEvId) openEvDetail(detailEvId);
@@ -1858,7 +1854,6 @@ function showApp(){
   // 뷰어 배너
   document.getElementById('viewerBanner').classList.toggle('show',isV);
   const now=new Date(); VY=now.getFullYear(); VM=now.getMonth();
-  renderCatBar();
   renderGroupBar();
   renderCal();
   if(!isV) posFab();
@@ -2264,26 +2259,13 @@ function _wcAttNames(ev){
 /* ═══════════════════════════════════════
    7.  CATEGORY FILTER BAR
 ═══════════════════════════════════════ */
-function renderCatBar(){
-  const cats=getCats();
-  const bar=document.getElementById('catBar');
-  const allOn=hiddenCats.size===0;
-  let h=`<div class="c-chip ${allOn?'active':''}" onclick="toggleAllCats()" style="${allOn?'background:#e3f2fd;border-color:#90caf9;color:#1565c0':''}">전체</div>`;
-  cats.forEach(c=>{
-    const bg=CBG[c.color]||'#90caf9';
-    const on=!hiddenCats.has(c.id);
-    h+=`<div class="c-chip ${on?'active':''}" data-id="${c.id}" onclick="toggleCat('${c.id}')"
-      style="${on?`background:${bg}33;border-color:${bg};color:#333`:''}">
-      ${on?`<div class="c-chip-dot" style="background:${bg}"></div>`:''}${c.name}</div>`;
-  });
-  bar.innerHTML=h;
-}
+function renderCatBar(){ /* removed */ }
 
 function toggleCat(id){
   if(hiddenCats.has(id)) hiddenCats.delete(id); else hiddenCats.add(id);
-  renderCatBar(); renderCal();
+  renderCal();
 }
-function toggleAllCats(){ hiddenCats.clear(); renderCatBar(); renderCal(); }
+function toggleAllCats(){ hiddenCats.clear(); renderCal(); }
 
 /* ═══════════════════════════════════════
    8.  DRAWER
@@ -3720,7 +3702,7 @@ function moveCat(id,dir){
   const ni=i+dir; if(ni<0||ni>=cats.length) return;
   // Swap orders
   const tmp=cats[i].order; cats[i].order=cats[ni].order; cats[ni].order=tmp;
-  setCats(cats); renderCatList(); renderCatBar(); renderCal();
+  setCats(cats); renderCatList(); renderCal();
 }
 
 function openCatEdit(id){
@@ -3770,12 +3752,12 @@ function saveCat(){
     cats.push({id:Date.now().toString(36),name,color:selCatColor,order:maxOrd+1});
     toast('카테고리가 추가되었습니다');
   }
-  setCats(cats); closeM('catEM'); renderCatList(); renderCatBar(); renderCal();
+  setCats(cats); closeM('catEM'); renderCatList(); renderCal();
 }
 function delCat(){
   if(!editCatId||!confirm('이 카테고리를 삭제할까요?')) return;
   setCats(getCats().filter(c=>c.id!==editCatId));
-  closeM('catEM'); renderCatList(); renderCatBar(); renderCal();
+  closeM('catEM'); renderCatList(); renderCal();
   toast('카테고리가 삭제되었습니다');
 }
 
@@ -4650,7 +4632,7 @@ function switchTab(tab) {
   });
   const isBoard = (tab === 'notice' || tab === 'free');
   // 캘린더/필터 관련 요소 토글
-  const calAreas = document.querySelectorAll('.cal, .dhdr, #wcalWrap, .cat-bar, #catBar, .sbar, #viewerBanner, .fab-wrap, #fab');
+  const calAreas = document.querySelectorAll('.cal, .dhdr, #wcalWrap, .sbar, #viewerBanner, .fab-wrap, #fab');
   calAreas.forEach(el => { if(el) el.style.display = isBoard ? 'none' : ''; });
   document.getElementById('noticeScreen').style.display = tab === 'notice' ? 'block' : 'none';
   document.getElementById('freeScreen').style.display = tab === 'free' ? 'block' : 'none';
@@ -4720,7 +4702,7 @@ function loadPosts(type) {
       return;
     }
     listEl.innerHTML = posts.map(p => `
-      <div onclick="openPost('${p.id}')" style="background:#fff;border:0.5px solid #e8e8e8;border-radius:12px;padding:14px 16px;cursor:pointer">
+      <div onclick="openPost('${p.id}')" style="background:#fff;border:0.5px solid #eef0f5;border-radius:16px;padding:14px 16px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.05)">
         ${type==='notice'?'<span style="font-size:11px;background:#EEEDFE;color:#3C3489;padding:2px 8px;border-radius:20px;margin-right:6px;font-weight:500">📌 공지</span>':''}
         <div style="font-size:14px;font-weight:500;margin-bottom:4px;color:#1a1a1a">${_escHtml(p.title)}</div>
         <div style="font-size:12px;color:#999;display:flex;gap:8px">
@@ -4780,7 +4762,7 @@ if('serviceWorker' in navigator){
 </script>
 
 <!-- 공지사항 화면 -->
-<div id="noticeScreen" style="display:none;position:fixed;top:52px;left:50%;transform:translateX(-50%);width:100%;max-width:480px;bottom:calc(56px + env(safe-area-inset-bottom));overflow-y:auto;background:#f4f6fb;z-index:50;padding:12px">
+<div id="noticeScreen" style="display:none;position:fixed;top:52px;left:50%;transform:translateX(-50%);width:100%;max-width:480px;bottom:calc(56px + env(safe-area-inset-bottom));overflow-y:auto;background:#f7f8fc;z-index:50;padding:12px">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
     <h2 style="font-size:16px;font-weight:600">공지사항</h2>
     <button id="btnAddNotice" onclick="openAddPost('notice')" style="display:none;font-size:13px;background:#185FA5;color:#fff;border:none;border-radius:8px;padding:6px 14px;cursor:pointer">+ 글쓰기</button>
@@ -4789,7 +4771,7 @@ if('serviceWorker' in navigator){
 </div>
 
 <!-- 자유게시판 화면 -->
-<div id="freeScreen" style="display:none;position:fixed;top:52px;left:50%;transform:translateX(-50%);width:100%;max-width:480px;bottom:calc(56px + env(safe-area-inset-bottom));overflow-y:auto;background:#f4f6fb;z-index:50;padding:12px">
+<div id="freeScreen" style="display:none;position:fixed;top:52px;left:50%;transform:translateX(-50%);width:100%;max-width:480px;bottom:calc(56px + env(safe-area-inset-bottom));overflow-y:auto;background:#f7f8fc;z-index:50;padding:12px">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
     <h2 style="font-size:16px;font-weight:600">자유게시판</h2>
     <button onclick="openAddPost('free')" style="font-size:13px;background:#185FA5;color:#fff;border:none;border-radius:8px;padding:6px 14px;cursor:pointer">+ 글쓰기</button>
