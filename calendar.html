@@ -545,7 +545,32 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
   </svg>
   <div style="color:rgba(255,255,255,.45);font-size:13px">연결 중...</div>
 </div>
-<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+<style>@keyframes spin{to{transform:rotate(360deg)}}
+/* ── FREE BOARD ── */
+.fcat-chip{padding:7px 14px;border-radius:100px;border:1.5px solid #e8eaf0;background:#fff;font-size:13px;font-weight:500;color:#888;cursor:pointer;white-space:nowrap;transition:all .18s;font-family:inherit}
+.fcat-chip.on{background:#185FA5;color:#fff;border-color:#185FA5;font-weight:700}
+#freeCatBar::-webkit-scrollbar{display:none}
+.fboard-card{background:#fff;border-radius:18px;overflow:hidden;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,0.07);position:relative;transition:transform .15s}
+.fboard-card:active{transform:scale(.97)}
+.fboard-img{width:100%;aspect-ratio:4/3;background:#f0f2f5;overflow:hidden;position:relative}
+.fboard-img img{width:100%;height:100%;object-fit:cover}
+.fboard-img-ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:32px;color:#ddd}
+.fboard-body{padding:10px 10px 8px}
+.fboard-cat{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px;background:#EEF4FF;color:#185FA5;margin-bottom:5px}
+.fboard-title{font-size:13px;font-weight:600;color:#1a1a1a;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:5px}
+.fboard-meta{font-size:11px;color:#bbb}
+.fboard-react{position:absolute;bottom:72px;left:8px;display:flex;gap:3px;flex-wrap:wrap}
+.fboard-react-btn{background:rgba(255,255,255,.92);border:none;border-radius:100px;padding:3px 7px;font-size:12px;cursor:pointer;backdrop-filter:blur(4px);box-shadow:0 1px 4px rgba(0,0,0,.12);display:flex;align-items:center;gap:2px;font-family:inherit}
+.fboard-react-btn .rc{font-size:13px}
+.fboard-react-btn .rn{font-size:10px;font-weight:600;color:#555}
+.fboard-react-btn.mine{background:#185FA5;color:#fff}
+.fboard-react-btn.mine .rn{color:#fff}
+/* post cat picker */
+.pcap{padding:7px 13px;border-radius:100px;border:1.5px solid #e8eaf0;background:#fff;font-size:13px;cursor:pointer;font-family:inherit;transition:all .15s;color:#555}
+.pcap.on{background:#185FA5;color:#fff;border-color:#185FA5;font-weight:600}
+/* link preview in card */
+.fboard-link-preview{margin-top:6px;border-top:1px solid #f0f2f5;padding-top:8px}
+</style>
 
 <!-- ═══ SPLASH + LOGIN (3단 구성) ═══ -->
 <div id="splash">
@@ -4645,6 +4670,8 @@ function switchTab(tab) {
   // FAB 토글
   const fabEl = document.getElementById('fab');
   if (fabEl) fabEl.style.display = isBoard ? 'none' : '';
+  const freeFabEl = document.getElementById('freeFab');
+  if (freeFabEl) freeFabEl.style.display = tab === 'free' ? 'flex' : 'none';
   // 캘린더 앱 전체 영역 토글 — #app 안에서 캘린더 관련 요소들
   const calEls = document.querySelectorAll('.cal, .dhdr, #wcalWrap, .sbar, #viewerBanner');
   if (isBoard) {
@@ -4663,12 +4690,80 @@ function switchTab(tab) {
   if (tab === 'free') { loadPosts('free'); _markFreeBoardRead(); }
 }
 
+// ─── BOARD ───────────────────────────────────────
 let _postType = 'notice';
+let _freeCat = 'all';
+let _allFreePosts = [];
+let _linkDebTimer = null;
+
+const FREE_CATS = {
+  '정보':'📖 정보공유','장비':'🎾 장비추천','후기':'✍️ 후기',
+  '질문':'❓ 질문','모집':'👥 모집','기타':'💬 기타'
+};
+
+// 카테고리 필터
+function setFreecat(cat) {
+  _freeCat = cat;
+  document.querySelectorAll('.fcat-chip').forEach(el => {
+    const v = el.getAttribute('onclick').match(/'([^']+)'/)?.[1];
+    el.classList.toggle('on', v === cat);
+  });
+  renderFreeList();
+}
+
+// 카테고리 선택 (글쓰기)
+function selectPostCat(el, val) {
+  document.querySelectorAll('.pcap').forEach(b => b.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('postCatVal').value = val;
+}
+
+// 링크 미리보기 debounce
+function debounceLinkPreview() {
+  clearTimeout(_linkDebTimer);
+  _linkDebTimer = setTimeout(fetchLinkPreview, 800);
+}
+
+// microlink API로 OG 정보 가져오기
+async function fetchLinkPreview() {
+  const url = (document.getElementById('postLinkInp')?.value||'').trim();
+  const pv = document.getElementById('postLinkPreview');
+  if (!url || !url.startsWith('http')) { if(pv) pv.style.display='none'; return; }
+  try {
+    const res = await fetch('https://api.microlink.io/?url=' + encodeURIComponent(url));
+    const data = await res.json();
+    if (data.status === 'success') {
+      const d = data.data;
+      document.getElementById('plpTitle').textContent = d.title || '';
+      document.getElementById('plpDesc').textContent = d.description || '';
+      try { document.getElementById('plpDomain').textContent = new URL(url).hostname; } catch(e){}
+      const img = d.image?.url || d.logo?.url || '';
+      const imgEl = document.getElementById('plpImgEl');
+      const ph = document.getElementById('plpImgPh');
+      if (img) { imgEl.src = img; imgEl.style.display='block'; ph.style.display='none'; }
+      else { imgEl.style.display='none'; ph.style.display='flex'; }
+      pv.style.display='block';
+      // 프리뷰 저장용
+      pv._ogData = { title: d.title||'', desc: d.description||'', img, domain: document.getElementById('plpDomain').textContent };
+    }
+  } catch(e) { if(pv) pv.style.display='none'; }
+}
+
 function openAddPost(type) {
   _postType = type;
-  document.getElementById('addPostTitle').textContent = type === 'notice' ? '공지 작성' : '자유게시글 작성';
+  document.getElementById('addPostTitle').textContent = type === 'notice' ? '공지 작성' : '새 글 작성';
   document.getElementById('postTitleInp').value = '';
   document.getElementById('postBodyInp').value = '';
+  const linkInp = document.getElementById('postLinkInp');
+  if (linkInp) linkInp.value = '';
+  const pv = document.getElementById('postLinkPreview');
+  if (pv) pv.style.display = 'none';
+  const catRow = document.getElementById('postCatRow');
+  if (catRow) catRow.style.display = type === 'free' ? 'block' : 'none';
+  // 기타 기본 선택
+  document.querySelectorAll('.pcap').forEach(b => b.classList.remove('on'));
+  const defBtn = document.querySelector('.pcap[onclick*="기타"]');
+  if (defBtn) { defBtn.classList.add('on'); document.getElementById('postCatVal').value='기타'; }
   openM('addPostM');
 }
 
@@ -4677,12 +4772,14 @@ function submitPost() {
   const body = document.getElementById('postBodyInp').value.trim();
   if (!title) { alert('제목을 입력해주세요.'); return; }
   if (!CU) return;
+  const link = (document.getElementById('postLinkInp')?.value||'').trim();
+  const pv = document.getElementById('postLinkPreview');
+  const ogData = (pv && pv._ogData) || null;
+  const cat = _postType === 'free' ? (document.getElementById('postCatVal')?.value || '기타') : '';
   const post = {
-    title, body,
-    authorId: CU.id,
-    authorName: CU.name || CU.id,
-    createdAt: Date.now(),
-    type: _postType
+    title, body, link: link||null, ogData: ogData||null, cat,
+    authorId: CU.id, authorName: CU.name || CU.id,
+    createdAt: Date.now(), type: _postType
   };
   _db.ref('_posts').push(post).then(() => {
     closeM('addPostM');
@@ -4690,55 +4787,142 @@ function submitPost() {
     const users = typeof getUsers === 'function' ? getUsers() : [];
     if (_postType === 'free') {
       users.filter(u => u.id !== CU.id).forEach(u => {
-        if (typeof _addNotif === 'function') _addNotif(u.id, '📋 자유게시판: ' + (CU.name||CU.id) + ' — ' + title, null);
+        if (typeof _addNotif === 'function') _addNotif(u.id, '📋 자유게시판: '+(CU.name||CU.id)+' — '+title, null);
       });
       _showFreeBoardDot(true);
     } else if (_postType === 'notice') {
       users.filter(u => u.id !== CU.id).forEach(u => {
-        if (typeof _addNotif === 'function') _addNotif(u.id, '📢 공지: ' + title, null);
+        if (typeof _addNotif === 'function') _addNotif(u.id, '📢 공지: '+title, null);
       });
     }
-  }).catch(e => alert('저장 실패: ' + e.message));
+  }).catch(e => alert('저장 실패: '+e.message));
 }
 
 function loadPosts(type) {
   const listEl = document.getElementById(type === 'notice' ? 'noticeList' : 'freeList');
   if (!listEl || !_db) return;
-  listEl.innerHTML = '<div style="text-align:center;color:#999;padding:20px;font-size:13px">불러오는 중...</div>';
-  _db.ref('_posts').orderByChild('type').equalTo(type).limitToLast(50).once('value', snap => {
+  listEl.innerHTML = type === 'free'
+    ? '<div style="grid-column:1/-1;text-align:center;color:#bbb;padding:24px;font-size:13px">불러오는 중...</div>'
+    : '<div style="text-align:center;color:#bbb;padding:24px;font-size:13px">불러오는 중...</div>';
+  _db.ref('_posts').orderByChild('type').equalTo(type).limitToLast(80).once('value', snap => {
     const posts = [];
     snap.forEach(child => { posts.unshift({ id: child.key, ...child.val() }); });
-    if (posts.length === 0) {
-      listEl.innerHTML = '<div style="text-align:center;color:#bbb;padding:40px;font-size:13px">아직 게시글이 없습니다.</div>';
-      return;
-    }
-    listEl.innerHTML = posts.map(p => `
-      <div onclick="openPost('${p.id}')" style="background:#fff;border:0.5px solid #eef0f5;border-radius:16px;padding:14px 16px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.05)">
-        ${type==='notice'?'<span style="font-size:11px;background:#EEEDFE;color:#3C3489;padding:2px 8px;border-radius:20px;margin-right:6px;font-weight:500">📌 공지</span>':''}
-        <div style="font-size:14px;font-weight:500;margin-bottom:4px;color:#1a1a1a">${_escHtml(p.title)}</div>
-        <div style="font-size:12px;color:#999;display:flex;gap:8px">
-          <span>${_escHtml(p.authorName)}</span>
-          <span>${typeof _timeAgo==='function'?_timeAgo(p.createdAt):''}</span>
-        </div>
-      </div>
-    `).join('');
+    if (type === 'free') { _allFreePosts = posts; renderFreeList(); }
+    else { renderNoticePosts(posts, listEl); }
   });
 }
 
+function renderFreeList() {
+  const listEl = document.getElementById('freeList');
+  if (!listEl) return;
+  const search = (document.getElementById('freeBoardSearch')?.value||'').trim().toLowerCase();
+  let posts = _allFreePosts;
+  if (_freeCat !== 'all') posts = posts.filter(p => p.cat === _freeCat);
+  if (search) posts = posts.filter(p => (p.title||'').toLowerCase().includes(search)||(p.body||'').toLowerCase().includes(search));
+  if (posts.length === 0) {
+    listEl.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#bbb;padding:48px 0;font-size:13px">게시글이 없습니다.</div>';
+    return;
+  }
+  listEl.innerHTML = posts.map(p => {
+    const catLabel = FREE_CATS[p.cat] || '💬 기타';
+    const img = p.ogData?.img || '';
+    const reactHtml = _buildReactBtns(p.id, p.reactions||{});
+    return `<div class="fboard-card" onclick="openPost('${p.id}')">
+      <div class="fboard-img">
+        ${img ? `<img src="${_escHtml(img)}" loading="lazy" onerror="this.style.display='none';this.nextSibling.style.display='flex'"><div class="fboard-img-ph" style="display:none">🔗</div>` : `<div class="fboard-img-ph">🔗</div>`}
+        <div class="fboard-react" onclick="event.stopPropagation()">${reactHtml}</div>
+      </div>
+      <div class="fboard-body">
+        <span class="fboard-cat">${catLabel}</span>
+        <div class="fboard-title">${_escHtml(p.title)}</div>
+        <div class="fboard-meta">${_escHtml(p.authorName)} · ${typeof _timeAgo==='function'?_timeAgo(p.createdAt):''}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function _buildReactBtns(postId, reactions) {
+  const emojis = ['👍','🔥','👏','💡','🎾'];
+  return emojis.map(e => {
+    const count = reactions[e] ? Object.keys(reactions[e]).length : 0;
+    const mine = reactions[e] && CU && reactions[e][CU.id];
+    return count > 0 || true
+      ? `<button class="fboard-react-btn${mine?' mine':''}" onclick="toggleReact('${postId}','${e}')">
+          <span class="rc">${e}</span>${count > 0 ? `<span class="rn">${count}</span>` : ''}
+         </button>`
+      : '';
+  }).join('');
+}
+
+function toggleReact(postId, emoji) {
+  if (!CU || !_db) return;
+  const ref = _db.ref('_posts/'+postId+'/reactions/'+emoji+'/'+CU.id);
+  ref.once('value', snap => {
+    if (snap.exists()) ref.remove();
+    else ref.set(true);
+    // 화면 부분 업데이트
+    setTimeout(() => {
+      _db.ref('_posts/'+postId+'/reactions').once('value', rsnap => {
+        const reactions = rsnap.val() || {};
+        const card = document.querySelector('[onclick="openPost(\''+postId+'\')"] .fboard-react');
+        if (card) card.innerHTML = _buildReactBtns(postId, reactions);
+      });
+    }, 300);
+  });
+}
+
+function renderNoticePosts(posts, listEl) {
+  if (posts.length === 0) {
+    listEl.innerHTML = '<div style="text-align:center;color:#bbb;padding:40px;font-size:13px">공지사항이 없습니다.</div>';
+    return;
+  }
+  listEl.innerHTML = posts.map(p => `
+    <div onclick="openPost('${p.id}')" style="background:#fff;border:0.5px solid #eef0f5;border-radius:16px;padding:14px 16px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.05)">
+      <div style="font-size:11px;background:#EEEDFE;color:#3C3489;padding:2px 8px;border-radius:20px;display:inline-block;margin-bottom:6px;font-weight:500">📌 공지</div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px;color:#1a1a1a">${_escHtml(p.title)}</div>
+      <div style="font-size:12px;color:#bbb">${_escHtml(p.authorName)} · ${typeof _timeAgo==='function'?_timeAgo(p.createdAt):''}</div>
+    </div>
+  `).join('');
+}
+
+function filterFreeBoard() { renderFreeList(); }
+
 function openPost(postId) {
   if (!_db) return;
-  _db.ref('_posts/' + postId).once('value', snap => {
+  _db.ref('_posts/'+postId).once('value', snap => {
     const p = snap.val();
     if (!p) return;
     const isAuthor = CU && CU.id === p.authorId;
-    const isAdmin = CU && (CU.role === 'admin' || CU.role === 'manager');
+    const isAdmin = CU && (CU.role==='admin'||CU.role==='manager');
+    const catLabel = FREE_CATS[p.cat] || '';
+    const reactHtml = _buildReactBtns(postId, p.reactions||{});
+    let linkHtml = '';
+    if (p.link) {
+      const og = p.ogData || {};
+      linkHtml = `<a href="${_escHtml(p.link)}" target="_blank" onclick="event.stopPropagation()" style="display:block;border:1.5px solid #eef0f5;border-radius:14px;overflow:hidden;text-decoration:none;margin-bottom:16px">
+        ${og.img ? `<img src="${_escHtml(og.img)}" style="width:100%;max-height:200px;object-fit:cover;display:block" onerror="this.style.display='none'">` : ''}
+        <div style="padding:10px 12px;background:#fff">
+          <div style="font-size:13px;font-weight:600;color:#1a1a1a;margin-bottom:2px">${_escHtml(og.title||p.link)}</div>
+          ${og.desc?`<div style="font-size:11px;color:#999;margin-bottom:2px">${_escHtml(og.desc)}</div>`:''}
+          <div style="font-size:10px;color:#bbb">${_escHtml(og.domain||p.link)}</div>
+        </div>
+      </a>`;
+    }
     document.getElementById('postDetailContent').innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-        <h3 style="font-size:16px;font-weight:600;flex:1">${_escHtml(p.title)}</h3>
-        ${(isAuthor||isAdmin)?`<button onclick="deletePost('${postId}')" style="font-size:12px;color:#e24b4a;background:none;border:none;cursor:pointer;padding:4px 8px">삭제</button>`:''}
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+        <div>
+          ${catLabel?`<span style="font-size:11px;background:#EEF4FF;color:#185FA5;padding:2px 10px;border-radius:100px;font-weight:700;margin-bottom:6px;display:inline-block">${catLabel}</span>`:''}
+          <h3 style="font-size:17px;font-weight:700;line-height:1.4;margin-top:4px">${_escHtml(p.title)}</h3>
+        </div>
+        ${(isAuthor||isAdmin)?`<button onclick="deletePost('${postId}')" style="flex-shrink:0;font-size:12px;color:#e24b4a;background:none;border:none;cursor:pointer;padding:4px 8px;margin-left:8px">삭제</button>`:''}
       </div>
-      <div style="font-size:12px;color:#999;margin-bottom:14px">${_escHtml(p.authorName)} · ${typeof _timeAgo==='function'?_timeAgo(p.createdAt):''}</div>
-      <div style="font-size:14px;color:#333;line-height:1.7;white-space:pre-wrap">${_escHtml(p.body)}</div>
+      <div style="font-size:12px;color:#bbb;margin-bottom:16px">${_escHtml(p.authorName)} · ${typeof _timeAgo==='function'?_timeAgo(p.createdAt):''}</div>
+      ${linkHtml}
+      ${p.body?`<div style="font-size:15px;color:#333;line-height:1.8;white-space:pre-wrap;margin-bottom:20px">${_escHtml(p.body)}</div>`:''}
+      <div style="border-top:1px solid #f0f2f5;padding-top:14px">
+        <div style="font-size:12px;font-weight:600;color:#aaa;margin-bottom:10px">반응</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap" id="detailReacts" onclick="event.stopPropagation()">${reactHtml.replace(/fboard-react-btn/g,'fboard-react-btn detail-rc')}</div>
+      </div>
     `;
     openM('postDetailM');
   });
@@ -4746,7 +4930,7 @@ function openPost(postId) {
 
 function deletePost(postId) {
   if (!confirm('이 게시글을 삭제할까요?')) return;
-  _db.ref('_posts/' + postId).remove().then(() => {
+  _db.ref('_posts/'+postId).remove().then(() => {
     closeM('postDetailM');
     loadPosts(_curTab);
   });
@@ -4782,35 +4966,89 @@ if('serviceWorker' in navigator){
 </div>
 
 <!-- 자유게시판 화면 -->
-<div id="freeScreen" style="display:none;position:fixed;top:52px;left:50%;transform:translateX(-50%);width:100%;max-width:480px;bottom:calc(56px + env(safe-area-inset-bottom));overflow-y:auto;background:#f7f8fc;z-index:50;padding:12px">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-    <h2 style="font-size:16px;font-weight:600">자유게시판</h2>
-    <button onclick="openAddPost('free')" style="font-size:13px;background:#185FA5;color:#fff;border:none;border-radius:8px;padding:6px 14px;cursor:pointer">+ 글쓰기</button>
+<div id="freeScreen" style="display:none;position:fixed;top:52px;left:50%;transform:translateX(-50%);width:100%;max-width:480px;bottom:calc(80px + env(safe-area-inset-bottom));overflow-y:auto;background:#f7f8fc;z-index:50">
+  <!-- 상단 검색바 -->
+  <div style="padding:12px 14px 0">
+    <div style="background:#fff;border-radius:14px;display:flex;align-items:center;gap:8px;padding:10px 14px;box-shadow:0 2px 8px rgba(0,0,0,0.06)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="freeBoardSearch" placeholder="검색..." style="border:none;outline:none;font-size:14px;color:#333;width:100%;background:transparent;font-family:inherit" oninput="filterFreeBoard()">
+    </div>
   </div>
-  <div id="freeList" style="display:flex;flex-direction:column;gap:8px"></div>
+  <!-- 카테고리 칩 -->
+  <div id="freeCatBar" style="display:flex;gap:8px;padding:10px 14px;overflow-x:auto;scrollbar-width:none;flex-shrink:0">
+    <button class="fcat-chip on" onclick="setFreecat('all')">전체</button>
+    <button class="fcat-chip" onclick="setFreecat('정보')">📖 정보공유</button>
+    <button class="fcat-chip" onclick="setFreecat('장비')">🎾 장비추천</button>
+    <button class="fcat-chip" onclick="setFreecat('후기')">✍️ 후기</button>
+    <button class="fcat-chip" onclick="setFreecat('질문')">❓ 질문</button>
+    <button class="fcat-chip" onclick="setFreecat('모집')">👥 모집</button>
+    <button class="fcat-chip" onclick="setFreecat('기타')">💬 기타</button>
+  </div>
+  <!-- 카드 그리드 -->
+  <div id="freeList" style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:0 14px 14px"></div>
 </div>
+
+<!-- 글쓰기 FAB (자유게시판용) -->
+<button id="freeFab" onclick="openAddPost('free')" style="display:none;position:fixed;bottom:calc(88px + env(safe-area-inset-bottom));right:20px;width:52px;height:52px;background:#185FA5;color:#fff;border:none;border-radius:16px;font-size:24px;cursor:pointer;z-index:200;box-shadow:0 4px 20px rgba(24,95,165,.4);align-items:center;justify-content:center">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</button>
 
 <!-- 글쓰기 모달 -->
 <div class="bso" id="addPostM">
-  <div class="bs" style="max-height:80vh">
+  <div class="bs" style="max-height:92vh;overflow-y:auto">
     <div class="bs-h"></div>
-    <div style="padding:0 16px 24px">
-      <h3 style="font-size:15px;font-weight:600;margin-bottom:14px" id="addPostTitle">새 글</h3>
-      <input type="text" id="postTitleInp" placeholder="제목" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:14px;margin-bottom:10px;box-sizing:border-box">
-      <textarea id="postBodyInp" placeholder="내용을 입력하세요" rows="5" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:14px;resize:none;box-sizing:border-box"></textarea>
-      <div style="display:flex;gap:8px;margin-top:12px">
-        <button onclick="closeM('addPostM')" style="flex:1;padding:12px;border:1px solid #ddd;border-radius:8px;background:#fff;font-size:14px;cursor:pointer">취소</button>
-        <button onclick="submitPost()" style="flex:1;padding:12px;background:#185FA5;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer">등록</button>
+    <div style="padding:0 16px 32px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+        <h3 style="font-size:17px;font-weight:700" id="addPostTitle">새 글 작성</h3>
+        <button onclick="closeM('addPostM')" style="background:none;border:none;font-size:22px;color:#bbb;cursor:pointer;padding:4px">×</button>
       </div>
+      <!-- 카테고리 선택 (free만) -->
+      <div id="postCatRow" style="display:none;margin-bottom:14px">
+        <div style="font-size:12px;font-weight:600;color:#888;margin-bottom:8px">카테고리</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap" id="postCatPicker">
+          <button class="pcap" onclick="selectPostCat(this,'정보')">📖 정보공유</button>
+          <button class="pcap" onclick="selectPostCat(this,'장비')">🎾 장비추천</button>
+          <button class="pcap" onclick="selectPostCat(this,'후기')">✍️ 후기</button>
+          <button class="pcap" onclick="selectPostCat(this,'질문')">❓ 질문</button>
+          <button class="pcap" onclick="selectPostCat(this,'모집')">👥 모집</button>
+          <button class="pcap" onclick="selectPostCat(this,'기타')">💬 기타</button>
+        </div>
+        <input type="hidden" id="postCatVal" value="기타">
+      </div>
+      <!-- 제목 -->
+      <div style="font-size:12px;font-weight:600;color:#888;margin-bottom:6px">제목</div>
+      <input type="text" id="postTitleInp" placeholder="제목을 입력하세요" style="width:100%;padding:13px 14px;border:1.5px solid #eee;border-radius:12px;font-size:15px;margin-bottom:14px;box-sizing:border-box;font-family:inherit;outline:none">
+      <!-- 링크 -->
+      <div style="font-size:12px;font-weight:600;color:#888;margin-bottom:6px">링크 <span style="font-weight:400;color:#bbb">(선택)</span></div>
+      <div style="position:relative;margin-bottom:6px">
+        <input type="url" id="postLinkInp" placeholder="https://..." style="width:100%;padding:13px 14px;border:1.5px solid #eee;border-radius:12px;font-size:14px;box-sizing:border-box;font-family:inherit;outline:none" oninput="debounceLinkPreview()">
+      </div>
+      <!-- 링크 미리보기 -->
+      <div id="postLinkPreview" style="display:none;border:1.5px solid #eee;border-radius:12px;overflow:hidden;margin-bottom:14px;cursor:pointer">
+        <div id="plpImg" style="width:100%;height:160px;background:#f0f2f5;overflow:hidden;position:relative">
+          <img id="plpImgEl" src="" style="width:100%;height:100%;object-fit:cover;display:none">
+          <div id="plpImgPh" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#ccc;font-size:28px">🔗</div>
+        </div>
+        <div style="padding:10px 12px;background:#fff">
+          <div id="plpTitle" style="font-size:13px;font-weight:600;color:#1a1a1a;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+          <div id="plpDesc" style="font-size:11px;color:#999;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+          <div id="plpDomain" style="font-size:10px;color:#bbb;margin-top:2px"></div>
+        </div>
+      </div>
+      <!-- 내용 -->
+      <div style="font-size:12px;font-weight:600;color:#888;margin-bottom:6px">내용 <span style="font-weight:400;color:#bbb">(선택)</span></div>
+      <textarea id="postBodyInp" placeholder="내용을 자유롭게 작성하세요..." rows="4" style="width:100%;padding:13px 14px;border:1.5px solid #eee;border-radius:12px;font-size:14px;resize:none;box-sizing:border-box;font-family:inherit;outline:none;line-height:1.6"></textarea>
+      <!-- 등록 버튼 -->
+      <button onclick="submitPost()" style="width:100%;margin-top:18px;padding:15px;background:#185FA5;color:#fff;border:none;border-radius:14px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit">등록하기</button>
     </div>
   </div>
 </div>
 
 <!-- 게시글 상세 모달 -->
 <div class="bso" id="postDetailM">
-  <div class="bs" style="max-height:85vh;overflow-y:auto">
+  <div class="bs" style="max-height:90vh;overflow-y:auto">
     <div class="bs-h"></div>
-    <div style="padding:0 16px 24px" id="postDetailContent"></div>
+    <div style="padding:0 16px 28px" id="postDetailContent"></div>
   </div>
 </div>
 
