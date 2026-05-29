@@ -24,7 +24,7 @@
 :root{--P:#2DB400;--PD:#1e8000;--SUN:#e53935;--SAT:#1565C0;--BD:#f0f0f0;--SH:0 2px 14px rgba(0,0,0,.13)}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
-body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif;background:#f4f6fb;display:flex;justify-content:center}
+body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif;background:#f4f6fb;display:flex;justify-content:center;padding-bottom:calc(56px + env(safe-area-inset-bottom))}
 #root{width:100%;max-width:480px;min-height:100vh;background:#fff;position:relative;display:flex;flex-direction:column}
 
 /* ── LOGIN (legacy, unused) ── */
@@ -523,6 +523,13 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 .wait-chip:last-child{border-bottom:none}
 .wait-rank{font-size:11px;font-weight:700;color:#888;width:18px;text-align:center;flex-shrink:0}
 .ev-capacity{font-size:12px;color:#888;margin-top:6px;margin-bottom:2px}
+
+/* ── BOTTOM NAV ── */
+.bot-nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:#fff;border-top:0.5px solid #e0e0e0;z-index:100;padding-bottom:env(safe-area-inset-bottom);max-width:480px;left:50%;transform:translateX(-50%)}
+.bot-nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px 6px;gap:3px;font-size:10px;color:#999;cursor:pointer;border:none;background:none;position:relative}
+.bot-nav-item.on{color:#185FA5}
+.bot-nav-icon{font-size:22px}
+.bot-nav-dot{width:5px;height:5px;background:#e24b4a;border-radius:50%;position:absolute;top:6px;right:calc(50% - 14px)}
 </style>
 </head>
 <body>
@@ -1799,6 +1806,15 @@ function doLogout(){
 ═══════════════════════════════════════ */
 function showApp(){
   document.getElementById('app').style.display='flex';
+  // 공지 글쓰기: 관리자/매니저만
+  if(CU && (CU.role==='admin'||CU.role==='manager')){
+    const btnN = document.getElementById('btnAddNotice');
+    if(btnN) btnN.style.display='block';
+  }
+  // 하단 탭 바 표시
+  const botNavEl = document.getElementById('botNav');
+  if(botNavEl) botNavEl.style.display='flex';
+
   const isA=CU.role==='admin', isV=CU.role==='viewer';
   const roleText={admin:'관리자 계정',user:'승인된 사용자',viewer:'게스트 모드'};
   // 드로어 프로필 카드 업데이트
@@ -4620,6 +4636,136 @@ function toast(msg){
 /* ═══════════════════════════════════════
    START
 ═══════════════════════════════════════ */
+
+/* ═══════════════════════════════════════
+   17.  BOARD & TAB NAVIGATION
+═══════════════════════════════════════ */
+let _curTab = 'cal';
+function switchTab(tab) {
+  _curTab = tab;
+  ['cal','notice','free','me'].forEach(t => {
+    const key = t.charAt(0).toUpperCase() + t.slice(1);
+    const btn = document.getElementById('btnTab' + key);
+    if (btn) btn.classList.toggle('on', t === tab);
+  });
+  const isBoard = (tab === 'notice' || tab === 'free');
+  // 캘린더/필터 관련 요소 토글
+  const calAreas = document.querySelectorAll('.cal, .dhdr, #wcalWrap, .cat-bar, #catBar, .sbar, #viewerBanner, .fab-wrap, #fab');
+  calAreas.forEach(el => { if(el) el.style.display = isBoard ? 'none' : ''; });
+  document.getElementById('noticeScreen').style.display = tab === 'notice' ? 'block' : 'none';
+  document.getElementById('freeScreen').style.display = tab === 'free' ? 'block' : 'none';
+  if (tab === 'notice') { loadPosts('notice'); }
+  if (tab === 'free') { loadPosts('free'); _markFreeBoardRead(); }
+  if (tab === 'me') {
+    _curTab = 'cal';
+    ['cal','notice','free','me'].forEach(t => {
+      const key = t.charAt(0).toUpperCase() + t.slice(1);
+      const btn = document.getElementById('btnTab' + key);
+      if (btn) btn.classList.toggle('on', t === 'cal');
+    });
+    document.getElementById('noticeScreen').style.display = 'none';
+    document.getElementById('freeScreen').style.display = 'none';
+    calAreas.forEach(el => { if(el) el.style.display = ''; });
+    setTimeout(() => { if(typeof openProfile === 'function') openProfile(); }, 50);
+  }
+}
+
+let _postType = 'notice';
+function openAddPost(type) {
+  _postType = type;
+  document.getElementById('addPostTitle').textContent = type === 'notice' ? '공지 작성' : '자유게시글 작성';
+  document.getElementById('postTitleInp').value = '';
+  document.getElementById('postBodyInp').value = '';
+  openM('addPostM');
+}
+
+function submitPost() {
+  const title = document.getElementById('postTitleInp').value.trim();
+  const body = document.getElementById('postBodyInp').value.trim();
+  if (!title) { alert('제목을 입력해주세요.'); return; }
+  if (!CU) return;
+  const post = {
+    title, body,
+    authorId: CU.id,
+    authorName: CU.name || CU.id,
+    createdAt: Date.now(),
+    type: _postType
+  };
+  _db.ref('_posts').push(post).then(() => {
+    closeM('addPostM');
+    loadPosts(_postType);
+    const users = typeof getUsers === 'function' ? getUsers() : [];
+    if (_postType === 'free') {
+      users.filter(u => u.id !== CU.id).forEach(u => {
+        if (typeof _addNotif === 'function') _addNotif(u.id, '📋 자유게시판: ' + (CU.name||CU.id) + ' — ' + title, null);
+      });
+      _showFreeBoardDot(true);
+    } else if (_postType === 'notice') {
+      users.filter(u => u.id !== CU.id).forEach(u => {
+        if (typeof _addNotif === 'function') _addNotif(u.id, '📢 공지: ' + title, null);
+      });
+    }
+  }).catch(e => alert('저장 실패: ' + e.message));
+}
+
+function loadPosts(type) {
+  const listEl = document.getElementById(type === 'notice' ? 'noticeList' : 'freeList');
+  if (!listEl || !_db) return;
+  listEl.innerHTML = '<div style="text-align:center;color:#999;padding:20px;font-size:13px">불러오는 중...</div>';
+  _db.ref('_posts').orderByChild('type').equalTo(type).limitToLast(50).once('value', snap => {
+    const posts = [];
+    snap.forEach(child => { posts.unshift({ id: child.key, ...child.val() }); });
+    if (posts.length === 0) {
+      listEl.innerHTML = '<div style="text-align:center;color:#bbb;padding:40px;font-size:13px">아직 게시글이 없습니다.</div>';
+      return;
+    }
+    listEl.innerHTML = posts.map(p => `
+      <div onclick="openPost('${p.id}')" style="background:#fff;border:0.5px solid #e8e8e8;border-radius:12px;padding:14px 16px;cursor:pointer">
+        ${type==='notice'?'<span style="font-size:11px;background:#EEEDFE;color:#3C3489;padding:2px 8px;border-radius:20px;margin-right:6px;font-weight:500">📌 공지</span>':''}
+        <div style="font-size:14px;font-weight:500;margin-bottom:4px;color:#1a1a1a">${_escHtml(p.title)}</div>
+        <div style="font-size:12px;color:#999;display:flex;gap:8px">
+          <span>${_escHtml(p.authorName)}</span>
+          <span>${typeof _timeAgo==='function'?_timeAgo(p.createdAt):''}</span>
+        </div>
+      </div>
+    `).join('');
+  });
+}
+
+function openPost(postId) {
+  if (!_db) return;
+  _db.ref('_posts/' + postId).once('value', snap => {
+    const p = snap.val();
+    if (!p) return;
+    const isAuthor = CU && CU.id === p.authorId;
+    const isAdmin = CU && (CU.role === 'admin' || CU.role === 'manager');
+    document.getElementById('postDetailContent').innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+        <h3 style="font-size:16px;font-weight:600;flex:1">${_escHtml(p.title)}</h3>
+        ${(isAuthor||isAdmin)?`<button onclick="deletePost('${postId}')" style="font-size:12px;color:#e24b4a;background:none;border:none;cursor:pointer;padding:4px 8px">삭제</button>`:''}
+      </div>
+      <div style="font-size:12px;color:#999;margin-bottom:14px">${_escHtml(p.authorName)} · ${typeof _timeAgo==='function'?_timeAgo(p.createdAt):''}</div>
+      <div style="font-size:14px;color:#333;line-height:1.7;white-space:pre-wrap">${_escHtml(p.body)}</div>
+    `;
+    openM('postDetailM');
+  });
+}
+
+function deletePost(postId) {
+  if (!confirm('이 게시글을 삭제할까요?')) return;
+  _db.ref('_posts/' + postId).remove().then(() => {
+    closeM('postDetailM');
+    loadPosts(_curTab);
+  });
+}
+
+function _showFreeBoardDot(show) {
+  const dot = document.getElementById('freeBoardDot');
+  if (dot) dot.style.display = show ? 'block' : 'none';
+}
+function _markFreeBoardRead() { _showFreeBoardDot(false); }
+function _escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
 init();
 initSwipeGestures();
 </script>
@@ -4632,5 +4778,64 @@ if('serviceWorker' in navigator){
   });
 }
 </script>
+
+<!-- 공지사항 화면 -->
+<div id="noticeScreen" style="display:none;position:fixed;top:52px;left:50%;transform:translateX(-50%);width:100%;max-width:480px;bottom:calc(56px + env(safe-area-inset-bottom));overflow-y:auto;background:#f4f6fb;z-index:50;padding:12px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <h2 style="font-size:16px;font-weight:600">공지사항</h2>
+    <button id="btnAddNotice" onclick="openAddPost('notice')" style="display:none;font-size:13px;background:#185FA5;color:#fff;border:none;border-radius:8px;padding:6px 14px;cursor:pointer">+ 글쓰기</button>
+  </div>
+  <div id="noticeList" style="display:flex;flex-direction:column;gap:8px"></div>
+</div>
+
+<!-- 자유게시판 화면 -->
+<div id="freeScreen" style="display:none;position:fixed;top:52px;left:50%;transform:translateX(-50%);width:100%;max-width:480px;bottom:calc(56px + env(safe-area-inset-bottom));overflow-y:auto;background:#f4f6fb;z-index:50;padding:12px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <h2 style="font-size:16px;font-weight:600">자유게시판</h2>
+    <button onclick="openAddPost('free')" style="font-size:13px;background:#185FA5;color:#fff;border:none;border-radius:8px;padding:6px 14px;cursor:pointer">+ 글쓰기</button>
+  </div>
+  <div id="freeList" style="display:flex;flex-direction:column;gap:8px"></div>
+</div>
+
+<!-- 글쓰기 모달 -->
+<div class="bso" id="addPostM">
+  <div class="bs" style="max-height:80vh">
+    <div class="bs-h"></div>
+    <div style="padding:0 16px 24px">
+      <h3 style="font-size:15px;font-weight:600;margin-bottom:14px" id="addPostTitle">새 글</h3>
+      <input type="text" id="postTitleInp" placeholder="제목" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:14px;margin-bottom:10px;box-sizing:border-box">
+      <textarea id="postBodyInp" placeholder="내용을 입력하세요" rows="5" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:14px;resize:none;box-sizing:border-box"></textarea>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button onclick="closeM('addPostM')" style="flex:1;padding:12px;border:1px solid #ddd;border-radius:8px;background:#fff;font-size:14px;cursor:pointer">취소</button>
+        <button onclick="submitPost()" style="flex:1;padding:12px;background:#185FA5;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer">등록</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 게시글 상세 모달 -->
+<div class="bso" id="postDetailM">
+  <div class="bs" style="max-height:85vh;overflow-y:auto">
+    <div class="bs-h"></div>
+    <div style="padding:0 16px 24px" id="postDetailContent"></div>
+  </div>
+</div>
+
+<!-- 하단 탭 네비게이션 -->
+<nav class="bot-nav" id="botNav" style="display:none">
+  <button class="bot-nav-item on" id="btnTabCal" onclick="switchTab('cal')">
+    <span class="bot-nav-icon">📅</span>캘린더
+  </button>
+  <button class="bot-nav-item" id="btnTabNotice" onclick="switchTab('notice')">
+    <span class="bot-nav-icon">📢</span>공지사항
+  </button>
+  <button class="bot-nav-item" id="btnTabFree" onclick="switchTab('free')" style="position:relative">
+    <span class="bot-nav-icon">💬</span>자유게시판
+    <span class="bot-nav-dot" id="freeBoardDot" style="display:none"></span>
+  </button>
+  <button class="bot-nav-item" id="btnTabMe" onclick="switchTab('me')">
+    <span class="bot-nav-icon">👤</span>내 정보
+  </button>
+</nav>
 </body>
 </html>
