@@ -564,6 +564,9 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 .pcap.on{background:#185FA5;color:#fff;border-color:#185FA5;font-weight:600}
 /* link preview in card */
 .fboard-link-preview{margin-top:6px;border-top:1px solid #f0f2f5;padding-top:8px}
+.fboard-img-badge{position:absolute;bottom:6px;left:6px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px;pointer-events:none}
+.yt-badge{background:rgba(255,0,0,.85);color:#fff}
+.ig-badge{background:rgba(188,24,136,.85);color:#fff}
 </style>
 
 <!-- ═══ SPLASH + LOGIN (3단 구성) ═══ -->
@@ -4838,7 +4841,23 @@ function renderFreeList() {
     const liked = CU && hearts[CU.id];
     return `<div class="fboard-card" onclick="openPost('${p.id}')">
       <div class="fboard-img">
-        ${img ? `<img src="${_escHtml(img)}" loading="lazy" onerror="this.style.display='none';this.nextSibling.style.display='flex'"><div class="fboard-img-ph" style="display:none">🔗</div>` : `<div class="fboard-img-ph">🔗</div>`}
+        ${(()=>{
+          const ltype = typeof _detectLinkType === 'function' ? _detectLinkType(p.link||'') : 'link';
+          // YouTube: 썸네일 자동 추출
+          if (ltype === 'youtube' && !img) {
+            try {
+              const u = new URL(p.link);
+              let vid = u.hostname === 'youtu.be' ? u.pathname.slice(1).split('?')[0] : (u.searchParams.get('v')||'');
+              if (!vid && u.pathname.includes('/shorts/')) vid = u.pathname.split('/shorts/')[1].split('/')[0];
+              if (vid) return '<img src="https://img.youtube.com/vi/'+vid+'/mqdefault.jpg" loading="lazy" style="width:100%;height:100%;object-fit:cover"><div class="fboard-img-badge yt-badge">▶ YouTube</div>';
+            } catch(e){}
+          }
+          if (ltype === 'instagram' && !img) {
+            return '<div class="fboard-img-ph" style="background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)"><span style="color:#fff;font-size:26px">📷</span></div><div class="fboard-img-badge ig-badge">Instagram</div>';
+          }
+          if (img) return '<img src="'+_escHtml(img)+'" loading="lazy" onerror="this.style.display='none';this.nextSibling.style.display='flex'"><div class="fboard-img-ph" style="display:none">🔗</div>';
+          return '<div class="fboard-img-ph">🔗</div>';
+        })()}
         <button class="fboard-heart-btn${liked?' liked':''}" id="hbtn-${p.id}" onclick="event.stopPropagation();toggleHeart('${p.id}')">
           <svg viewBox="0 0 24 24" fill="${liked?'#e53935':'none'}" stroke="${liked?'#e53935':'#aaa'}" stroke-width="2.2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
           ${heartCount > 0 ? `<span class="hcnt">${heartCount}</span>` : ''}
@@ -4880,18 +4899,7 @@ function openPost(postId) {
     const isAdmin = CU && (CU.role==='admin'||CU.role==='manager');
     const catLabel = FREE_CATS[p.cat] || '';
     const reactHtml = _buildReactBtns(postId, p.reactions||{});
-    let linkHtml = '';
-    if (p.link) {
-      const og = p.ogData || {};
-      linkHtml = `<a href="${_escHtml(p.link)}" target="_blank" onclick="event.stopPropagation()" style="display:block;border:1.5px solid #eef0f5;border-radius:14px;overflow:hidden;text-decoration:none;margin-bottom:16px">
-        ${og.img ? `<img src="${_escHtml(og.img)}" style="width:100%;max-height:200px;object-fit:cover;display:block" onerror="this.style.display='none'">` : ''}
-        <div style="padding:10px 12px;background:#fff">
-          <div style="font-size:13px;font-weight:600;color:#1a1a1a;margin-bottom:2px">${_escHtml(og.title||p.link)}</div>
-          ${og.desc?`<div style="font-size:11px;color:#999;margin-bottom:2px">${_escHtml(og.desc)}</div>`:''}
-          <div style="font-size:10px;color:#bbb">${_escHtml(og.domain||p.link)}</div>
-        </div>
-      </a>`;
-    }
+    const linkHtml = p.link ? _buildLinkEmbed(p.link, p.ogData) : '';
     document.getElementById('postDetailContent').innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
         <div>
@@ -4976,6 +4984,83 @@ function toggleHeartDetail(postId) {
       });
     }, 200);
   });
+}
+
+
+// ─── 링크 타입 감지 + 임베드 변환 ───
+function _detectLinkType(url) {
+  if (!url) return 'none';
+  try {
+    const u = new URL(url);
+    const host = u.hostname.replace('www.','');
+    // YouTube
+    if (host === 'youtube.com' || host === 'youtu.be') return 'youtube';
+    // Instagram
+    if (host === 'instagram.com') return 'instagram';
+    return 'link';
+  } catch(e) { return 'link'; }
+}
+
+function _getYoutubeEmbedUrl(url) {
+  try {
+    const u = new URL(url);
+    const host = u.hostname.replace('www.','');
+    let vid = '';
+    if (host === 'youtu.be') {
+      vid = u.pathname.slice(1).split('?')[0];
+    } else {
+      vid = u.searchParams.get('v') || '';
+      // shorts
+      if (!vid && u.pathname.includes('/shorts/')) vid = u.pathname.split('/shorts/')[1].split('/')[0];
+    }
+    if (!vid) return null;
+    const start = u.searchParams.get('t') || '';
+    return 'https://www.youtube.com/embed/' + vid + (start ? '?start='+start : '');
+  } catch(e) { return null; }
+}
+
+function _getInstagramEmbedUrl(url) {
+  try {
+    const u = new URL(url);
+    // /p/CODE/ or /reel/CODE/ or /tv/CODE/
+    const match = u.pathname.match(/\/(p|reel|tv)\/([^/]+)/);
+    if (!match) return null;
+    return 'https://www.instagram.com/' + match[1] + '/' + match[2] + '/embed/';
+  } catch(e) { return null; }
+}
+
+function _buildLinkEmbed(url, ogData) {
+  if (!url) return '';
+  const type = _detectLinkType(url);
+
+  if (type === 'youtube') {
+    const embedUrl = _getYoutubeEmbedUrl(url);
+    if (embedUrl) {
+      return '<div style="border-radius:14px;overflow:hidden;margin-bottom:16px;background:#000;aspect-ratio:16/9">'
+        + '<iframe src="' + embedUrl + '" style="width:100%;height:100%;border:none" allowfullscreen allow="autoplay;encrypted-media"></iframe>'
+        + '</div>';
+    }
+  }
+
+  if (type === 'instagram') {
+    const embedUrl = _getInstagramEmbedUrl(url);
+    if (embedUrl) {
+      return '<div style="border-radius:14px;overflow:hidden;margin-bottom:16px;background:#fafafa;border:1.5px solid #eef0f5">'
+        + '<iframe src="' + embedUrl + '" style="width:100%;min-height:480px;border:none" scrolling="no" allowfullscreen></iframe>'
+        + '</div>';
+    }
+  }
+
+  // 일반 링크 → OG 카드
+  const og = ogData || {};
+  const imgHtml = og.img ? '<img src="' + og.img + '" style="width:100%;max-height:200px;object-fit:cover;display:block" onerror="this.style.display='none'">' : '';
+  return '<a href="' + url + '" target="_blank" onclick="event.stopPropagation()" style="display:block;border:1.5px solid #eef0f5;border-radius:14px;overflow:hidden;text-decoration:none;margin-bottom:16px">'
+    + imgHtml
+    + '<div style="padding:10px 12px;background:#fff">'
+    + '<div style="font-size:13px;font-weight:600;color:#1a1a1a;margin-bottom:2px">' + (og.title || url) + '</div>'
+    + (og.desc ? '<div style="font-size:11px;color:#999;margin-bottom:2px">' + og.desc + '</div>' : '')
+    + '<div style="font-size:10px;color:#bbb">' + (og.domain || '') + '</div>'
+    + '</div></a>';
 }
 
 init();
