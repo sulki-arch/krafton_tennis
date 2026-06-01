@@ -4841,23 +4841,7 @@ function renderFreeList() {
     const liked = CU && hearts[CU.id];
     return `<div class="fboard-card" onclick="openPost('${p.id}')">
       <div class="fboard-img">
-        ${(()=>{
-          const ltype = typeof _detectLinkType === 'function' ? _detectLinkType(p.link||'') : 'link';
-          // YouTube: 썸네일 자동 추출
-          if (ltype === 'youtube' && !img) {
-            try {
-              const u = new URL(p.link);
-              let vid = u.hostname === 'youtu.be' ? u.pathname.slice(1).split('?')[0] : (u.searchParams.get('v')||'');
-              if (!vid && u.pathname.includes('/shorts/')) vid = u.pathname.split('/shorts/')[1].split('/')[0];
-              if (vid) return '<img src="https://img.youtube.com/vi/'+vid+'/mqdefault.jpg" loading="lazy" style="width:100%;height:100%;object-fit:cover"><div class="fboard-img-badge yt-badge">▶ YouTube</div>';
-            } catch(e){}
-          }
-          if (ltype === 'instagram' && !img) {
-            return '<div class="fboard-img-ph" style="background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)"><span style="color:#fff;font-size:26px">📷</span></div><div class="fboard-img-badge ig-badge">Instagram</div>';
-          }
-          if (img) return '<img src="'+_escHtml(img)+'" loading="lazy" onerror="this.style.display='none';this.nextSibling.style.display='flex'"><div class="fboard-img-ph" style="display:none">🔗</div>';
-          return '<div class="fboard-img-ph">🔗</div>';
-        })()}
+        ${_buildCardImg(p.link, img)}
         <button class="fboard-heart-btn${liked?' liked':''}" id="hbtn-${p.id}" onclick="event.stopPropagation();toggleHeart('${p.id}')">
           <svg viewBox="0 0 24 24" fill="${liked?'#e53935':'none'}" stroke="${liked?'#e53935':'#aaa'}" stroke-width="2.2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
           ${heartCount > 0 ? `<span class="hcnt">${heartCount}</span>` : ''}
@@ -5061,6 +5045,26 @@ function _buildLinkEmbed(url, ogData) {
     + (og.desc ? '<div style="font-size:11px;color:#999;margin-bottom:2px">' + og.desc + '</div>' : '')
     + '<div style="font-size:10px;color:#bbb">' + (og.domain || '') + '</div>'
     + '</div></a>';
+}
+
+
+function _buildCardImg(link, img) {
+  var ltype = typeof _detectLinkType === 'function' ? _detectLinkType(link||'') : 'link';
+  if (ltype === 'youtube' && !img) {
+    try {
+      var u = new URL(link);
+      var vid = '';
+      if (u.hostname === 'youtu.be') { vid = u.pathname.slice(1).split('?')[0]; }
+      else { vid = u.searchParams.get('v') || ''; }
+      if (!vid && u.pathname.indexOf('/shorts/') >= 0) vid = u.pathname.split('/shorts/')[1].split('/')[0];
+      if (vid) return '<img src="https://img.youtube.com/vi/'+vid+'/mqdefault.jpg" loading="lazy" style="width:100%;height:100%;object-fit:cover"><div class="fboard-img-badge yt-badge">&#9654; YouTube</div>';
+    } catch(e){}
+  }
+  if (ltype === 'instagram' && !img) {
+    return '<div class="fboard-img-ph" style="background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)"><span style="color:#fff;font-size:26px">&#128247;</span></div><div class="fboard-img-badge ig-badge">Instagram</div>';
+  }
+  if (img) return '<img src="'+img+'" loading="lazy" onerror="this.style.display='none'"><div class="fboard-img-ph" style="display:none">&#128279;</div>';
+  return '<div class="fboard-img-ph">&#128279;</div>';
 }
 
 init();
