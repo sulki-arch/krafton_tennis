@@ -4791,7 +4791,12 @@ function submitPost() {
     authorId: CU.id, authorName: CU.name || CU.id,
     createdAt: Date.now(), type: _postType
   };
-  _db.ref('_posts').push(post).then(() => {
+  const saveRef = _editPostId ? _db.ref('_posts/'+_editPostId) : _db.ref('_posts').push ? _db.ref('_posts') : null;
+  const savePromise = _editPostId
+    ? _db.ref('_posts/'+_editPostId).update({title, body, link: link||null, ogData: ogData||null, cat, updatedAt: Date.now()})
+    : _db.ref('_posts').push(post);
+  _editPostId = null;
+  savePromise.then(() => {
     closeM('addPostM');
     loadPosts(_postType);
     const users = typeof getUsers === 'function' ? getUsers() : [];
@@ -4805,7 +4810,7 @@ function submitPost() {
         if (typeof _addNotif === 'function') _addNotif(u.id, '📢 공지: '+title, null);
       });
     }
-  }).catch(e => alert('저장 실패: '+e.message));
+  }).catch(e => { _editPostId = null; alert('저장 실패: '+e.message); });
 }
 
 function loadPosts(type) {
@@ -4882,7 +4887,6 @@ function openPost(postId) {
     const isAuthor = CU && CU.id === p.authorId;
     const isAdmin = CU && (CU.role==='admin'||CU.role==='manager');
     const catLabel = FREE_CATS[p.cat] || '';
-    const reactHtml = _buildReactBtns(postId, p.reactions||{});
     const linkHtml = p.link ? _buildLinkEmbed(p.link, p.ogData) : '';
     document.getElementById('postDetailContent').innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
@@ -4890,7 +4894,7 @@ function openPost(postId) {
           ${catLabel?`<span style="font-size:11px;background:#EEF4FF;color:#185FA5;padding:2px 10px;border-radius:100px;font-weight:700;margin-bottom:6px;display:inline-block">${catLabel}</span>`:''}
           <h3 style="font-size:17px;font-weight:700;line-height:1.4;margin-top:4px">${_escHtml(p.title)}</h3>
         </div>
-        ${(isAuthor||isAdmin)?`<button onclick="deletePost('${postId}')" style="flex-shrink:0;font-size:12px;color:#e24b4a;background:none;border:none;cursor:pointer;padding:4px 8px;margin-left:8px">삭제</button>`:''}
+        ${(isAuthor||isAdmin)?`<div style="display:flex;gap:4px;flex-shrink:0;margin-left:8px"><button onclick="editPost('${postId}')" style="font-size:12px;color:#185FA5;background:none;border:none;cursor:pointer;padding:4px 8px">편집</button><button onclick="deletePost('${postId}')" style="font-size:12px;color:#e24b4a;background:none;border:none;cursor:pointer;padding:4px 8px">삭제</button></div>`:''}
       </div>
       <div style="font-size:12px;color:#bbb;margin-bottom:16px">${_escHtml(p.authorName)} · ${typeof _timeAgo==='function'?_timeAgo(p.createdAt):''}</div>
       ${linkHtml}
@@ -4912,6 +4916,45 @@ function deletePost(postId) {
   _db.ref('_posts/'+postId).remove().then(() => {
     closeM('postDetailM');
     loadPosts(_curTab);
+  });
+}
+
+function editPost(postId) {
+  if (!_db) return;
+  _db.ref('_posts/'+postId).once('value', snap => {
+    const p = snap.val();
+    if (!p) return;
+    closeM('postDetailM');
+    _postType = p.type || _curTab;
+    _editPostId = postId;
+    document.getElementById('addPostTitle').textContent = '글 편집';
+    document.getElementById('postTitleInp').value = p.title || '';
+    document.getElementById('postBodyInp').value = p.body || '';
+    const linkInp = document.getElementById('postLinkInp');
+    if (linkInp) linkInp.value = p.link || '';
+    const catRow = document.getElementById('postCatRow');
+    if (catRow) catRow.style.display = p.type === 'free' ? 'block' : 'none';
+    if (p.cat) {
+      document.querySelectorAll('.pcap').forEach(b => b.classList.remove('on'));
+      const catBtn = document.querySelector('.pcap[onclick*="' + p.cat + '"]');
+      if (catBtn) { catBtn.classList.add('on'); document.getElementById('postCatVal').value = p.cat; }
+    }
+    if (p.link && p.ogData) {
+      const pv = document.getElementById('postLinkPreview');
+      if (pv) {
+        pv.style.display = 'block';
+        pv._ogData = p.ogData;
+        const tEl = document.getElementById('plpTitle');
+        const dEl = document.getElementById('plpDesc');
+        const domEl = document.getElementById('plpDomain');
+        const imgEl = document.getElementById('plpImgEl');
+        if (tEl) tEl.textContent = p.ogData.title || '';
+        if (dEl) dEl.textContent = p.ogData.desc || '';
+        if (domEl) domEl.textContent = p.ogData.domain || '';
+        if (imgEl && p.ogData.img) { imgEl.src = p.ogData.img; imgEl.style.display = 'block'; }
+      }
+    }
+    openM('addPostM');
   });
 }
 
