@@ -4734,29 +4734,72 @@ function debounceLinkPreview() {
   _linkDebTimer = setTimeout(fetchLinkPreview, 800);
 }
 
-// microlink API로 OG 정보 가져오기
+// 링크 미리보기 — YouTube는 직접 처리, 나머지는 microlink
 async function fetchLinkPreview() {
   const url = (document.getElementById('postLinkInp')?.value||'').trim();
   const pv = document.getElementById('postLinkPreview');
   if (!url || !url.startsWith('http')) { if(pv) pv.style.display='none'; return; }
+
+  // YouTube: microlink 없이 직접 처리
+  const ltype = typeof _detectLinkType === 'function' ? _detectLinkType(url) : 'link';
+  if (ltype === 'youtube') {
+    try {
+      const u = new URL(url);
+      const host = u.hostname.replace('www.','');
+      let vid = '';
+      if (host === 'youtu.be') { vid = u.pathname.slice(1).split('?')[0]; }
+      else { vid = u.searchParams.get('v') || ''; }
+      if (!vid && u.pathname.includes('/shorts/')) vid = u.pathname.split('/shorts/')[1].split('/')[0];
+      if (vid) {
+        const thumbUrl = 'https://img.youtube.com/vi/'+vid+'/mqdefault.jpg';
+        const ogData = { title: 'YouTube 동영상', desc: '', img: thumbUrl, domain: 'youtube.com' };
+        _showLinkPreview(pv, ogData, thumbUrl);
+        pv._ogData = ogData;
+        return;
+      }
+    } catch(e) {}
+    if(pv) pv.style.display='none';
+    return;
+  }
+
+  // Instagram: 미리보기만 표시 (embed는 상세화면에서)
+  if (ltype === 'instagram') {
+    const ogData = { title: 'Instagram', desc: '', img: '', domain: 'instagram.com' };
+    _showLinkPreview(pv, ogData, '');
+    pv._ogData = ogData;
+    return;
+  }
+
+  // 일반 링크: microlink API
   try {
     const res = await fetch('https://api.microlink.io/?url=' + encodeURIComponent(url));
+    if (!res.ok) { if(pv) pv.style.display='none'; return; }
     const data = await res.json();
     if (data.status === 'success') {
       const d = data.data;
-      document.getElementById('plpTitle').textContent = d.title || '';
-      document.getElementById('plpDesc').textContent = d.description || '';
-      try { document.getElementById('plpDomain').textContent = new URL(url).hostname; } catch(e){}
-      const img = d.image?.url || d.logo?.url || '';
-      const imgEl = document.getElementById('plpImgEl');
-      const ph = document.getElementById('plpImgPh');
-      if (img) { imgEl.src = img; imgEl.style.display='block'; ph.style.display='none'; }
-      else { imgEl.style.display='none'; ph.style.display='flex'; }
-      pv.style.display='block';
-      // 프리뷰 저장용
-      pv._ogData = { title: d.title||'', desc: d.description||'', img, domain: document.getElementById('plpDomain').textContent };
-    }
+      let hostname = '';
+      try { hostname = new URL(url).hostname; } catch(e){}
+      const img = (d.image && typeof d.image.url === 'string') ? d.image.url : (d.logo && typeof d.logo.url === 'string') ? d.logo.url : '';
+      const ogData = { title: String(d.title||''), desc: String(d.description||''), img: String(img||''), domain: String(hostname||'') };
+      _showLinkPreview(pv, ogData, img);
+      pv._ogData = ogData;
+    } else { if(pv) pv.style.display='none'; }
   } catch(e) { if(pv) pv.style.display='none'; }
+}
+
+function _showLinkPreview(pv, ogData, img) {
+  if (!pv) return;
+  const tEl = document.getElementById('plpTitle');
+  const dEl = document.getElementById('plpDesc');
+  const domEl = document.getElementById('plpDomain');
+  const imgEl = document.getElementById('plpImgEl');
+  const ph = document.getElementById('plpImgPh');
+  if (tEl) tEl.textContent = ogData.title || '';
+  if (dEl) dEl.textContent = ogData.desc || '';
+  if (domEl) domEl.textContent = ogData.domain || '';
+  if (img && imgEl) { imgEl.src = img; imgEl.style.display='block'; if(ph) ph.style.display='none'; }
+  else { if(imgEl) imgEl.style.display='none'; if(ph) ph.style.display='flex'; }
+  pv.style.display='block';
 }
 
 function openAddPost(type) {
@@ -4767,7 +4810,7 @@ function openAddPost(type) {
   const linkInp = document.getElementById('postLinkInp');
   if (linkInp) linkInp.value = '';
   const pv = document.getElementById('postLinkPreview');
-  if (pv) pv.style.display = 'none';
+  if (pv) { pv.style.display = 'none'; pv._ogData = null; }
   const catRow = document.getElementById('postCatRow');
   if (catRow) catRow.style.display = type === 'free' ? 'block' : 'none';
   // 기타 기본 선택
