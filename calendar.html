@@ -21,7 +21,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{--P:#185FA5;--PD:#0d4a87;--SUN:#e53935;--SAT:#185FA5;--BD:#f0f2f5;--SH:0 4px 20px rgba(0,0,0,.08)}
+:root{--P:#1A9B6E;--PD:#0f6b4a;--SUN:#e53935;--SAT:#1A9B6E;--BD:#f0f2f5;--SH:0 4px 20px rgba(0,0,0,.08)}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
 body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif;background:#f7f8fc;display:flex;justify-content:center;padding-bottom:calc(80px + env(safe-area-inset-bottom))}
@@ -94,8 +94,8 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,'Apple SD Gothi
 
 .dc{min-height:86px;border-right:0.5px solid #f0f2f5;border-bottom:0.5px solid #f0f2f5;padding:3px 2px 2px;cursor:pointer;overflow:hidden;min-width:0;transition:background .1s}
 .dc:hover{background:#f8faff}
-.dc.this-week{background:rgba(24,95,165,.04)}
-.dc.this-week:hover{background:rgba(24,95,165,.08)}
+.dc.this-week{background:rgba(26,155,110,.04)}
+.dc.this-week:hover{background:rgba(26,155,110,.08)}
 .dc:nth-child(7n){border-right:none}
 .dnum{font-size:13px;font-weight:700;width:27px;height:27px;display:flex;align-items:center;justify-content:center;margin:0 auto 2px;border-radius:50%}
 .dc.today .dnum{background:var(--P);color:#fff;font-weight:700}
@@ -524,8 +524,8 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 .bot-nav{position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:center;align-items:center;z-index:100;padding:10px 0 calc(10px + env(safe-area-inset-bottom));pointer-events:none}
 .bot-nav-inner{display:flex;align-items:center;gap:3px;background:#1a1a1f;border-radius:100px;padding:5px 6px;box-shadow:0 8px 32px rgba(0,0,0,.28);pointer-events:all;width:95%;max-width:456px}
 .bot-nav-item{flex:1;display:flex;align-items:center;justify-content:center;padding:10px 4px;border-radius:100px;border:none;background:transparent;color:rgba(255,255,255,.45);font-size:12px;font-weight:500;cursor:pointer;transition:all .2s ease;white-space:nowrap;font-family:inherit;letter-spacing:-.2px;position:relative}
-.bot-nav-item.on{background:#185FA5;color:#fff;font-weight:700}
-.bot-nav-item.new-ev{background:#fff;color:#185FA5;font-weight:700}
+.bot-nav-item.on{background:#1A9B6E;color:#fff;font-weight:700}
+.bot-nav-item.new-ev{background:#fff;color:#1A9B6E;font-weight:700}
 .bot-nav-dot{width:6px;height:6px;background:#e24b4a;border-radius:50%;position:absolute;top:8px;right:8px}
 </style>
 </head>
@@ -542,7 +542,7 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 <style>@keyframes spin{to{transform:rotate(360deg)}}
 /* ── FREE BOARD ── */
 .fcat-chip{padding:7px 14px;border-radius:100px;border:1.5px solid #e8eaf0;background:#fff;font-size:13px;font-weight:500;color:#888;cursor:pointer;white-space:nowrap;transition:all .18s;font-family:inherit}
-.fcat-chip.on{background:#185FA5;color:#fff;border-color:#185FA5;font-weight:700}
+.fcat-chip.on{background:#1A9B6E;color:#fff;border-color:#1A9B6E;font-weight:700}
 #freeCatBar::-webkit-scrollbar{display:none}
 .fboard-card{background:#fff;border-radius:18px;overflow:hidden;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,0.07);position:relative;transition:transform .15s}
 .fboard-card:active{transform:scale(.97)}
@@ -550,7 +550,7 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 .fboard-img img{width:100%;height:100%;object-fit:cover}
 .fboard-img-ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:32px;color:#ddd}
 .fboard-body{padding:10px 10px 8px}
-.fboard-cat{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px;background:#EEF4FF;color:#185FA5;margin-bottom:5px}
+.fboard-cat{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px;background:#E8F7F1;color:#1A9B6E;margin-bottom:5px}
 .fboard-title{font-size:13px;font-weight:600;color:#1a1a1a;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:5px}
 .fboard-meta{font-size:11px;color:#bbb}
 
@@ -572,7 +572,7 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 .comment-react-btn.active{background:#FFF0F0;border-color:#f9a8a8}
 .comment-react-btn:active{transform:scale(.92)}
 .comment-input{width:100%;padding:11px 14px;border:1.5px solid #eee;border-radius:12px;font-size:14px;font-family:inherit;outline:none;resize:none;box-sizing:border-box;line-height:1.5}
-.comment-input:focus{border-color:#185FA5}
+.comment-input:focus{border-color:#1A9B6E}
 .fboard-heart-btn{position:absolute;bottom:8px;right:8px;display:flex;align-items:center;gap:3px;background:rgba(255,255,255,.92);border:none;border-radius:100px;padding:5px 9px 5px 7px;cursor:pointer;backdrop-filter:blur(6px);box-shadow:0 1px 6px rgba(0,0,0,.14);font-family:inherit;transition:transform .15s}
 .fboard-heart-btn:active{transform:scale(.9)}
 .fboard-heart-btn svg{width:15px;height:15px;flex-shrink:0;transition:fill .15s,stroke .15s}
@@ -581,7 +581,7 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 .fboard-heart-btn.liked .hcnt{color:#e53935}
 /* post cat picker */
 .pcap{padding:7px 13px;border-radius:100px;border:1.5px solid #e8eaf0;background:#fff;font-size:13px;cursor:pointer;font-family:inherit;transition:all .15s;color:#555}
-.pcap.on{background:#185FA5;color:#fff;border-color:#185FA5;font-weight:600}
+.pcap.on{background:#1A9B6E;color:#fff;border-color:#1A9B6E;font-weight:600}
 /* link preview in card */
 .fboard-link-preview{margin-top:6px;border-top:1px solid #f0f2f5;padding-top:8px}
 .fboard-img-badge{position:absolute;bottom:6px;left:6px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px;pointer-events:none}
@@ -648,6 +648,7 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
   <div class="grp-bar" id="grpBar" style="display:none"></div>
 
   <!-- Search bar -->
+  <div id="calKtcBanner" style="padding:8px 14px 4px"><div style="background:#1A9B6E;border-radius:100px;padding:9px 18px;display:flex;align-items:center"><span style="font-size:13px;font-weight:700;color:#fff">KTC 공유 캘린더</span><span style="font-size:13px;color:rgba(255,255,255,.75)"> : 일정 등록은 자유롭게 해주세요</span></div></div>
   <div class="sbar" id="sbar">
     <input id="sinput" type="text" placeholder="일정 검색..." oninput="doSearch(this.value)">
     <div id="sres" class="sres"></div>
@@ -4720,7 +4721,7 @@ function switchTab(tab) {
   const freeFabEl = document.getElementById('freeFab');
   if (freeFabEl) freeFabEl.style.display = tab === 'free' ? 'flex' : 'none';
   // 캘린더 앱 전체 영역 토글 — #app 안에서 캘린더 관련 요소들
-  const calEls = document.querySelectorAll('.cal, .dhdr, #wcalWrap, .sbar, #viewerBanner');
+  const calEls = document.querySelectorAll('.cal, .dhdr, #wcalWrap, .sbar, #viewerBanner, #calKtcBanner');
   if (isBoard) {
     calEls.forEach(el => { if(el) el.style.display = 'none'; });
   } else {
@@ -5154,12 +5155,12 @@ function openPost(postId) {
     if (!el) return;
     var html = '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">'
       + '<div>'
-      + (catLabel ? '<span style="font-size:11px;background:#EEF4FF;color:#185FA5;padding:2px 10px;border-radius:100px;font-weight:700;margin-bottom:6px;display:inline-block">'+catLabel+'</span>' : '')
+      + (catLabel ? '<span style="font-size:11px;background:#E8F7F1;color:#1A9B6E;padding:2px 10px;border-radius:100px;font-weight:700;margin-bottom:6px;display:inline-block">'+catLabel+'</span>' : '')
       + '<h3 style="font-size:17px;font-weight:700;line-height:1.4;margin-top:4px">'+_escHtml(p.title)+'</h3>'
       + '</div>';
     if (isAuthor||isAdmin) {
       html += '<div style="display:flex;gap:4px;flex-shrink:0;margin-left:8px">'
-        + '<button onclick="editPost(&quot;'+postId+'&quot;)" style="font-size:12px;color:#185FA5;background:none;border:none;cursor:pointer;padding:4px 8px">편집</button>'
+        + '<button onclick="editPost(&quot;'+postId+'&quot;)" style="font-size:12px;color:#1A9B6E;background:none;border:none;cursor:pointer;padding:4px 8px">편집</button>'
         + '<button onclick="deletePost(&quot;'+postId+'&quot;)" style="font-size:12px;color:#e24b4a;background:none;border:none;cursor:pointer;padding:4px 8px">삭제</button>'
         + '</div>';
     }
@@ -5566,15 +5567,17 @@ if('serviceWorker' in navigator){
 
 <!-- 공지사항 화면 -->
 <div id="noticeScreen" style="display:none;position:fixed;top:52px;left:50%;transform:translateX(-50%);width:100%;max-width:480px;bottom:calc(56px + env(safe-area-inset-bottom));overflow-y:auto;background:#f7f8fc;z-index:50;padding:12px">
+  <div style="padding:8px 14px 4px"><div style="background:#1A9B6E;border-radius:100px;padding:9px 18px;display:flex;align-items:center"><span style="font-size:13px;font-weight:700;color:#fff">KTC 공지사항</span><span style="font-size:13px;color:rgba(255,255,255,.75)"> : 공지사항은 꼭 확인해주세요 !</span></div></div>
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
     <h2 style="font-size:16px;font-weight:600">공지사항</h2>
-    <button id="btnAddNotice" onclick="openAddPost('notice')" style="display:none;font-size:13px;background:#185FA5;color:#fff;border:none;border-radius:8px;padding:6px 14px;cursor:pointer">+ 글쓰기</button>
+    <button id="btnAddNotice" onclick="openAddPost('notice')" style="display:none;font-size:13px;background:#1A9B6E;color:#fff;border:none;border-radius:8px;padding:6px 14px;cursor:pointer">+ 글쓰기</button>
   </div>
   <div id="noticeList" style="display:flex;flex-direction:column;gap:8px"></div>
 </div>
 
 <!-- 자유게시판 화면 -->
 <div id="freeScreen" style="display:none;position:fixed;top:52px;left:50%;transform:translateX(-50%);width:100%;max-width:480px;bottom:calc(80px + env(safe-area-inset-bottom));overflow-y:auto;background:#f7f8fc;z-index:50">
+  <div style="padding:8px 14px 4px"><div style="background:#1A9B6E;border-radius:100px;padding:9px 18px;display:flex;align-items:center"><span style="font-size:13px;font-weight:700;color:#fff">KTC 게시판</span><span style="font-size:13px;color:rgba(255,255,255,.75)"> : 카테고리별로 자유롭게 게시해주세요</span></div></div>
   <!-- 상단 검색바 -->
   <div style="padding:12px 14px 0">
     <div style="background:#fff;border-radius:14px;display:flex;align-items:center;gap:8px;padding:10px 14px;box-shadow:0 2px 8px rgba(0,0,0,0.06)">
@@ -5589,7 +5592,7 @@ if('serviceWorker' in navigator){
 </div>
 
 <!-- 글쓰기 FAB (자유게시판용) -->
-<button id="freeFab" onclick="openAddPost('free')" style="display:none;position:fixed;bottom:calc(88px + env(safe-area-inset-bottom));right:20px;width:52px;height:52px;background:#185FA5;color:#fff;border:none;border-radius:16px;font-size:24px;cursor:pointer;z-index:200;box-shadow:0 4px 20px rgba(24,95,165,.4);align-items:center;justify-content:center">
+<button id="freeFab" onclick="openAddPost('free')" style="display:none;position:fixed;bottom:calc(88px + env(safe-area-inset-bottom));right:20px;width:52px;height:52px;background:#1A9B6E;color:#fff;border:none;border-radius:16px;font-size:24px;cursor:pointer;z-index:200;box-shadow:0 4px 20px rgba(26,155,110,.4);align-items:center;justify-content:center">
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
 </button>
 
@@ -5605,7 +5608,7 @@ if('serviceWorker' in navigator){
       <p style="font-size:12px;color:#bbb;margin-bottom:16px">이름을 수정하거나 순서를 바꿀 수 있어요. 키(회색)는 기존 게시글과 연결된 ID라 변경되지 않아요.</p>
       <div id="catEditList"></div>
       <button onclick="addCatRow()" style="width:100%;padding:12px;background:#f7f8fc;border:1.5px dashed #ddd;border-radius:12px;color:#888;font-size:14px;cursor:pointer;margin-top:4px;font-family:inherit">+ 카테고리 추가</button>
-      <button onclick="saveBoardCats()" style="width:100%;margin-top:12px;padding:14px;background:#185FA5;color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">저장하기</button>
+      <button onclick="saveBoardCats()" style="width:100%;margin-top:12px;padding:14px;background:#1A9B6E;color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">저장하기</button>
     </div>
   </div>
 </div>
@@ -5651,7 +5654,7 @@ if('serviceWorker' in navigator){
       <div style="font-size:12px;font-weight:600;color:#888;margin-bottom:6px">내용 <span style="font-weight:400;color:#bbb">(선택)</span></div>
       <textarea id="postBodyInp" placeholder="내용을 자유롭게 작성하세요..." rows="4" style="width:100%;padding:13px 14px;border:1.5px solid #eee;border-radius:12px;font-size:14px;resize:none;box-sizing:border-box;font-family:inherit;outline:none;line-height:1.6"></textarea>
       <!-- 등록 버튼 -->
-      <button onclick="submitPost()" style="width:100%;margin-top:18px;padding:15px;background:#185FA5;color:#fff;border:none;border-radius:14px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit">등록하기</button>
+      <button onclick="submitPost()" style="width:100%;margin-top:18px;padding:15px;background:#1A9B6E;color:#fff;border:none;border-radius:14px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit">등록하기</button>
     </div>
   </div>
 </div>
@@ -5663,13 +5666,13 @@ if('serviceWorker' in navigator){
     <div style="padding:0 16px 20px" id="postDetailContent"></div>
     <!-- 댓글 영역 -->
     <div style="padding:0 16px 8px;border-top:1px solid #f0f2f5">
-      <div style="font-size:13px;font-weight:700;color:#555;margin-bottom:10px">댓글 <span id="commentCount" style="color:#185FA5"></span></div>
+      <div style="font-size:13px;font-weight:700;color:#555;margin-bottom:10px">댓글 <span id="commentCount" style="color:#1A9B6E"></span></div>
       <div id="commentList"><div style="text-align:center;padding:16px;color:#ccc;font-size:12px">댓글을 불러오는 중...</div></div>
     </div>
     <!-- 댓글 입력 -->
     <div style="padding:10px 16px 32px;border-top:1px solid #f0f2f5">
       <textarea id="commentInput" class="comment-input" rows="2" placeholder="댓글을 남겨보세요..."></textarea>
-      <button onclick="submitComment()" style="width:100%;margin-top:8px;padding:12px;background:#185FA5;color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">등록</button>
+      <button onclick="submitComment()" style="width:100%;margin-top:8px;padding:12px;background:#1A9B6E;color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">등록</button>
     </div>
   </div>
 </div>
@@ -5677,7 +5680,7 @@ if('serviceWorker' in navigator){
 <!-- 하단 탭 네비게이션 -->
 <nav class="bot-nav" id="botNav" style="display:none">
   <div class="bot-nav-inner">
-    <button class="bot-nav-item on" id="btnTabCal" onclick="switchTab('cal')">캘린더</button>
+    <button class="bot-nav-item on" id="btnTabCal" onclick="switchTab('cal')">일정</button>
     <button class="bot-nav-item" id="btnTabNotice" onclick="switchTab('notice')">공지사항</button>
     <button class="bot-nav-item" id="btnTabFree" onclick="switchTab('free')" style="position:relative">
       게시판<span class="bot-nav-dot" id="freeBoardDot" style="display:none"></span>
