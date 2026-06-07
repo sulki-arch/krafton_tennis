@@ -5457,7 +5457,7 @@ function _getReactNames(reactionsObj) {
 function showReactTooltip(el, label, names) {
   var tip = document.getElementById('reactTooltip');
   if (!tip) return;
-  if (!names || names.length === 0) return;
+  if (!names || names.length === 0) names = ['아직 반응이 없어요'];
   document.getElementById('reactTooltipLabel').textContent = label || '';
   document.getElementById('reactTooltipNames').textContent = names.join(', ');
   tip.style.display = 'block';
@@ -5477,23 +5477,34 @@ function hideReactTooltip() {
 }
 
 function _attachLongPress(el, label, getNamesFn) {
+  var _t = null, _sx = 0, _sy = 0;
+  function _fire() {
+    var names = getNamesFn();
+    if (names && names.length > 0) showReactTooltip(el, label, names);
+    else showReactTooltip(el, label, ['아직 반응이 없어요']);
+    _t = null;
+  }
+  function _cancel() { clearTimeout(_t); _t = null; }
+  // 터치
   el.addEventListener('touchstart', function(e) {
-    _lpTimer = setTimeout(function() {
-      var names = getNamesFn();
-      showReactTooltip(el, label, names);
-    }, 500);
+    _cancel();
+    _sx = e.touches[0].clientX;
+    _sy = e.touches[0].clientY;
+    _t = setTimeout(_fire, 550);
   }, {passive: true});
-  el.addEventListener('touchend', function(){ clearTimeout(_lpTimer); }, {passive: true});
-  el.addEventListener('touchmove', function(){ clearTimeout(_lpTimer); }, {passive: true});
-  // 마우스 지원 (데스크탑)
-  el.addEventListener('mousedown', function() {
-    _lpTimer = setTimeout(function() {
-      var names = getNamesFn();
-      showReactTooltip(el, label, names);
-    }, 600);
-  });
-  el.addEventListener('mouseup', function(){ clearTimeout(_lpTimer); });
-  el.addEventListener('mouseleave', function(){ clearTimeout(_lpTimer); });
+  el.addEventListener('touchmove', function(e) {
+    if (_t === null) return;
+    var dx = e.touches[0].clientX - _sx;
+    var dy = e.touches[0].clientY - _sy;
+    if (Math.abs(dx) > 8 || Math.abs(dy) > 8) _cancel(); // 8px 이상 움직이면 취소
+  }, {passive: true});
+  el.addEventListener('touchend', _cancel, {passive: true});
+  el.addEventListener('touchcancel', _cancel, {passive: true});
+  // 마우스 (데스크탑)
+  el.addEventListener('mousedown', function() { _cancel(); _t = setTimeout(_fire, 600); });
+  el.addEventListener('mouseup', _cancel);
+  el.addEventListener('mouseleave', _cancel);
+  el.addEventListener('contextmenu', function(e) { e.preventDefault(); }); // 길게누르기 메뉴 방지
 }
 
 document.addEventListener('touchstart', function(e) {
