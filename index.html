@@ -522,8 +522,8 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 
 /* ── BOTTOM NAV ── */
 .bot-nav{position:fixed;bottom:0;left:0;right:0;z-index:100;pointer-events:none}
-.bot-nav-inner{display:flex;align-items:center;background:#181d1b;padding:8px 6px calc(8px + env(safe-area-inset-bottom));pointer-events:all;width:100%}
-.bot-nav-item{flex:1;display:flex;align-items:center;justify-content:center;height:44px;border-radius:10px;border:none;background:transparent;color:#1c986d;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s ease;white-space:nowrap;font-family:inherit;position:relative}
+.bot-nav-inner{display:flex;align-items:flex-start;background:#181d1b;padding:6px 6px calc(22px + env(safe-area-inset-bottom));pointer-events:all;width:100%}
+.bot-nav-item{flex:1;display:flex;align-items:center;justify-content:center;height:36px;border-radius:10px;border:none;background:transparent;color:#1c986d;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s ease;white-space:nowrap;font-family:inherit;position:relative}
 .bot-nav-item.on{background:#1c986d;color:#1a1e1d;font-weight:700}
 .bot-nav-fab{position:fixed;bottom:calc(68px + env(safe-area-inset-bottom));right:12px;height:32px;width:73px;background:#1c986d;border:none;border-radius:30px;color:#fff;font-family:inherit;cursor:pointer;display:none;align-items:center;justify-content:center;gap:0;box-shadow:0 4px 16px rgba(26,155,110,.4);z-index:101;pointer-events:all}
 .bot-nav-fab span.fab-plus{font-size:20px;line-height:1;font-weight:400}
@@ -626,24 +626,25 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
       <span class="notif-badge" id="notifBadge" style="display:none"></span>
     </button>
-    <button class="hbtn" onclick="toggleSearch()">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-    </button>
   </div>
 
   <!-- Group button bar -->
   <div class="grp-bar" id="grpBar" style="display:none"></div>
 
   <!-- Search bar -->
-  <div id="calKtcBanner" style="padding:8px 0 0"><div style="margin:0 9px;background:#1c986d;border-radius:100px;height:48px;display:flex;align-items:center;padding:0 20px;gap:4px"><span style="font-size:18px;font-weight:700;color:#fff">KTC 공유 캘린더</span><span style="font-size:12px;font-weight:400;color:#fff"> : 일정 등록은 자유롭게 해주세요</span></div>
+  <div id="calKtcBanner" style="padding:6px 0 2px"><div style="margin:0 9px;background:#1c986d;border-radius:100px;height:38px;display:flex;align-items:center;padding:0 18px;gap:4px"><span style="font-size:18px;font-weight:700;color:#fff">KTC 공유 캘린더</span><span style="font-size:12px;font-weight:400;color:#fff"> : 일정 등록은 자유롭게 해주세요</span></div>
     <!-- 월 네비 + 월간/주간 토글 (배너 아래) -->
-    <div id="calMonthNav" style="display:flex;align-items:center;justify-content:center;gap:12px;padding:8px 14px 6px">
-      <button onclick="changeMonth(-1)" style="background:none;border:none;font-size:22px;color:#aaa;cursor:pointer;padding:0 2px;line-height:1;font-family:inherit">‹</button>
-      <div class="hmonth" id="hmonth" style="font-size:17px;font-weight:700;color:#1a1e1d;min-width:90px;text-align:center">2026년 5월</div>
-      <button onclick="changeMonth(1)" style="background:none;border:none;font-size:22px;color:#aaa;cursor:pointer;padding:0 2px;line-height:1;font-family:inherit">›</button>
-      <div class="view-toggle">
-        <button class="vt-btn active" id="monthViewBtn" onclick="switchView('month')">월간</button>
-        <button class="vt-btn" id="weekViewBtn" onclick="switchView('week')">주간</button>
+    <div id="calMonthNav" style="display:flex;align-items:center;padding:6px 14px 4px;position:relative">
+      <div style="position:absolute;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:4px">
+        <button onclick="changeMonth(-1)" style="background:none;border:none;font-size:22px;color:#aaa;cursor:pointer;padding:0 4px;line-height:1;font-family:inherit">‹</button>
+        <div class="hmonth" id="hmonth" style="font-size:17px;font-weight:700;color:#1a1e1d;min-width:90px;text-align:center">2026년 5월</div>
+        <button onclick="changeMonth(1)" style="background:none;border:none;font-size:22px;color:#aaa;cursor:pointer;padding:0 4px;line-height:1;font-family:inherit">›</button>
+      </div>
+      <div style="margin-left:auto">
+        <div class="view-toggle">
+          <button class="vt-btn active" id="monthViewBtn" onclick="switchView('month')">월간</button>
+          <button class="vt-btn" id="weekViewBtn" onclick="switchView('week')">주간</button>
+        </div>
       </div>
     </div>
   </div>
@@ -5567,9 +5568,7 @@ if('serviceWorker' in navigator){
 
 <!-- 공지사항 화면 -->
 <div id="noticeScreen" style="display:none;position:fixed;top:52px;left:50%;transform:translateX(-50%);width:100%;max-width:480px;bottom:calc(56px + env(safe-area-inset-bottom));overflow-y:auto;background:#f7f8fc;z-index:50;padding:12px">
-  <div style="padding:8px 0 8px"><div style="margin:0 9px;background:#1c986d;border-radius:100px;height:48px;display:flex;align-items:center;padding:0 20px;gap:4px"><span style="font-size:18px;font-weight:700;color:#fff">KTC 공지사항</span><span style="font-size:12px;font-weight:400;color:#fff"> : 공지사항은 꼭 확인해주세요 !</span></div></div>
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-    <h2 style="font-size:16px;font-weight:600">공지사항</h2>
+  <div style="padding:6px 0 4px"><div style="margin:0 9px;background:#1c986d;border-radius:100px;height:38px;display:flex;align-items:center;padding:0 18px;gap:4px"><span style="font-size:18px;font-weight:700;color:#fff">KTC 공지사항</span><span style="font-size:12px;font-weight:400;color:#fff"> : 공지사항은 꼭 확인해주세요 !</span></div></div>
     <button id="btnAddNotice" onclick="openAddPost('notice')" style="display:none;font-size:13px;background:#1A9B6E;color:#fff;border:none;border-radius:8px;padding:6px 14px;cursor:pointer">+ 글쓰기</button>
   </div>
   <div id="noticeList" style="display:flex;flex-direction:column;gap:8px"></div>
@@ -5577,7 +5576,7 @@ if('serviceWorker' in navigator){
 
 <!-- 자유게시판 화면 -->
 <div id="freeScreen" style="display:none;position:fixed;top:52px;left:50%;transform:translateX(-50%);width:100%;max-width:480px;bottom:calc(80px + env(safe-area-inset-bottom));overflow-y:auto;background:#f7f8fc;z-index:50">
-  <div style="padding:8px 0 0"><div style="margin:0 9px;background:#1c986d;border-radius:100px;height:48px;display:flex;align-items:center;padding:0 20px;gap:4px"><span style="font-size:18px;font-weight:700;color:#fff">KTC 게시판</span><span style="font-size:12px;font-weight:400;color:#fff"> : 카테고리별로 자유롭게 게시해주세요</span></div></div>
+  <div style="padding:6px 0 2px"><div style="margin:0 9px;background:#1c986d;border-radius:100px;height:38px;display:flex;align-items:center;padding:0 18px;gap:4px"><span style="font-size:18px;font-weight:700;color:#fff">KTC 게시판</span><span style="font-size:12px;font-weight:400;color:#fff"> : 카테고리별로 자유롭게 게시해주세요</span></div></div>
   <!-- 상단 검색바 -->
   <div style="padding:12px 14px 0">
     <div style="background:#fff;border-radius:14px;display:flex;align-items:center;gap:8px;padding:10px 14px;box-shadow:0 2px 8px rgba(0,0,0,0.06)">
