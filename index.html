@@ -4762,9 +4762,26 @@ async function fetchLinkPreview() {
     return;
   }
 
-  // Instagram: 미리보기만 표시 (embed는 상세화면에서)
+  // Instagram: microlink로 썸네일 시도, 실패하면 그라디언트
   if (ltype === 'instagram') {
-    const ogData = { title: 'Instagram', desc: '', img: '', domain: 'instagram.com' };
+    let hostname = 'instagram.com';
+    try { hostname = new URL(url).hostname; } catch(e) {}
+    try {
+      const res = await fetch('https://api.microlink.io/?url=' + encodeURIComponent(url));
+      if (res.ok) {
+        const data = await res.json();
+        if (data.status === 'success') {
+          const d = data.data;
+          const img = (d.image && typeof d.image.url === 'string') ? d.image.url : '';
+          const ogData = { title: String(d.title||'Instagram'), desc: String(d.description||''), img: String(img||''), domain: hostname };
+          _showLinkPreview(pv, ogData, img);
+          pv._ogData = ogData;
+          return;
+        }
+      }
+    } catch(e) {}
+    // microlink 실패 시 기본 플레이스홀더
+    const ogData = { title: 'Instagram', desc: '', img: '', domain: hostname };
     _showLinkPreview(pv, ogData, '');
     pv._ogData = ogData;
     return;
@@ -5183,9 +5200,12 @@ function _buildCardImg(link, img) {
       if (vid) return '<img src="https://img.youtube.com/vi/'+vid+'/mqdefault.jpg" loading="lazy" style="width:100%;height:100%;object-fit:cover"><div class="fboard-img-badge yt-badge">&#9654; YouTube</div>';
     } catch(e){}
   }
-  // Instagram: URL 만료 문제로 항상 그라디언트 카드 표시
+  // Instagram: 저장된 썸네일 있으면 표시, 만료시 gradient fallback
   if (ltype === 'instagram') {
-    return '<div class="fboard-img-ph" style="background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)"><span style="color:#fff;font-size:26px">&#128247;</span></div><div class="fboard-img-badge ig-badge">Instagram</div>';
+    if (img) return '<img src="'+img+'" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="_onImgErr(this)">'
+      + '<div class="fboard-img-badge ig-badge">Instagram</div>';
+    return '<div class="fboard-img-ph" style="background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)"><span style="color:#fff;font-size:26px">&#128247;</span></div>'
+      + '<div class="fboard-img-badge ig-badge">Instagram</div>';
   }
   // 일반 링크: ogData 이미지 있으면 표시
   if (img) return '<img src="'+img+'" loading="lazy" style="width:100%;height:100%;object-fit:cover">';
