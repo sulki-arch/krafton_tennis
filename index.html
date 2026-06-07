@@ -4762,41 +4762,15 @@ async function fetchLinkPreview() {
     return;
   }
 
-  // Instagram: microlink로 썸네일 시도, 실패하면 그라디언트
-  if (ltype === 'instagram') {
-    let hostname = 'instagram.com';
-    try { hostname = new URL(url).hostname; } catch(e) {}
-    try {
-      const res = await fetch('https://api.microlink.io/?url=' + encodeURIComponent(url));
-      if (res.ok) {
-        const data = await res.json();
-        if (data.status === 'success') {
-          const d = data.data;
-          const img = (d.image && typeof d.image.url === 'string') ? d.image.url : '';
-          const ogData = { title: String(d.title||'Instagram'), desc: String(d.description||''), img: String(img||''), domain: hostname };
-          _showLinkPreview(pv, ogData, img);
-          pv._ogData = ogData;
-          return;
-        }
-      }
-    } catch(e) {}
-    // microlink 실패 시 기본 플레이스홀더
-    const ogData = { title: 'Instagram', desc: '', img: '', domain: hostname };
-    _showLinkPreview(pv, ogData, '');
-    pv._ogData = ogData;
-    return;
-  }
-
-  // 일반 링크: microlink API
+  // Instagram + 일반 링크: 모두 microlink API로 처리 (원래 동작 복원)
   try {
     const res = await fetch('https://api.microlink.io/?url=' + encodeURIComponent(url));
-    if (!res.ok) { if(pv) pv.style.display='none'; return; }
     const data = await res.json();
     if (data.status === 'success') {
       const d = data.data;
       let hostname = '';
       try { hostname = new URL(url).hostname; } catch(e){}
-      const img = (d.image && typeof d.image.url === 'string') ? d.image.url : (d.logo && typeof d.logo.url === 'string') ? d.logo.url : '';
+      const img = d.image?.url || d.logo?.url || '';
       const ogData = { title: String(d.title||''), desc: String(d.description||''), img: String(img||''), domain: String(hostname||'') };
       _showLinkPreview(pv, ogData, img);
       pv._ogData = ogData;
@@ -5210,6 +5184,18 @@ function _buildCardImg(link, img) {
   // 일반 링크: ogData 이미지 있으면 표시
   if (img) return '<img src="'+img+'" loading="lazy" style="width:100%;height:100%;object-fit:cover">';
   return '<div class="fboard-img-ph">&#128279;</div>';
+}
+
+function _onImgErr(el) {
+  // 이미지 로드 실패 → 인스타 그라디언트 플레이스홀더로 교체
+  var wrap = el.parentNode;
+  if (!wrap) { el.style.display='none'; return; }
+  el.style.display = 'none';
+  var ph = document.createElement('div');
+  ph.className = 'fboard-img-ph';
+  ph.style.cssText = 'background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);width:100%;height:100%;display:flex;align-items:center;justify-content:center';
+  ph.innerHTML = '<span style="color:#fff;font-size:26px">&#128247;</span>';
+  wrap.insertBefore(ph, el);
 }
 
 init();
