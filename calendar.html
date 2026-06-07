@@ -5621,7 +5621,10 @@ if('serviceWorker' in navigator){
 
 <!-- 메뉴 화면 -->
 <div id="menuScreen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#f7f8fc;overflow-y:auto;z-index:110;padding-bottom:calc(80px + env(safe-area-inset-bottom));box-sizing:border-box">
+  <!-- 상단 배너 — 공지사항/게시판과 동일 스타일 -->
+  <div style="padding:0 0 0"><div style="margin:0;background:#1c986d;border-radius:0;height:38px;display:flex;align-items:center;padding:0 18px;gap:4px"><span style="font-size:18px;font-weight:700;color:#fff">메뉴</span><span style="font-size:12px;font-weight:400;color:#fff"> : 내 프로필 카드를 자유롭게 꾸며주세요</span></div></div>
   <!-- 프로필 카드 — pcf-wrap 정사각형 카드 -->
+  <div style="margin:10px 0 0">
   <div class="pcf-wrap" onclick="openProfile()" style="cursor:pointer">
     <img class="pcf-bg" id="menuBgImg" src="" alt="">
     <div class="pcf-overlay"></div>
@@ -5633,6 +5636,7 @@ if('serviceWorker' in navigator){
       <span class="pcf-role" id="menuRole" style="display:none"></span>
     </div>
     <img class="pcf-av" id="menuAvImg" src="" alt="">
+  </div>
   </div>
   <!-- 메뉴 항목 -->
   <div style="background:#fff;margin:12px;border-radius:16px;overflow:hidden">
