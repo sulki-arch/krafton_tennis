@@ -553,6 +553,18 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 .fboard-cat{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px;background:#EEF4FF;color:#185FA5;margin-bottom:5px}
 .fboard-title{font-size:13px;font-weight:600;color:#1a1a1a;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:5px}
 .fboard-meta{font-size:11px;color:#bbb}
+
+.comment-item{padding:10px 0;border-bottom:1px solid #f5f5f5}
+.comment-item:last-child{border-bottom:none}
+.comment-author{font-size:12px;font-weight:700;color:#333}
+.comment-time{font-size:11px;color:#ccc;margin-left:6px}
+.comment-body{font-size:13px;color:#444;line-height:1.6;margin:4px 0 6px;white-space:pre-wrap}
+.comment-reactions{display:flex;gap:6px;flex-wrap:wrap}
+.comment-react-btn{display:flex;align-items:center;gap:3px;background:#f5f6fa;border:1.5px solid #eee;border-radius:100px;padding:3px 9px;font-size:13px;cursor:pointer;transition:all .15s;font-family:inherit}
+.comment-react-btn.active{background:#FFF0F0;border-color:#f9a8a8}
+.comment-react-btn:active{transform:scale(.92)}
+.comment-input{width:100%;padding:11px 14px;border:1.5px solid #eee;border-radius:12px;font-size:14px;font-family:inherit;outline:none;resize:none;box-sizing:border-box;line-height:1.5}
+.comment-input:focus{border-color:#185FA5}
 .fboard-heart-btn{position:absolute;bottom:8px;right:8px;display:flex;align-items:center;gap:3px;background:rgba(255,255,255,.92);border:none;border-radius:100px;padding:5px 9px 5px 7px;cursor:pointer;backdrop-filter:blur(6px);box-shadow:0 1px 6px rgba(0,0,0,.14);font-family:inherit;transition:transform .15s}
 .fboard-heart-btn:active{transform:scale(.9)}
 .fboard-heart-btn svg{width:15px;height:15px;flex-shrink:0;transition:fill .15s,stroke .15s}
@@ -4635,8 +4647,11 @@ function initSwipeGestures(){
 function openM(id){ document.getElementById(id).classList.add('open'); }
 function closeM(id){
   document.getElementById(id).classList.remove('open');
-  // 상세일정 닫을 때 인라인 프로필 카드도 닫기
   if(id==='evDM'){ const c=document.getElementById('evProfileCard'); if(c) c.classList.remove('open'); }
+  if(id==='postDetailM'){
+    if(_commentRef){ try{_commentRef.off();}catch(e){} _commentRef=null; }
+    _curPostId=null;
+  }
 }
 
 /* ═══════════════════════════════════════
@@ -5074,37 +5089,125 @@ function renderNoticePosts(posts, listEl) {
 
 function filterFreeBoard() { renderFreeList(); }
 
+// ─── 댓글 & 이모지 반응 ───
+var _curPostId = null;
+var _commentRef = null;
+
 function openPost(postId) {
   if (!_db) return;
-  _db.ref('_posts/'+postId).once('value', snap => {
-    const p = snap.val();
+  _curPostId = postId;
+  // 이전 댓글 리스너 해제
+  if (_commentRef) { try { _commentRef.off(); } catch(e){} _commentRef = null; }
+  _db.ref('_posts/'+postId).once('value', function(snap) {
+    var p = snap.val();
     if (!p) return;
-    const isAuthor = CU && CU.id === p.authorId;
-    const isAdmin = CU && (CU.role==='admin'||CU.role==='manager');
-    const catLabel = FREE_CATS[p.cat] || '';
-    const linkHtml = p.link ? _buildLinkEmbed(p.link, p.ogData) : '';
-    document.getElementById('postDetailContent').innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
-        <div>
-          ${catLabel?`<span style="font-size:11px;background:#EEF4FF;color:#185FA5;padding:2px 10px;border-radius:100px;font-weight:700;margin-bottom:6px;display:inline-block">${catLabel}</span>`:''}
-          <h3 style="font-size:17px;font-weight:700;line-height:1.4;margin-top:4px">${_escHtml(p.title)}</h3>
-        </div>
-        ${(isAuthor||isAdmin)?`<div style="display:flex;gap:4px;flex-shrink:0;margin-left:8px"><button onclick="editPost('${postId}')" style="font-size:12px;color:#185FA5;background:none;border:none;cursor:pointer;padding:4px 8px">편집</button><button onclick="deletePost('${postId}')" style="font-size:12px;color:#e24b4a;background:none;border:none;cursor:pointer;padding:4px 8px">삭제</button></div>`:''}
-      </div>
-      <div style="font-size:12px;color:#bbb;margin-bottom:16px">${_escHtml(p.authorName)} · ${typeof _timeAgo==='function'?_timeAgo(p.createdAt):''}</div>
-      ${linkHtml}
-      ${p.body?`<div style="font-size:15px;color:#333;line-height:1.8;white-space:pre-wrap;margin-bottom:20px">${_escHtml(p.body)}</div>`:''}
-      <div style="border-top:1px solid #f0f2f5;padding-top:14px;display:flex;align-items:center;gap:8px">
-        <button class="fboard-heart-btn${(p.reactions?.heart||{})[CU?.id]?' liked':''}" id="hbtn-detail-${postId}" onclick="event.stopPropagation();toggleHeartDetail('${postId}')" style="position:static;box-shadow:0 1px 6px rgba(0,0,0,.1)">
-          <svg viewBox="0 0 24 24" fill="${(p.reactions?.heart||{})[CU?.id]?'#e53935':'none'}" stroke="${(p.reactions?.heart||{})[CU?.id]?'#e53935':'#aaa'}" stroke-width="2.2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-          ${Object.keys(p.reactions?.heart||{}).length > 0 ? `<span class="hcnt">${Object.keys(p.reactions?.heart||{}).length}</span>` : ''}
-        </button>
-        <span style="font-size:12px;color:#bbb">도움이 됐나요?</span>
-      </div>
-    `;
+    var isAuthor = CU && CU.id === p.authorId;
+    var isAdmin = CU && (CU.role==='admin'||CU.role==='manager');
+    var catLabel = FREE_CATS[p.cat] || '';
+    var linkHtml = p.link ? _buildLinkEmbed(p.link, p.ogData) : '';
+    var hearts = (p.reactions && p.reactions.heart) || {};
+    var heartCnt = Object.keys(hearts).length;
+    var liked = CU && !!hearts[CU.id];
+    var svgFill = liked ? '#e53935' : 'none';
+    var svgStroke = liked ? '#e53935' : '#aaa';
+    var heartSvg = '<svg viewBox="0 0 24 24" fill="'+svgFill+'" stroke="'+svgStroke+'" stroke-width="2.2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
+    var heartCntHtml = heartCnt > 0 ? '<span class="hcnt">'+heartCnt+'</span>' : '';
+
+    var el = document.getElementById('postDetailContent');
+    if (!el) return;
+    var html = '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">'
+      + '<div>'
+      + (catLabel ? '<span style="font-size:11px;background:#EEF4FF;color:#185FA5;padding:2px 10px;border-radius:100px;font-weight:700;margin-bottom:6px;display:inline-block">'+catLabel+'</span>' : '')
+      + '<h3 style="font-size:17px;font-weight:700;line-height:1.4;margin-top:4px">'+_escHtml(p.title)+'</h3>'
+      + '</div>';
+    if (isAuthor||isAdmin) {
+      html += '<div style="display:flex;gap:4px;flex-shrink:0;margin-left:8px">'
+        + '<button onclick="editPost(&quot;'+postId+'&quot;)" style="font-size:12px;color:#185FA5;background:none;border:none;cursor:pointer;padding:4px 8px">편집</button>'
+        + '<button onclick="deletePost(&quot;'+postId+'&quot;)" style="font-size:12px;color:#e24b4a;background:none;border:none;cursor:pointer;padding:4px 8px">삭제</button>'
+        + '</div>';
+    }
+    html += '</div>';
+    html += '<div style="font-size:12px;color:#bbb;margin-bottom:16px">'+_escHtml(p.authorName)+' · '+(typeof _timeAgo==='function'?_timeAgo(p.createdAt):'')+'</div>';
+    html += linkHtml;
+    if (p.body) html += '<div style="font-size:15px;color:#333;line-height:1.8;white-space:pre-wrap;margin-bottom:20px">'+_escHtml(p.body)+'</div>';
+    html += '<div style="border-top:1px solid #f0f2f5;padding-top:14px;display:flex;align-items:center;gap:8px">'
+      + '<button class="fboard-heart-btn'+(liked?' liked':'')+'" id="hbtn-detail-'+postId+'" onclick="toggleHeartDetail(this.dataset.pid)" data-pid="'+postId+'" style="position:static;box-shadow:0 1px 6px rgba(0,0,0,.1)">'+heartSvg+heartCntHtml+'</button>'
+      + '<span style="font-size:12px;color:#bbb">도움이 됐나요?</span>'
+      + '</div>';
+    el.innerHTML = html;
     openM('postDetailM');
+    loadComments(postId);
   });
 }
+
+function loadComments(postId) {
+  var listEl = document.getElementById('commentList');
+  var cntEl = document.getElementById('commentCount');
+  if (!listEl || !_db) return;
+  _commentRef = _db.ref('_posts/'+postId+'/comments').orderByChild('createdAt');
+  _commentRef.on('value', function(snap) {
+    var comments = [];
+    snap.forEach(function(ch) { comments.push(Object.assign({id:ch.key}, ch.val())); });
+    if (cntEl) cntEl.textContent = comments.length > 0 ? '('+comments.length+')' : '';
+    if (comments.length === 0) {
+      listEl.innerHTML = '<div style="text-align:center;padding:16px 0;color:#ccc;font-size:12px">첫 댓글을 남겨보세요!</div>';
+      return;
+    }
+    var EMOJIS = ['👍','❤️','😂','😮'];
+    listEl.innerHTML = comments.map(function(c) {
+      var isMe = CU && CU.id === c.authorId;
+      var isAdmin = CU && (CU.role==='admin'||CU.role==='manager');
+      var emojiHtml = EMOJIS.map(function(e) {
+        var reacts = (c.reactions && c.reactions[e]) || {};
+        var cnt = Object.keys(reacts).length;
+        var active = CU && !!reacts[CU.id];
+        return '<button class="comment-react-btn'+(active?' active':'')+'" data-pid="'+postId+'" data-cid="'+c.id+'" data-emoji="'+encodeURIComponent(e)+'" onclick="toggleCommentReact(this.dataset.pid,this.dataset.cid,decodeURIComponent(this.dataset.emoji))">'
+          + e + (cnt > 0 ? ' <span style="font-size:11px">'+cnt+'</span>' : '')
+          + '</button>';
+      }).join('');
+      var delBtn = (isMe||isAdmin) ? '<button data-pid="'+postId+'" data-cid="'+c.id+'" onclick="deleteComment(this.dataset.pid,this.dataset.cid)" style="margin-left:auto;background:none;border:none;font-size:11px;color:#ccc;cursor:pointer;padding:2px 4px">삭제</button>' : '';
+      return '<div class="comment-item">'
+        + '<div style="display:flex;align-items:center">'
+        + '<span class="comment-author">'+_escHtml(c.authorName)+'</span>'
+        + '<span class="comment-time">'+(typeof _timeAgo==='function'?_timeAgo(c.createdAt):'')+'</span>'
+        + delBtn
+        + '</div>'
+        + '<div class="comment-body">'+_escHtml(c.body)+'</div>'
+        + '<div class="comment-reactions">'+emojiHtml+'</div>'
+        + '</div>';
+    }).join('');
+  });
+}
+
+function submitComment() {
+  if (!CU || !_db || !_curPostId) return;
+  var inp = document.getElementById('commentInput');
+  var body = (inp ? inp.value : '').trim();
+  if (!body) return;
+  var comment = {
+    authorId: String(CU.id||''),
+    authorName: String(CU.name||CU.id||''),
+    body: body,
+    createdAt: Date.now()
+  };
+  _db.ref('_posts/'+_curPostId+'/comments').push(comment).then(function() {
+    if (inp) inp.value = '';
+  }).catch(function(e){ alert('댓글 저장 실패: '+e.message); });
+}
+
+function toggleCommentReact(postId, commentId, emoji) {
+  if (!CU || !_db) return;
+  var ref = _db.ref('_posts/'+postId+'/comments/'+commentId+'/reactions/'+encodeURIComponent(emoji)+'/'+CU.id);
+  ref.once('value', function(snap) {
+    if (snap.exists()) ref.remove(); else ref.set(true);
+  });
+}
+
+function deleteComment(postId, commentId) {
+  if (!confirm('댓글을 삭제할까요?')) return;
+  _db.ref('_posts/'+postId+'/comments/'+commentId).remove();
+}
+
 
 function deletePost(postId) {
   if (!confirm('이 게시글을 삭제할까요?')) return;
@@ -5129,9 +5232,17 @@ function editPost(postId) {
     if (linkInp) linkInp.value = p.link || '';
     const catRow = document.getElementById('postCatRow');
     if (catRow) catRow.style.display = p.type === 'free' ? 'block' : 'none';
+    // 카테고리 picker 동적 렌더
+    const ePicker = document.getElementById('postCatPicker');
+    if (ePicker) {
+      const eCats = _getCats();
+      ePicker.innerHTML = eCats.map(function(c) {
+        return '<button class="pcap" onclick="selectPostCat(this,&quot;'+c.key+'&quot;)">'+_escHtml(c.label)+'</button>';
+      }).join('');
+    }
     if (p.cat) {
-      document.querySelectorAll('.pcap').forEach(b => b.classList.remove('on'));
-      const catBtn = document.querySelector('.pcap[onclick*="' + p.cat + '"]');
+      document.querySelectorAll('.pcap').forEach(function(b){ b.classList.remove('on'); });
+      const catBtn = document.querySelector('.pcap[onclick*="'+p.cat+'"]');
       if (catBtn) { catBtn.classList.add('on'); document.getElementById('postCatVal').value = p.cat; }
     }
     if (p.link && p.ogData) {
@@ -5430,9 +5541,19 @@ if('serviceWorker' in navigator){
 
 <!-- 게시글 상세 모달 -->
 <div class="bso" id="postDetailM">
-  <div class="bs" style="max-height:90vh;overflow-y:auto">
+  <div class="bs" style="max-height:90vh;overflow-y:auto" id="postDetailScroll">
     <div class="bs-h"></div>
-    <div style="padding:0 16px 28px" id="postDetailContent"></div>
+    <div style="padding:0 16px 20px" id="postDetailContent"></div>
+    <!-- 댓글 영역 -->
+    <div style="padding:0 16px 8px;border-top:1px solid #f0f2f5">
+      <div style="font-size:13px;font-weight:700;color:#555;margin-bottom:10px">댓글 <span id="commentCount" style="color:#185FA5"></span></div>
+      <div id="commentList"><div style="text-align:center;padding:16px;color:#ccc;font-size:12px">댓글을 불러오는 중...</div></div>
+    </div>
+    <!-- 댓글 입력 -->
+    <div style="padding:10px 16px 32px;border-top:1px solid #f0f2f5">
+      <textarea id="commentInput" class="comment-input" rows="2" placeholder="댓글을 남겨보세요..."></textarea>
+      <button onclick="submitComment()" style="width:100%;margin-top:8px;padding:12px;background:#185FA5;color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">등록</button>
+    </div>
   </div>
 </div>
 
