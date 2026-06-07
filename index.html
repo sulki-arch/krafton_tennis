@@ -308,9 +308,9 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 .dc.has-cover-2 .ep{background:rgba(0,0,0,.38)!important;color:#fff!important}
 
 /* ── VIEW TOGGLE ── */
-.view-toggle{display:flex;gap:3px;align-items:center}
-.vt-btn{background:none;border:1.5px solid #e0e0e0;border-radius:10px;font-size:11px;font-weight:600;padding:2px 8px;cursor:pointer;color:#aaa;font-family:inherit;transition:all .15s;line-height:1.6}
-.vt-btn.active{background:var(--P);border-color:var(--P);color:#fff}
+.view-toggle{display:flex;gap:2px;align-items:center;background:#e8f5f0;border-radius:100px;padding:3px}
+.vt-btn{background:none;border:none;border-radius:100px;font-size:13px;font-weight:600;padding:5px 14px;cursor:pointer;color:#1c986d;font-family:inherit;transition:all .15s}
+.vt-btn.active{background:#1c986d;color:#1a1e1d;border:none}
 
 /* ── WEEKLY CALENDAR ── */
 #wcalWrap{flex-direction:column;flex:1;overflow:hidden;visibility:hidden}
@@ -521,11 +521,11 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 .ev-capacity{font-size:12px;color:#888;margin-top:6px;margin-bottom:2px}
 
 /* ── BOTTOM NAV ── */
-.bot-nav{position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:center;align-items:center;z-index:100;padding:10px 0 calc(10px + env(safe-area-inset-bottom));pointer-events:none}
-.bot-nav-inner{display:flex;align-items:center;background:#181d1b;border-radius:100px;padding:4px 5px;box-shadow:0 8px 32px rgba(0,0,0,.28);pointer-events:all;width:calc(100% - 20px);max-width:456px;height:56px}
-.bot-nav-item{flex:1;display:flex;align-items:center;justify-content:center;height:48px;border-radius:100px;border:none;background:transparent;color:#1c986d;font-size:16px;font-weight:600;cursor:pointer;transition:all .2s ease;white-space:nowrap;font-family:inherit;position:relative}
-.bot-nav-item.on{background:#1c986d;color:#fff;font-weight:700}
-.bot-nav-fab{position:fixed;bottom:calc(72px + env(safe-area-inset-bottom));right:10px;height:32px;width:73px;background:#1c986d;border:none;border-radius:30px;color:#fff;font-family:inherit;cursor:pointer;display:none;align-items:center;justify-content:center;gap:0;box-shadow:0 4px 16px rgba(26,155,110,.4);z-index:101;pointer-events:all}
+.bot-nav{position:fixed;bottom:0;left:0;right:0;z-index:100;pointer-events:none}
+.bot-nav-inner{display:flex;align-items:center;background:#181d1b;padding:8px 6px calc(8px + env(safe-area-inset-bottom));pointer-events:all;width:100%}
+.bot-nav-item{flex:1;display:flex;align-items:center;justify-content:center;height:44px;border-radius:10px;border:none;background:transparent;color:#1c986d;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s ease;white-space:nowrap;font-family:inherit;position:relative}
+.bot-nav-item.on{background:#1c986d;color:#1a1e1d;font-weight:700}
+.bot-nav-fab{position:fixed;bottom:calc(68px + env(safe-area-inset-bottom));right:12px;height:32px;width:73px;background:#1c986d;border:none;border-radius:30px;color:#fff;font-family:inherit;cursor:pointer;display:none;align-items:center;justify-content:center;gap:0;box-shadow:0 4px 16px rgba(26,155,110,.4);z-index:101;pointer-events:all}
 .bot-nav-fab span.fab-plus{font-size:20px;line-height:1;font-weight:400}
 .bot-nav-fab span.fab-label{font-size:14px;font-weight:600}
 .bot-nav-dot{width:6px;height:6px;background:#e24b4a;border-radius:50%;position:absolute;top:8px;right:8px}
@@ -637,12 +637,10 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
   <!-- Search bar -->
   <div id="calKtcBanner" style="padding:8px 0 0"><div style="margin:0 9px;background:#1c986d;border-radius:100px;height:48px;display:flex;align-items:center;padding:0 20px;gap:4px"><span style="font-size:18px;font-weight:700;color:#fff">KTC 공유 캘린더</span><span style="font-size:12px;font-weight:400;color:#fff"> : 일정 등록은 자유롭게 해주세요</span></div>
     <!-- 월 네비 + 월간/주간 토글 (배너 아래) -->
-    <div id="calMonthNav" style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px 4px">
-      <div class="mnav" style="display:flex;align-items:center;gap:4px">
-        <button onclick="changeMonth(-1)" style="background:none;border:none;font-size:22px;color:#888;cursor:pointer;padding:0 4px;line-height:1">‹</button>
-        <div class="hmonth" id="hmonth" style="font-size:17px;font-weight:700;color:#1a1e1d">2026년 5월</div>
-        <button onclick="changeMonth(1)" style="background:none;border:none;font-size:22px;color:#888;cursor:pointer;padding:0 4px;line-height:1">›</button>
-      </div>
+    <div id="calMonthNav" style="display:flex;align-items:center;justify-content:center;gap:12px;padding:8px 14px 6px">
+      <button onclick="changeMonth(-1)" style="background:none;border:none;font-size:22px;color:#aaa;cursor:pointer;padding:0 2px;line-height:1;font-family:inherit">‹</button>
+      <div class="hmonth" id="hmonth" style="font-size:17px;font-weight:700;color:#1a1e1d;min-width:90px;text-align:center">2026년 5월</div>
+      <button onclick="changeMonth(1)" style="background:none;border:none;font-size:22px;color:#aaa;cursor:pointer;padding:0 2px;line-height:1;font-family:inherit">›</button>
       <div class="view-toggle">
         <button class="vt-btn active" id="monthViewBtn" onclick="switchView('month')">월간</button>
         <button class="vt-btn" id="weekViewBtn" onclick="switchView('week')">주간</button>
@@ -5594,8 +5592,8 @@ if('serviceWorker' in navigator){
 </div>
 
 <!-- 글쓰기 FAB (자유게시판용) -->
-<button id="freeFab" onclick="openAddPost('free')" style="display:none;position:fixed;bottom:calc(88px + env(safe-area-inset-bottom));right:20px;width:52px;height:52px;background:#1A9B6E;color:#fff;border:none;border-radius:16px;font-size:24px;cursor:pointer;z-index:200;box-shadow:0 4px 20px rgba(26,155,110,.4);align-items:center;justify-content:center">
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+<button id="freeFab" onclick="openAddPost('free')" style="display:none;position:fixed;bottom:calc(68px + env(safe-area-inset-bottom));right:12px;height:32px;width:73px;background:#1c986d;color:#fff;border:none;border-radius:30px;font-family:inherit;cursor:pointer;z-index:200;box-shadow:0 4px 16px rgba(26,155,110,.4);align-items:center;justify-content:center;gap:0">
+  <span style="font-size:20px;font-weight:400;line-height:1">+</span><span style="font-size:14px;font-weight:700">새글</span>
 </button>
 
 <!-- 카테고리 편집 모달 (관리자 전용) -->
