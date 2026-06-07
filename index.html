@@ -141,7 +141,7 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,'Apple SD Gothi
 .c-gray  {background:#f1f5f9;color:#475569}
 
 /* ── FAB ── */
-.fab{position:fixed;bottom:calc(72px + env(safe-area-inset-bottom));width:54px;height:54px;background:var(--P);color:#fff;border:none;border-radius:18px;font-size:24px;cursor:pointer;box-shadow:0 4px 16px rgba(26,115,232,.45);display:flex;align-items:center;justify-content:center;z-index:50;transition:background .2s,transform .15s}
+.fab{display:none !important;position:fixed;bottom:calc(72px + env(safe-area-inset-bottom));width:54px;height:54px;background:var(--P);color:#fff;border:none;border-radius:18px;font-size:24px;cursor:pointer;box-shadow:0 4px 16px rgba(26,115,232,.45);display:flex;align-items:center;justify-content:center;z-index:50;transition:background .2s,transform .15s}
 .fab:active{background:var(--PD);transform:scale(.94)}
 
 /* ── OVERLAY + DRAWER ── */
@@ -620,22 +620,7 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 <div class="viewer-banner" id="viewerBanner">👁 게스트 모드 — 일정 추가/수정/삭제는 로그인 후 이용 가능합니다</div>
   <!-- Header -->
   <div class="hdr">
-    <button class="hbtn" onclick="openDrawer()">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-    </button>
-    <div class="h-center">
-      <div class="mnav">
-        <button onclick="changeMonth(-1)">‹</button>
-        <div class="hmonth" id="hmonth">2026년 5월</div>
-        <button onclick="changeMonth(1)">›</button>
-      </div>
-      <div class="h-sub">
-        <div class="view-toggle">
-          <button class="vt-btn active" id="monthViewBtn" onclick="switchView('month')">월간</button>
-          <button class="vt-btn" id="weekViewBtn" onclick="switchView('week')">주간</button>
-        </div>
-      </div>
-    </div>
+    <div style="width:34px"></div>
     <button class="hbtn" id="todayBtn" onclick="goToday()" style="display:none;font-size:13px;font-weight:700;color:var(--P);letter-spacing:-.3px;padding:0 6px;min-width:36px">오늘</button>
     <button class="hbtn notif-btn" id="notifBtn" onclick="openNotifCenter()" style="display:none">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
@@ -650,7 +635,20 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
   <div class="grp-bar" id="grpBar" style="display:none"></div>
 
   <!-- Search bar -->
-  <div id="calKtcBanner" style="padding:8px 0 0"><div style="margin:0 9px;background:#1c986d;border-radius:100px;height:48px;display:flex;align-items:center;padding:0 20px;gap:4px"><span style="font-size:18px;font-weight:700;color:#fff">KTC 공유 캘린더</span><span style="font-size:12px;font-weight:400;color:#fff"> : 일정 등록은 자유롭게 해주세요</span></div></div>
+  <div id="calKtcBanner" style="padding:8px 0 0"><div style="margin:0 9px;background:#1c986d;border-radius:100px;height:48px;display:flex;align-items:center;padding:0 20px;gap:4px"><span style="font-size:18px;font-weight:700;color:#fff">KTC 공유 캘린더</span><span style="font-size:12px;font-weight:400;color:#fff"> : 일정 등록은 자유롭게 해주세요</span></div>
+    <!-- 월 네비 + 월간/주간 토글 (배너 아래) -->
+    <div id="calMonthNav" style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px 4px">
+      <div class="mnav" style="display:flex;align-items:center;gap:4px">
+        <button onclick="changeMonth(-1)" style="background:none;border:none;font-size:22px;color:#888;cursor:pointer;padding:0 4px;line-height:1">‹</button>
+        <div class="hmonth" id="hmonth" style="font-size:17px;font-weight:700;color:#1a1e1d">2026년 5월</div>
+        <button onclick="changeMonth(1)" style="background:none;border:none;font-size:22px;color:#888;cursor:pointer;padding:0 4px;line-height:1">›</button>
+      </div>
+      <div class="view-toggle">
+        <button class="vt-btn active" id="monthViewBtn" onclick="switchView('month')">월간</button>
+        <button class="vt-btn" id="weekViewBtn" onclick="switchView('week')">주간</button>
+      </div>
+    </div>
+  </div>
   <div class="sbar" id="sbar">
     <input id="sinput" type="text" placeholder="일정 검색..." oninput="doSearch(this.value)">
     <div id="sres" class="sres"></div>
@@ -4725,7 +4723,7 @@ function switchTab(tab) {
   const freeFabEl = document.getElementById('freeFab');
   if (freeFabEl) freeFabEl.style.display = tab === 'free' ? 'flex' : 'none';
   // 캘린더 앱 전체 영역 토글 — #app 안에서 캘린더 관련 요소들
-  const calEls = document.querySelectorAll('.cal, .dhdr, #wcalWrap, .sbar, #viewerBanner, #calKtcBanner');
+  const calEls = document.querySelectorAll('.cal, .dhdr, #wcalWrap, .sbar, #viewerBanner, #calKtcBanner, #calMonthNav, .grp-bar');
   if (isBoard) {
     calEls.forEach(el => { if(el) el.style.display = 'none'; });
   } else {
@@ -5684,6 +5682,7 @@ if('serviceWorker' in navigator){
 <!-- 하단 탭 네비게이션 -->
 <nav class="bot-nav" id="botNav" style="display:none">
   <div class="bot-nav-inner">
+    <button class="bot-nav-item" id="btnTabMenu" onclick="openDrawer()">메뉴</button>
     <button class="bot-nav-item on" id="btnTabCal" onclick="switchTab('cal')">일정</button>
     <button class="bot-nav-item" id="btnTabNotice" onclick="switchTab('notice')">공지사항</button>
     <button class="bot-nav-item" id="btnTabFree" onclick="switchTab('free')" style="position:relative">
