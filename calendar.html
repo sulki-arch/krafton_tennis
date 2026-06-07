@@ -24,14 +24,14 @@
 :root{--P:#1A9B6E;--PD:#0f6b4a;--SUN:#e53935;--SAT:#1A9B6E;--BD:#f0f2f5;--SH:0 4px 20px rgba(0,0,0,.08)}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
-body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif;background:#f7f8fc;display:flex;justify-content:center;padding-bottom:calc(80px + env(safe-area-inset-bottom))}
+body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif;background:#f7f8fc;padding-bottom:calc(80px + env(safe-area-inset-bottom))}
 #root{width:100%;max-width:480px;min-height:100vh;background:#fff;position:relative;display:flex;flex-direction:column}
 
 /* ── LOGIN (legacy, unused) ── */
 #login-screen{display:none}
 
 /* ── APP ── */
-#app{display:none;flex-direction:column;flex:1;width:100%;max-width:480px;position:relative}
+#app{display:none;flex-direction:column;width:100%;max-width:480px;margin:0 auto;position:relative;box-sizing:border-box}
 
 /* ── HEADER ── */
 .hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:none;background:#fff;box-shadow:0 1px 0 #f0f2f5;position:sticky;top:0;z-index:100}
@@ -81,7 +81,7 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,'Apple SD Gothi
 .sres-empty{font-size:13px;color:#bbb;padding:14px 0;text-align:center}
 
 /* ── CALENDAR ── */
-.cal{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.cal{width:100%;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .dhdr{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:0.5px solid #eef0f5}
 .dh{text-align:center;padding:7px 0;font-size:12px;font-weight:600;color:#888}
 .dh:last-child{color:var(--SUN)}.dh:nth-child(6){color:var(--SAT)}
