@@ -2952,35 +2952,9 @@ function hideEvCancelNotice() {
 
 function _updateMenuScreen() {
   if (!CU) return;
-  const nameEl = document.getElementById('menuName');
-  const subEl = document.getElementById('menuSub');
-  const bioEl = document.getElementById('menuBio');
-  const roleEl = document.getElementById('menuRole');
-  const avImg = document.getElementById('menuAvImg');
-  const avFb = document.getElementById('menuAvFallback');
-  const bgImg = document.getElementById('menuBgImg');
-  if (nameEl) nameEl.textContent = CU.name || CU.id;
-  if (subEl) subEl.textContent = CU.username ? '@' + CU.username : '';
-  if (bioEl) bioEl.textContent = CU.bio || '';
-  if (roleEl) {
-    const roleTxt = CU.role === 'admin' ? '관리자' : CU.role === 'manager' ? '매니저' : '';
-    if (roleTxt) { roleEl.textContent = roleTxt; roleEl.style.display = 'inline-block'; }
-    else roleEl.style.display = 'none';
-  }
-  // 아바타 (pcf-av)
-  const avImgEl = document.getElementById('menuAvImg');
-  if (avImgEl) { avImgEl.src = CU.photo || ''; avImgEl.style.display = CU.photo ? 'block' : 'none'; }
-  // 배경 이미지
-  if (bgImg) { bgImg.src = CU.drawerBg || ''; bgImg.style.display = CU.drawerBg ? 'block' : 'none'; }
-  // stat (위치, 구력, 플레이타임)
-  const statEl = document.getElementById('menuStat');
-  if (statEl) {
-    var statParts = [];
-    if (CU.location) statParts.push('📍 ' + CU.location);
-    if (CU.career) statParts.push('🎾 ' + CU.career);
-    if (CU.playtime) statParts.push('🕐 ' + CU.playtime);
-    statEl.textContent = statParts.join('\n');
-  }
+  // _fillUserCard('menu', ...) 방식으로 통일
+  _fillUserCard('menu', CU, CU.id, CU.name);
+  // 메뉴 항목 표시/숨김
   const isAdmin = CU.role === 'admin' || CU.role === 'manager';
   const splashEl = document.getElementById('m-splash');
   const profileEl = document.getElementById('m-profile');
@@ -5624,7 +5598,7 @@ if('serviceWorker' in navigator){
   <!-- 상단 배너 — 공지사항/게시판과 동일 스타일 -->
   <div style="padding:0 0 0"><div style="margin:0;background:#1c986d;border-radius:0;height:38px;display:flex;align-items:center;padding:0 18px;gap:4px"><span style="font-size:18px;font-weight:700;color:#fff">메뉴</span><span style="font-size:12px;font-weight:400;color:#fff"> : 내 프로필 카드를 자유롭게 꾸며주세요</span></div></div>
   <!-- 프로필 카드 — pcf-wrap 정사각형 카드 -->
-  <div style="margin:10px 0 0">
+  <div style="margin:20px">
   <div class="pcf-wrap" onclick="openProfile()" style="cursor:pointer">
     <img class="pcf-bg" id="menuBgImg" src="" alt="">
     <div class="pcf-overlay"></div>
@@ -5633,9 +5607,9 @@ if('serviceWorker' in navigator){
       <div class="pcf-sub" id="menuSub"></div>
       <div class="pcf-bio" id="menuBio"></div>
       <div class="pcf-stat" id="menuStat"></div>
-      <span class="pcf-role" id="menuRole" style="display:none"></span>
+      <span class="pcf-role" id="menuRole">멤버</span>
     </div>
-    <img class="pcf-av" id="menuAvImg" src="" alt="">
+    <img class="pcf-av" id="menuPhoto" src="" alt="">
   </div>
   </div>
   <!-- 메뉴 항목 -->
