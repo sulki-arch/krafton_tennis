@@ -31,7 +31,7 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,'Apple SD Gothi
 #login-screen{display:none}
 
 /* ── APP ── */
-#app{display:none;flex-direction:column;flex:1}
+#app{display:none;flex-direction:column;flex:1;width:100%;max-width:480px;position:relative}
 
 /* ── HEADER ── */
 .hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:none;background:#fff;box-shadow:0 1px 0 #f0f2f5;position:sticky;top:0;z-index:100}
@@ -564,6 +564,8 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 .ev-cancel-notice .ncl-body{font-size:12px;color:rgba(255,255,255,.75);line-height:1.6}
 .ev-cancel-notice .ncl-close{position:absolute;top:10px;right:12px;background:none;border:none;color:rgba(255,255,255,.5);font-size:18px;cursor:pointer;padding:2px 6px;line-height:1}
 @keyframes slideDownNotice{from{opacity:0;transform:translateX(-50%) translateY(-10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.menu-item{display:flex;align-items:center;gap:14px;width:100%;padding:16px 20px;background:none;border:none;font-size:15px;font-weight:500;color:#1a1e1d;cursor:pointer;text-align:left;font-family:inherit;transition:background .15s}
+.menu-item:active{background:#f5f5f5}
 .comment-item{padding:10px 0;border-bottom:1px solid #f5f5f5}
 .comment-item:last-child{border-bottom:none}
 .comment-author{font-size:12px;font-weight:700;color:#333}
@@ -2948,6 +2950,26 @@ function hideEvCancelNotice() {
   if (el) el.style.display = 'none';
 }
 
+function _updateMenuScreen() {
+  if (!CU) return;
+  const nameEl = document.getElementById('menuName');
+  const subEl = document.getElementById('menuSub');
+  const avImg = document.getElementById('menuAvImg');
+  const avFb = document.getElementById('menuAvFallback');
+  const bgImg = document.getElementById('menuBgImg');
+  if (nameEl) nameEl.textContent = CU.name || CU.id;
+  if (subEl) subEl.textContent = CU.role === 'admin' ? '관리자' : CU.role === 'manager' ? '매니저' : '멤버';
+  if (avImg && CU.photo) { avImg.src = CU.photo; avImg.style.display = 'block'; if(avFb) avFb.style.display='none'; }
+  if (bgImg && CU.drawerBg) { bgImg.src = CU.drawerBg; bgImg.style.display = 'block'; }
+  const isAdmin = CU.role === 'admin' || CU.role === 'manager';
+  const splashEl = document.getElementById('m-splash');
+  const profileEl = document.getElementById('m-profile');
+  const usersEl = document.getElementById('m-users');
+  if (splashEl) splashEl.style.display = isAdmin ? 'flex' : 'none';
+  if (profileEl) profileEl.style.display = 'flex';
+  if (usersEl) usersEl.style.display = isAdmin ? 'flex' : 'none';
+}
+
 function toggleAttend(){} // (legacy)
 
 function sendChat(){
@@ -4706,25 +4728,35 @@ let _curTab = 'cal';
 function switchTab(tab) {
   _curTab = tab;
   // 탭 버튼 활성 스타일
-  ['cal','notice','free'].forEach(t => {
+  ['cal','notice','free','menu'].forEach(t => {
     const key = t.charAt(0).toUpperCase() + t.slice(1);
     const btn = document.getElementById('btnTab' + key);
     if (btn) btn.classList.toggle('on', t === tab);
   });
+  // 드로어 닫기 (열려 있을 경우)
+  closeDrawer();
   const isBoard = (tab === 'notice' || tab === 'free');
-  // 게시판 화면 토글
+  const isMenu = (tab === 'menu');
+  // 게시판/메뉴 화면 토글
   document.getElementById('noticeScreen').style.display = tab === 'notice' ? 'block' : 'none';
   document.getElementById('freeScreen').style.display = tab === 'free' ? 'block' : 'none';
+  const menuScreenEl = document.getElementById('menuScreen');
+  if (menuScreenEl) {
+    menuScreenEl.style.display = isMenu ? 'block' : 'none';
+    if (isMenu) _updateMenuScreen();
+  }
   // FAB 토글
   const fabEl = document.getElementById('fab');
   if (fabEl) fabEl.style.display = isBoard ? 'none' : '';
   const botNavFabEl = document.getElementById('botNavFab');
   if (botNavFabEl) botNavFabEl.style.display = (tab === 'cal') ? 'flex' : 'none';
+  const freeFabMenuEl = document.getElementById('freeFab');
+  if (freeFabMenuEl) freeFabMenuEl.style.display = tab === 'free' ? 'flex' : 'none';
   const freeFabEl = document.getElementById('freeFab');
   if (freeFabEl) freeFabEl.style.display = tab === 'free' ? 'flex' : 'none';
   // 캘린더 앱 전체 영역 토글 — #app 안에서 캘린더 관련 요소들
   const calEls = document.querySelectorAll('.cal, .dhdr, #wcalWrap, .sbar, #viewerBanner, #calKtcBanner, .grp-bar');
-  if (isBoard) {
+  if (isBoard || isMenu) {
     calEls.forEach(el => { if(el) el.style.display = 'none'; });
   } else {
     // 캘린더로 복귀: viewMode에 맞게 올바른 뷰만 표시
@@ -5567,8 +5599,62 @@ if('serviceWorker' in navigator){
 }
 </script>
 
+<!-- 메뉴 화면 -->
+<div id="menuScreen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;width:100%;max-width:480px;margin:0 auto;background:#f7f8fc;overflow-y:auto;z-index:50;padding-top:52px;box-sizing:border-box">
+  <!-- 프로필 헤더 -->
+  <div id="menuProfileHead" style="position:relative;height:120px;background:linear-gradient(135deg,#1c986d,#0f6b4a);display:flex;align-items:flex-end;padding:16px 20px;cursor:pointer" onclick="openProfile()">
+    <img id="menuBgImg" src="" alt="" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.5">
+    <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.4),transparent)"></div>
+    <div style="position:relative;display:flex;align-items:center;gap:12px;flex:1">
+      <div id="menuAvDiv" style="width:48px;height:48px;border-radius:100%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:24px;overflow:hidden;border:2px solid rgba(255,255,255,.5)">
+        <img id="menuAvImg" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover">
+        <span id="menuAvFallback">👤</span>
+      </div>
+      <div>
+        <div id="menuName" style="font-size:16px;font-weight:700;color:#fff">게스트</div>
+        <div id="menuSub" style="font-size:12px;color:rgba(255,255,255,.8)"></div>
+      </div>
+    </div>
+  </div>
+  <!-- 메뉴 항목 -->
+  <div style="background:#fff;margin:12px;border-radius:16px;overflow:hidden">
+    <button id="m-splash" class="menu-item" style="display:none" onclick="openSplashEdit()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1c986d" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      메인 화면 편집
+    </button>
+    <button id="m-profile" class="menu-item" style="display:none" onclick="openProfile()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1c986d" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      내 프로필
+    </button>
+    <button class="menu-item" onclick="openMemberList()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1c986d" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      전체 멤버 보기
+    </button>
+    <div style="height:1px;background:#f0f2f5;margin:0 16px"></div>
+    <button class="menu-item" onclick="openGroupMgmt()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1c986d" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+      그룹 관리
+    </button>
+    <div style="height:1px;background:#f0f2f5;margin:0 16px"></div>
+    <button class="menu-item" onclick="openCatMgmt()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1c986d" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+      카테고리 관리
+    </button>
+    <button id="m-users" class="menu-item" style="display:none" onclick="openUserMgmt()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1c986d" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+      사용자 관리
+    </button>
+  </div>
+  <div style="background:#fff;margin:0 12px 12px;border-radius:16px;overflow:hidden">
+    <button class="menu-item" style="color:#e53935" onclick="doLogout()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e53935" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      로그아웃
+    </button>
+  </div>
+</div>
+
 <!-- 공지사항 화면 -->
-<div id="noticeScreen" style="display:none;position:fixed;top:52px;left:50%;transform:translateX(-50%);width:100%;max-width:480px;bottom:calc(56px + env(safe-area-inset-bottom));overflow-y:auto;background:#f7f8fc;z-index:50;padding:12px">
+<div id="noticeScreen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;width:100%;max-width:480px;margin:0 auto;overflow-y:auto;z-index:50;padding-top:52px;box-sizing:border-box;bottom:calc(56px + env(safe-area-inset-bottom));overflow-y:auto;background:#f7f8fc;z-index:50;padding:12px">
   <div style="padding:6px 0 4px"><div style="margin:0 9px;background:#1c986d;border-radius:100px;height:38px;display:flex;align-items:center;padding:0 18px;gap:4px"><span style="font-size:18px;font-weight:700;color:#fff">KTC 공지사항</span><span style="font-size:12px;font-weight:400;color:#fff"> : 공지사항은 꼭 확인해주세요 !</span></div></div>
     <button id="btnAddNotice" onclick="openAddPost('notice')" style="display:none;font-size:13px;background:#1A9B6E;color:#fff;border:none;border-radius:8px;padding:6px 14px;cursor:pointer">+ 글쓰기</button>
   </div>
@@ -5576,7 +5662,7 @@ if('serviceWorker' in navigator){
 </div>
 
 <!-- 자유게시판 화면 -->
-<div id="freeScreen" style="display:none;position:fixed;top:52px;left:50%;transform:translateX(-50%);width:100%;max-width:480px;bottom:calc(80px + env(safe-area-inset-bottom));overflow-y:auto;background:#f7f8fc;z-index:50">
+<div id="freeScreen" style="display:none;position:fixed;top:0;left:0;right:0;width:100%;max-width:480px;margin:0 auto;overflow-y:auto;padding-top:52px;box-sizing:border-box;bottom:calc(80px + env(safe-area-inset-bottom));overflow-y:auto;background:#f7f8fc;z-index:50">
   <div style="padding:6px 0 2px"><div style="margin:0 9px;background:#1c986d;border-radius:100px;height:38px;display:flex;align-items:center;padding:0 18px;gap:4px"><span style="font-size:18px;font-weight:700;color:#fff">KTC 게시판</span><span style="font-size:12px;font-weight:400;color:#fff"> : 카테고리별로 자유롭게 게시해주세요</span></div></div>
   <!-- 상단 검색바 -->
   <div style="padding:12px 14px 0">
@@ -5680,7 +5766,7 @@ if('serviceWorker' in navigator){
 <!-- 하단 탭 네비게이션 -->
 <nav class="bot-nav" id="botNav" style="display:none">
   <div class="bot-nav-inner">
-    <button class="bot-nav-item" id="btnTabMenu" onclick="openDrawer()">메뉴</button>
+    <button class="bot-nav-item" id="btnTabMenu" onclick="switchTab('menu')">메뉴</button>
     <button class="bot-nav-item on" id="btnTabCal" onclick="switchTab('cal')">일정</button>
     <button class="bot-nav-item" id="btnTabNotice" onclick="switchTab('notice')">공지사항</button>
     <button class="bot-nav-item" id="btnTabFree" onclick="switchTab('free')" style="position:relative">
