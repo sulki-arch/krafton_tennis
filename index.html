@@ -2954,13 +2954,22 @@ function _updateMenuScreen() {
   if (!CU) return;
   const nameEl = document.getElementById('menuName');
   const subEl = document.getElementById('menuSub');
+  const bioEl = document.getElementById('menuBio');
+  const roleEl = document.getElementById('menuRole');
   const avImg = document.getElementById('menuAvImg');
   const avFb = document.getElementById('menuAvFallback');
   const bgImg = document.getElementById('menuBgImg');
   if (nameEl) nameEl.textContent = CU.name || CU.id;
-  if (subEl) subEl.textContent = CU.role === 'admin' ? '관리자' : CU.role === 'manager' ? '매니저' : '멤버';
-  if (avImg && CU.photo) { avImg.src = CU.photo; avImg.style.display = 'block'; if(avFb) avFb.style.display='none'; }
-  if (bgImg && CU.drawerBg) { bgImg.src = CU.drawerBg; bgImg.style.display = 'block'; }
+  if (subEl) subEl.textContent = CU.username ? '@' + CU.username : '';
+  if (bioEl) bioEl.textContent = CU.bio || '';
+  if (roleEl) {
+    const roleTxt = CU.role === 'admin' ? '관리자' : CU.role === 'manager' ? '매니저' : '';
+    if (roleTxt) { roleEl.textContent = roleTxt; roleEl.style.display = 'inline-block'; }
+    else roleEl.style.display = 'none';
+  }
+  if (CU.photo) { if(avImg){ avImg.src = CU.photo; avImg.style.display = 'block'; } if(avFb) avFb.style.display='none'; }
+  else { if(avImg) avImg.style.display='none'; if(avFb) avFb.style.display=''; }
+  if (bgImg) { if(CU.drawerBg){ bgImg.src = CU.drawerBg; bgImg.style.display = 'block'; } else bgImg.style.display = 'none'; }
   const isAdmin = CU.role === 'admin' || CU.role === 'manager';
   const splashEl = document.getElementById('m-splash');
   const profileEl = document.getElementById('m-profile');
@@ -5600,20 +5609,20 @@ if('serviceWorker' in navigator){
 </script>
 
 <!-- 메뉴 화면 -->
-<div id="menuScreen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;width:100%;max-width:480px;margin:0 auto;background:#f7f8fc;overflow-y:auto;z-index:50;padding-top:52px;box-sizing:border-box">
-  <!-- 프로필 헤더 -->
-  <div id="menuProfileHead" style="position:relative;height:120px;background:linear-gradient(135deg,#1c986d,#0f6b4a);display:flex;align-items:flex-end;padding:16px 20px;cursor:pointer" onclick="openProfile()">
-    <img id="menuBgImg" src="" alt="" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.5">
-    <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.4),transparent)"></div>
-    <div style="position:relative;display:flex;align-items:center;gap:12px;flex:1">
-      <div id="menuAvDiv" style="width:48px;height:48px;border-radius:100%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:24px;overflow:hidden;border:2px solid rgba(255,255,255,.5)">
-        <img id="menuAvImg" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover">
-        <span id="menuAvFallback">👤</span>
-      </div>
-      <div>
-        <div id="menuName" style="font-size:16px;font-weight:700;color:#fff">게스트</div>
-        <div id="menuSub" style="font-size:12px;color:rgba(255,255,255,.8)"></div>
-      </div>
+<div id="menuScreen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#f7f8fc;overflow-y:auto;z-index:110;padding-bottom:calc(80px + env(safe-area-inset-bottom));box-sizing:border-box">
+  <!-- 프로필 헤더 — 드로어와 동일한 구조 -->
+  <div class="d-head" onclick="openProfile()" style="cursor:pointer;width:100%">
+    <img class="d-head-bg" id="menuBgImg" src="" alt="" style="display:none">
+    <div class="d-head-overlay"></div>
+    <div class="d-head-content">
+      <div class="d-name" id="menuName">게스트</div>
+      <div class="d-sub" id="menuSub"></div>
+      <div class="d-bio" id="menuBio"></div>
+      <div class="d-role" id="menuRole" style="display:none"></div>
+    </div>
+    <div class="d-av">
+      <img id="menuAvImg" src="" alt="" style="display:none">
+      <span id="menuAvFallback">👤</span>
     </div>
   </div>
   <!-- 메뉴 항목 -->
@@ -5654,7 +5663,7 @@ if('serviceWorker' in navigator){
 </div>
 
 <!-- 공지사항 화면 -->
-<div id="noticeScreen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;width:100%;max-width:480px;margin:0 auto;overflow-y:auto;z-index:50;padding-top:52px;box-sizing:border-box;bottom:calc(56px + env(safe-area-inset-bottom));overflow-y:auto;background:#f7f8fc;z-index:50;padding:12px">
+<div id="noticeScreen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#f7f8fc;overflow-y:auto;z-index:110;padding-top:52px;padding-bottom:calc(80px + env(safe-area-inset-bottom));box-sizing:border-box">
   <div style="padding:6px 0 4px"><div style="margin:0 9px;background:#1c986d;border-radius:100px;height:38px;display:flex;align-items:center;padding:0 18px;gap:4px"><span style="font-size:18px;font-weight:700;color:#fff">KTC 공지사항</span><span style="font-size:12px;font-weight:400;color:#fff"> : 공지사항은 꼭 확인해주세요 !</span></div></div>
     <button id="btnAddNotice" onclick="openAddPost('notice')" style="display:none;font-size:13px;background:#1A9B6E;color:#fff;border:none;border-radius:8px;padding:6px 14px;cursor:pointer">+ 글쓰기</button>
   </div>
@@ -5662,7 +5671,7 @@ if('serviceWorker' in navigator){
 </div>
 
 <!-- 자유게시판 화면 -->
-<div id="freeScreen" style="display:none;position:fixed;top:0;left:0;right:0;width:100%;max-width:480px;margin:0 auto;overflow-y:auto;padding-top:52px;box-sizing:border-box;bottom:calc(80px + env(safe-area-inset-bottom));overflow-y:auto;background:#f7f8fc;z-index:50">
+<div id="freeScreen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#f7f8fc;overflow-y:auto;z-index:110;padding-top:52px;padding-bottom:calc(100px + env(safe-area-inset-bottom));box-sizing:border-box">
   <div style="padding:6px 0 2px"><div style="margin:0 9px;background:#1c986d;border-radius:100px;height:38px;display:flex;align-items:center;padding:0 18px;gap:4px"><span style="font-size:18px;font-weight:700;color:#fff">KTC 게시판</span><span style="font-size:12px;font-weight:400;color:#fff"> : 카테고리별로 자유롭게 게시해주세요</span></div></div>
   <!-- 상단 검색바 -->
   <div style="padding:12px 14px 0">
