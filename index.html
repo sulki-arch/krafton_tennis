@@ -5172,7 +5172,8 @@ function _buildLinkEmbed(url, ogData) {
 
 function _buildCardImg(link, img) {
   var ltype = typeof _detectLinkType === 'function' ? _detectLinkType(link||'') : 'link';
-  if (ltype === 'youtube' && !img) {
+  // YouTube: 항상 썸네일 직접 생성 (ogData.img 무시)
+  if (ltype === 'youtube') {
     try {
       var u = new URL(link);
       var vid = '';
@@ -5182,9 +5183,11 @@ function _buildCardImg(link, img) {
       if (vid) return '<img src="https://img.youtube.com/vi/'+vid+'/mqdefault.jpg" loading="lazy" style="width:100%;height:100%;object-fit:cover"><div class="fboard-img-badge yt-badge">&#9654; YouTube</div>';
     } catch(e){}
   }
-  if (ltype === 'instagram' && !img) {
+  // Instagram: URL 만료 문제로 항상 그라디언트 카드 표시
+  if (ltype === 'instagram') {
     return '<div class="fboard-img-ph" style="background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)"><span style="color:#fff;font-size:26px">&#128247;</span></div><div class="fboard-img-badge ig-badge">Instagram</div>';
   }
+  // 일반 링크: ogData 이미지 있으면 표시
   if (img) return '<img src="'+img+'" loading="lazy" style="width:100%;height:100%;object-fit:cover">';
   return '<div class="fboard-img-ph">&#128279;</div>';
 }
