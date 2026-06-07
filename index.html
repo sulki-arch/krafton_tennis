@@ -1620,6 +1620,7 @@ async function init(){
     toast('⚠️ 오프라인 모드 (데이터가 이 기기에만 저장됩니다)');
   }
 
+  loadBoardCats();
   // 기본 관리자 계정
   let users=getUsers();
   if(!users.find(u=>u.role==='admin')){
@@ -4697,7 +4698,7 @@ function switchTab(tab) {
     }, 0);
   }
   if (tab === 'notice') { loadPosts('notice'); }
-  if (tab === 'free') { loadPosts('free'); _markFreeBoardRead(); }
+  if (tab === 'free') { loadPosts('free'); _markFreeBoardRead(); renderCatBar(); }
 }
 
 // ─── BOARD ───────────────────────────────────────
@@ -4706,10 +4707,124 @@ let _freeCat = 'all';
 let _allFreePosts = [];
 let _linkDebTimer = null;
 
-const FREE_CATS = {
+let FREE_CATS = {
   '정보':'📖 정보공유','장비':'🎾 장비추천','후기':'✍️ 후기',
   '질문':'❓ 질문','모집':'👥 모집','기타':'💬 기타'
 };
+const _DEFAULT_CATS = [
+  {key:'정보',label:'📖 정보공유'},{key:'장비',label:'🎾 장비추천'},
+  {key:'후기',label:'✍️ 후기'},{key:'질문',label:'❓ 질문'},
+  {key:'모집',label:'👥 모집'},{key:'기타',label:'💬 기타'}
+];
+let _boardCats = null; // null = 기본값 사용
+
+function loadBoardCats() {
+  if (!_db) return;
+  _db.ref('_config/boardCats').on('value', snap => {
+    const val = snap.val();
+    if (val) {
+      try {
+        _boardCats = JSON.parse(val);
+        FREE_CATS = {};
+        _boardCats.forEach(function(c){ FREE_CATS[c.key] = c.label; });
+      } catch(e) { _boardCats = null; }
+    } else {
+      _boardCats = null;
+    }
+    renderCatBar();
+  });
+}
+
+function _getCats() {
+  return _boardCats || _DEFAULT_CATS.slice();
+}
+
+function renderCatBar() {
+  const bar = document.getElementById('freeCatBar');
+  if (!bar) return;
+  const cats = _getCats();
+  const isAdmin = CU && (CU.role==='admin' || CU.role==='manager');
+  var allOn = _freeCat==='all' ? ' on' : '';
+  var html = '<button class="fcat-chip'+allOn+'" onclick="setFreecat(&quot;all&quot;)">전체</button>';
+  cats.forEach(function(c) {
+    var on = _freeCat === c.key ? ' on' : '';
+    html += '<button class="fcat-chip'+on+'" onclick="setFreecat(&quot;'+c.key+'&quot;)">'+_escHtml(c.label)+'</button>';
+  });
+  if (isAdmin) {
+    html += '<button onclick="openCatEditM()" style="flex-shrink:0;margin-left:2px;background:none;border:1.5px solid #ddd;border-radius:100px;padding:6px 11px;font-size:12px;color:#aaa;cursor:pointer;white-space:nowrap" title="카테고리 편집">✏️</button>';
+  }
+  bar.innerHTML = html;
+}
+
+function openCatEditM() {
+  const cats = _getCats();
+  _renderCatEditRows(cats);
+  openM('catEditM');
+}
+
+function _renderCatEditRows(cats) {
+  const el = document.getElementById('catEditList');
+  if (!el) return;
+  el.innerHTML = cats.map(function(c, i) {
+    return '<div class="cat-edit-row" id="catr-'+i+'" style="display:flex;gap:8px;align-items:center;margin-bottom:8px">'
+      + '<span style="font-size:11px;color:#bbb;padding:0 4px;min-width:36px;text-align:center">' + _escHtml(c.key) + '</span>'
+      + '<input id="catlbl-'+i+'" value="' + _escHtml(c.label) + '" placeholder="이모지 + 이름 (예: 🎾 장비추천)" '
+      + 'style="flex:1;padding:9px 12px;border:1.5px solid #eee;border-radius:10px;font-size:13px;font-family:inherit;outline:none">'
+      + '<button onclick="moveCatRow('+i+',-1)" style="background:none;border:none;font-size:16px;cursor:pointer;color:#bbb;padding:4px">↑</button>'
+      + '<button onclick="moveCatRow('+i+',1)" style="background:none;border:none;font-size:16px;cursor:pointer;color:#bbb;padding:4px">↓</button>'
+      + '<button onclick="removeCatRow('+i+')" style="background:none;border:none;font-size:18px;cursor:pointer;color:#e24b4a;padding:4px">×</button>'
+      + '</div>';
+  }).join('');
+}
+
+function _readCatRows() {
+  const cats = _getCats().slice();
+  cats.forEach(function(c, i) {
+    const inp = document.getElementById('catlbl-'+i);
+    if (inp) c.label = inp.value.trim() || c.label;
+  });
+  return cats;
+}
+
+function moveCatRow(idx, dir) {
+  const cats = _readCatRows();
+  const to = idx + dir;
+  if (to < 0 || to >= cats.length) return;
+  const tmp = cats[idx]; cats[idx] = cats[to]; cats[to] = tmp;
+  // rebuild _boardCats temporarily so _getCats() returns updated list
+  _boardCats = cats;
+  _renderCatEditRows(cats);
+}
+
+function removeCatRow(idx) {
+  const cats = _readCatRows();
+  cats.splice(idx, 1);
+  _boardCats = cats;
+  _renderCatEditRows(cats);
+}
+
+function addCatRow() {
+  const cats = _readCatRows();
+  const key = 'cat' + Date.now();
+  cats.push({key: key, label: ''});
+  _boardCats = cats;
+  _renderCatEditRows(cats);
+  // 새 행 입력창 포커스
+  setTimeout(function() {
+    const inp = document.getElementById('catlbl-'+(cats.length-1));
+    if (inp) inp.focus();
+  }, 50);
+}
+
+function saveBoardCats() {
+  if (!_db) return;
+  const cats = _readCatRows().filter(function(c){ return c.label.trim(); });
+  if (cats.length === 0) { alert('카테고리가 하나 이상 있어야 합니다.'); return; }
+  _db.ref('_config/boardCats').set(JSON.stringify(cats)).then(function() {
+    closeM('catEditM');
+    toast('카테고리가 저장됐습니다.');
+  }).catch(function(e) { alert('저장 실패: '+e.message); });
+}
 
 // 카테고리 필터
 function setFreecat(cat) {
@@ -4805,9 +4920,19 @@ function openAddPost(type) {
   if (pv) { pv.style.display = 'none'; pv._ogData = null; }
   const catRow = document.getElementById('postCatRow');
   if (catRow) catRow.style.display = type === 'free' ? 'block' : 'none';
-  document.querySelectorAll('.pcap').forEach(b => b.classList.remove('on'));
-  const defBtn = document.querySelector('.pcap[onclick*="기타"]');
-  if (defBtn) { defBtn.classList.add('on'); document.getElementById('postCatVal').value='기타'; }
+  // 카테고리 버튼 동적 렌더
+  const picker = document.getElementById('postCatPicker');
+  if (picker) {
+    const cats = _getCats();
+    picker.innerHTML = cats.map(function(c) {
+      return '<button class="pcap" onclick="selectPostCat(this,&quot;'+c.key+'&quot;)">'+_escHtml(c.label)+'</button>';
+    }).join('');
+  }
+  document.querySelectorAll('.pcap').forEach(function(b){ b.classList.remove('on'); });
+  const _activeCats = _getCats();
+  const lastCatKey = _activeCats && _activeCats.length ? _activeCats[_activeCats.length-1].key : '기타';
+  const defBtn = document.querySelector('.pcap:last-child');
+  if (defBtn) { defBtn.classList.add('on'); document.getElementById('postCatVal').value=lastCatKey; }
   openM('addPostM');
 }
 
@@ -5230,15 +5355,7 @@ if('serviceWorker' in navigator){
     </div>
   </div>
   <!-- 카테고리 칩 -->
-  <div id="freeCatBar" style="display:flex;gap:8px;padding:10px 14px;overflow-x:auto;scrollbar-width:none;flex-shrink:0">
-    <button class="fcat-chip on" onclick="setFreecat('all')">전체</button>
-    <button class="fcat-chip" onclick="setFreecat('정보')">📖 정보공유</button>
-    <button class="fcat-chip" onclick="setFreecat('장비')">🎾 장비추천</button>
-    <button class="fcat-chip" onclick="setFreecat('후기')">✍️ 후기</button>
-    <button class="fcat-chip" onclick="setFreecat('질문')">❓ 질문</button>
-    <button class="fcat-chip" onclick="setFreecat('모집')">👥 모집</button>
-    <button class="fcat-chip" onclick="setFreecat('기타')">💬 기타</button>
-  </div>
+  <div id="freeCatBar" style="display:flex;gap:8px;padding:10px 14px;overflow-x:auto;scrollbar-width:none;flex-shrink:0"></div>
   <!-- 카드 그리드 -->
   <div id="freeList" style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:0 14px 14px"></div>
 </div>
@@ -5247,6 +5364,23 @@ if('serviceWorker' in navigator){
 <button id="freeFab" onclick="openAddPost('free')" style="display:none;position:fixed;bottom:calc(88px + env(safe-area-inset-bottom));right:20px;width:52px;height:52px;background:#185FA5;color:#fff;border:none;border-radius:16px;font-size:24px;cursor:pointer;z-index:200;box-shadow:0 4px 20px rgba(24,95,165,.4);align-items:center;justify-content:center">
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
 </button>
+
+<!-- 카테고리 편집 모달 (관리자 전용) -->
+<div class="bso" id="catEditM">
+  <div class="bs" style="max-height:85vh;overflow-y:auto">
+    <div class="bs-h"></div>
+    <div style="padding:0 16px 32px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <h3 style="font-size:17px;font-weight:700">카테고리 관리</h3>
+        <button onclick="closeM('catEditM')" style="background:none;border:none;font-size:22px;color:#bbb;cursor:pointer;padding:4px 8px">×</button>
+      </div>
+      <p style="font-size:12px;color:#bbb;margin-bottom:16px">이름을 수정하거나 순서를 바꿀 수 있어요. 키(회색)는 기존 게시글과 연결된 ID라 변경되지 않아요.</p>
+      <div id="catEditList"></div>
+      <button onclick="addCatRow()" style="width:100%;padding:12px;background:#f7f8fc;border:1.5px dashed #ddd;border-radius:12px;color:#888;font-size:14px;cursor:pointer;margin-top:4px;font-family:inherit">+ 카테고리 추가</button>
+      <button onclick="saveBoardCats()" style="width:100%;margin-top:12px;padding:14px;background:#185FA5;color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">저장하기</button>
+    </div>
+  </div>
+</div>
 
 <!-- 글쓰기 모달 -->
 <div class="bso" id="addPostM">
@@ -5261,12 +5395,7 @@ if('serviceWorker' in navigator){
       <div id="postCatRow" style="display:none;margin-bottom:14px">
         <div style="font-size:12px;font-weight:600;color:#888;margin-bottom:8px">카테고리</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap" id="postCatPicker">
-          <button class="pcap" onclick="selectPostCat(this,'정보')">📖 정보공유</button>
-          <button class="pcap" onclick="selectPostCat(this,'장비')">🎾 장비추천</button>
-          <button class="pcap" onclick="selectPostCat(this,'후기')">✍️ 후기</button>
-          <button class="pcap" onclick="selectPostCat(this,'질문')">❓ 질문</button>
-          <button class="pcap" onclick="selectPostCat(this,'모집')">👥 모집</button>
-          <button class="pcap" onclick="selectPostCat(this,'기타')">💬 기타</button>
+          <!-- 카테고리 버튼은 openAddPost에서 동적 생성 -->
         </div>
         <input type="hidden" id="postCatVal" value="기타">
       </div>
