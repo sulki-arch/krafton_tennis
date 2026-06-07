@@ -4804,6 +4804,7 @@ function _showLinkPreview(pv, ogData, img) {
 
 function openAddPost(type) {
   _postType = type;
+  _editPostId = null;
   document.getElementById('addPostTitle').textContent = type === 'notice' ? '공지 작성' : '새 글 작성';
   document.getElementById('postTitleInp').value = '';
   document.getElementById('postBodyInp').value = '';
@@ -4813,7 +4814,6 @@ function openAddPost(type) {
   if (pv) { pv.style.display = 'none'; pv._ogData = null; }
   const catRow = document.getElementById('postCatRow');
   if (catRow) catRow.style.display = type === 'free' ? 'block' : 'none';
-  // 기타 기본 선택
   document.querySelectorAll('.pcap').forEach(b => b.classList.remove('on'));
   const defBtn = document.querySelector('.pcap[onclick*="기타"]');
   if (defBtn) { defBtn.classList.add('on'); document.getElementById('postCatVal').value='기타'; }
@@ -4821,39 +4821,75 @@ function openAddPost(type) {
 }
 
 function submitPost() {
-  const title = document.getElementById('postTitleInp').value.trim();
-  const body = document.getElementById('postBodyInp').value.trim();
+  if (!_db) { alert('DB 연결 오류. 잠시 후 다시 시도해주세요.'); return; }
+  if (!CU) { alert('로그인이 필요합니다.'); return; }
+  const title = (document.getElementById('postTitleInp').value||'').trim();
   if (!title) { alert('제목을 입력해주세요.'); return; }
-  if (!CU) return;
+  const body = (document.getElementById('postBodyInp').value||'').trim();
   const link = (document.getElementById('postLinkInp')?.value||'').trim();
   const pv = document.getElementById('postLinkPreview');
-  const ogData = (pv && pv._ogData) || null;
+  const rawOg = (pv && pv._ogData) || null;
+  // Firebase 저장 전 ogData 값 정리 (undefined/function 방지)
+  const ogData = rawOg ? {
+    title: String(rawOg.title||''),
+    desc: String(rawOg.desc||''),
+    img: String(rawOg.img||''),
+    domain: String(rawOg.domain||'')
+  } : null;
   const cat = _postType === 'free' ? (document.getElementById('postCatVal')?.value || '기타') : '';
-  const post = {
-    title, body, link: link||null, ogData: ogData||null, cat,
-    authorId: CU.id, authorName: CU.name || CU.id,
-    createdAt: Date.now(), type: _postType
-  };
-  const saveRef = _editPostId ? _db.ref('_posts/'+_editPostId) : _db.ref('_posts').push ? _db.ref('_posts') : null;
-  const savePromise = _editPostId
-    ? _db.ref('_posts/'+_editPostId).update({title, body, link: link||null, ogData: ogData||null, cat, updatedAt: Date.now()})
-    : _db.ref('_posts').push(post);
+
+  let savePromise;
+  try {
+    if (_editPostId) {
+      savePromise = _db.ref('_posts/'+_editPostId).update({
+        title: title,
+        body: body || null,
+        link: link || null,
+        ogData: ogData,
+        cat: cat,
+        updatedAt: Date.now()
+      });
+    } else {
+      const post = {
+        title: title,
+        body: body || null,
+        link: link || null,
+        ogData: ogData,
+        cat: cat,
+        authorId: String(CU.id||''),
+        authorName: String(CU.name||CU.id||''),
+        createdAt: Date.now(),
+        type: String(_postType||'free')
+      };
+      savePromise = _db.ref('_posts').push(post);
+    }
+  } catch(e) {
+    alert('저장 준비 중 오류: '+e.message);
+    return;
+  }
+
+  const savedType = _postType;
+  const savedTitle = title;
   _editPostId = null;
-  savePromise.then(() => {
+
+  savePromise.then(function() {
     closeM('addPostM');
-    loadPosts(_postType);
+    loadPosts(savedType);
     const users = typeof getUsers === 'function' ? getUsers() : [];
-    if (_postType === 'free') {
-      users.filter(u => u.id !== CU.id).forEach(u => {
-        if (typeof _addNotif === 'function') _addNotif(u.id, '📋 자유게시판: '+(CU.name||CU.id)+' — '+title, null);
+    if (savedType === 'free') {
+      users.filter(function(u){ return u.id !== CU.id; }).forEach(function(u) {
+        if (typeof _addNotif === 'function') _addNotif(u.id, '📋 자유게시판: '+(CU.name||CU.id)+' — '+savedTitle, null);
       });
       _showFreeBoardDot(true);
-    } else if (_postType === 'notice') {
-      users.filter(u => u.id !== CU.id).forEach(u => {
-        if (typeof _addNotif === 'function') _addNotif(u.id, '📢 공지: '+title, null);
+    } else if (savedType === 'notice') {
+      users.filter(function(u){ return u.id !== CU.id; }).forEach(function(u) {
+        if (typeof _addNotif === 'function') _addNotif(u.id, '📢 공지: '+savedTitle, null);
       });
     }
-  }).catch(e => { _editPostId = null; alert('저장 실패: '+e.message); });
+  }).catch(function(e) {
+    _editPostId = null;
+    alert('저장 실패: '+(e&&e.message?e.message:String(e)));
+  });
 }
 
 function loadPosts(type) {
