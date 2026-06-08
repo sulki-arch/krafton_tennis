@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>공유 캘린더</title>
 <!-- PWA -->
 <link rel="manifest" href="/krafton_tennis/manifest.json">
@@ -24,14 +24,14 @@
 :root{--P:#1A9B6E;--PD:#0f6b4a;--SUN:#e53935;--SAT:#1A9B6E;--BD:#f0f2f5;--SH:0 4px 20px rgba(0,0,0,.08)}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
-body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif;background:#f7f8fc;padding-bottom:calc(80px + env(safe-area-inset-bottom))}
+body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif;background:#1c986d;padding-bottom:calc(80px + env(safe-area-inset-bottom))}
 #root{width:100%;max-width:480px;min-height:100vh;background:#fff;position:relative;display:flex;flex-direction:column}
 
 /* ── LOGIN (legacy, unused) ── */
 #login-screen{display:none}
 
 /* ── APP ── */
-#app{display:none;flex-direction:column;width:100%;max-width:480px;margin:0 auto;position:relative;box-sizing:border-box}
+#app{display:none;flex-direction:column;width:100%;max-width:480px;margin:0 auto;position:relative;box-sizing:border-box;background:#f7f8fc}
 
 /* ── HEADER ── */
 .hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:none;background:#fff;box-shadow:0 1px 0 #f0f2f5;position:sticky;top:0;z-index:100}
@@ -619,7 +619,7 @@ label.fl{display:block;font-size:12px;font-weight:600;color:#666;margin:14px 0 5
 
 <!-- ═══ APP ═══ -->
 <div id="app">
-  <div id="calKtcBanner" style="padding:0 0 4px"><div style="margin:0;background:#1c986d;border-radius:0;height:38px;display:flex;align-items:center;padding:0 18px;gap:4px"><span style="font-size:18px;font-weight:700;color:#fff">KTC 공유 캘린더</span><span style="font-size:12px;font-weight:400;color:#fff"> : 일정 등록은 자유롭게 해주세요</span></div>
+  <div id="calKtcBanner" style="background:#1c986d;padding-top:env(safe-area-inset-top);padding-bottom:4px"><div style="margin:0;background:#1c986d;border-radius:0;height:38px;display:flex;align-items:center;padding:0 18px;gap:4px"><span style="font-size:18px;font-weight:700;color:#fff">KTC 공유 캘린더</span><span style="font-size:12px;font-weight:400;color:#fff"> : 일정 등록은 자유롭게 해주세요</span></div>
     <!-- 월 네비 + 월간/주간 토글 (배너 아래) -->
     <div id="calMonthNav" style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:6px 14px 4px">
       <div></div>
@@ -5596,7 +5596,7 @@ if('serviceWorker' in navigator){
 <!-- 메뉴 화면 -->
 <div id="menuScreen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#f7f8fc;overflow-y:auto;z-index:110;padding-bottom:calc(80px + env(safe-area-inset-bottom));box-sizing:border-box">
   <!-- 상단 배너 — 공지사항/게시판과 동일 스타일 -->
-  <div style="padding:0 0 0"><div style="margin:0;background:#1c986d;border-radius:0;height:38px;display:flex;align-items:center;padding:0 18px;gap:4px"><span style="font-size:18px;font-weight:700;color:#fff">메뉴</span><span style="font-size:12px;font-weight:400;color:#fff"> : 내 프로필 카드를 자유롭게 꾸며주세요</span></div></div>
+  <div style="background:#1c986d;padding-top:env(safe-area-inset-top);padding-bottom:4px"><div style="margin:0;background:#1c986d;border-radius:0;height:38px;display:flex;align-items:center;padding:0 18px;gap:4px"><span style="font-size:18px;font-weight:700;color:#fff">메뉴</span><span style="font-size:12px;font-weight:400;color:#fff"> : 내 프로필 카드를 자유롭게 꾸며주세요</span></div></div>
   <!-- 프로필 카드 — pcf-wrap 정사각형 카드 -->
   <div style="margin:20px">
   <div class="pcf-wrap" onclick="openProfile()" style="cursor:pointer">
@@ -5651,7 +5651,7 @@ if('serviceWorker' in navigator){
 
 <!-- 공지사항 화면 -->
 <div id="noticeScreen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#f7f8fc;overflow-y:auto;z-index:110;padding-bottom:calc(80px + env(safe-area-inset-bottom));box-sizing:border-box">
-  <div style="padding:0 0 4px"><div style="margin:0;background:#1c986d;border-radius:0;height:38px;display:flex;align-items:center;padding:0 18px;gap:4px"><span style="font-size:18px;font-weight:700;color:#fff">KTC 공지사항</span><span style="font-size:12px;font-weight:400;color:#fff"> : 공지사항은 꼭 확인해주세요 !</span></div></div>
+  <div style="background:#1c986d;padding-top:env(safe-area-inset-top);padding-bottom:4px"><div style="margin:0;background:#1c986d;border-radius:0;height:38px;display:flex;align-items:center;padding:0 18px;gap:4px"><span style="font-size:18px;font-weight:700;color:#fff">KTC 공지사항</span><span style="font-size:12px;font-weight:400;color:#fff"> : 공지사항은 꼭 확인해주세요 !</span></div></div>
     <button id="btnAddNotice" onclick="openAddPost('notice')" style="display:none;font-size:13px;background:#1A9B6E;color:#fff;border:none;border-radius:8px;padding:6px 14px;cursor:pointer">+ 글쓰기</button>
   </div>
   <div id="noticeList" style="display:flex;flex-direction:column;gap:8px"></div>
@@ -5659,7 +5659,7 @@ if('serviceWorker' in navigator){
 
 <!-- 자유게시판 화면 -->
 <div id="freeScreen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#f7f8fc;overflow-y:auto;z-index:110;padding-bottom:calc(100px + env(safe-area-inset-bottom));box-sizing:border-box">
-  <div style="padding:0 0 4px"><div style="margin:0;background:#1c986d;border-radius:0;height:38px;display:flex;align-items:center;padding:0 18px;gap:4px"><span style="font-size:18px;font-weight:700;color:#fff">KTC 게시판</span><span style="font-size:12px;font-weight:400;color:#fff"> : 카테고리별로 자유롭게 게시해주세요</span></div></div>
+  <div style="background:#1c986d;padding-top:env(safe-area-inset-top);padding-bottom:4px"><div style="margin:0;background:#1c986d;border-radius:0;height:38px;display:flex;align-items:center;padding:0 18px;gap:4px"><span style="font-size:18px;font-weight:700;color:#fff">KTC 게시판</span><span style="font-size:12px;font-weight:400;color:#fff"> : 카테고리별로 자유롭게 게시해주세요</span></div></div>
   <!-- 상단 검색바 -->
   <div style="padding:12px 14px 0">
     <div style="background:#fff;border-radius:14px;display:flex;align-items:center;gap:8px;padding:10px 14px;box-shadow:0 2px 8px rgba(0,0,0,0.06)">
