@@ -2250,33 +2250,78 @@ function renderWeek(){
     }
   }
 
-  // ─── 이벤트 블록 배치 (layout 후) ───
+  // ─── 이벤트 블록 배치 (layout 후, 중복 열 분할) ───
   requestAnimationFrame(()=>{
     const totalW=inner.offsetWidth||380;
     const dayW=(totalW-40)/3;
 
-    events.forEach(ev=>{
-      if(!canSeeEvent(ev)||hiddenCats.has(ev.categoryId)) return;
-      if(!ev.startTime) return; // 종일은 위에서 처리
-      const sd=ev.startDate||ev.date, ed=ev.endDate||ev.date;
-
-      days.forEach((d,di)=>{
-        const ds=fd(d);
+    // 1. 각 날짜별로 보이는 시간 이벤트 수집
+    const dayEvMap={}; // di -> [{ev, startMin, endMin}]
+    days.forEach((d,di)=>{
+      const ds=fd(d);
+      const evList=[];
+      events.forEach(ev=>{
+        if(!canSeeEvent(ev)||hiddenCats.has(ev.categoryId)) return;
+        if(!ev.startTime) return;
+        const sd=ev.startDate||ev.date, ed=ev.endDate||ev.date;
         if(sd>ds||ds>ed) return;
-
         const sh=parseInt(ev.startTime.slice(0,2))||0;
         const sm=parseInt(ev.startTime.slice(3,5))||0;
         const eh=ev.endTime?parseInt(ev.endTime.slice(0,2)):sh+1;
         const em=ev.endTime?parseInt(ev.endTime.slice(3,5)):0;
-
         if(sh>WC_END||eh<WC_START) return;
+        const startMin=sh*60+sm;
+        const endMin=Math.max(eh*60+em, startMin+15);
+        evList.push({ev, startMin, endMin});
+      });
+      dayEvMap[di]=evList;
+    });
+
+    // 2. 날짜별로 오버랩 그룹화 → 열 인덱스/총열수 할당
+    function assignColumns(evList){
+      // 시작시간 순 정렬
+      evList.sort((a,b)=>a.startMin-b.startMin);
+      const cols=[]; // cols[i] = 마지막 endMin
+      evList.forEach(item=>{
+        let placed=false;
+        for(let c=0;c<cols.length;c++){
+          if(cols[c]<=item.startMin){
+            item._col=c; cols[c]=item.endMin; placed=true; break;
+          }
+        }
+        if(!placed){ item._col=cols.length; cols.push(item.endMin); }
+      });
+      // 총 열 수: 겹치는 그룹별로 계산 (sweep)
+      // 각 이벤트가 속한 "동시 그룹"의 최대 열 수를 구함
+      evList.forEach(item=>{
+        let maxCols=0;
+        evList.forEach(other=>{
+          if(other.startMin<item.endMin && other.endMin>item.startMin){
+            maxCols=Math.max(maxCols, other._col+1);
+          }
+        });
+        item._totalCols=Math.max(maxCols,1);
+      });
+    }
+
+    days.forEach((_,di)=>{ if(dayEvMap[di].length) assignColumns(dayEvMap[di]); });
+
+    // 3. 실제 DOM 생성
+    days.forEach((d,di)=>{
+      (dayEvMap[di]||[]).forEach(({ev,startMin,endMin,_col,_totalCols})=>{
+        const sh=parseInt(ev.startTime.slice(0,2))||0;
+        const sm=parseInt(ev.startTime.slice(3,5))||0;
+        const eh=ev.endTime?parseInt(ev.endTime.slice(0,2)):sh+1;
+        const em=ev.endTime?parseInt(ev.endTime.slice(3,5)):0;
         const csh=Math.max(sh,WC_START), ceh=Math.min(eh,WC_END);
 
         const top=(csh-WC_START)*WC_HOUR_H+(sm/60*WC_HOUR_H);
         const durMin=Math.max((ceh-csh)*60-sm+em,15);
         const height=Math.max(durMin/60*WC_HOUR_H,22);
-        const left=40+di*dayW+1;
-        const width=dayW-2;
+
+        const colW=dayW/_totalCols;
+        const left=40+di*dayW+_col*colW+1;
+        const width=colW-2;
 
         const cat=cats.find(c=>c.id===ev.categoryId);
         const cls=cat?cat.color:'c-blue';
