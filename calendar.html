@@ -3538,8 +3538,10 @@ function saveEvent(){
       title,startDate,startTime,endDate:ed,endTime,memo,categoryId,scope,maxAttendees,
       createdBy:CU.id,attendees:[],waitlist:[],chat:[],photos:[],coverPhotoId:null};
     evs.push(newEv);
+    setEvents(evs); // Firebase에 먼저 저장 (리스너 race condition 방지)
     toast('일정이 추가되었습니다');
-    _notifyNewEvent(newEv); // 새 일정 알림 전송
+    _notifyNewEvent(newEv); // 새 일정 알림 전송 (setEvents 이후 호출)
+    closeM('evM'); renderCal(); return;
   }
   setEvents(evs); closeM('evM'); renderCal();
 }
